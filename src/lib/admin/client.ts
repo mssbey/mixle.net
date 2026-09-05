@@ -1,0 +1,134 @@
+'use client';
+
+// Admin arayüzü → Route Handler istemci sarmalayıcısı.
+
+import type {
+  AdminCategory,
+  AdminCollection,
+  AdminProduct,
+  CatalogFile,
+} from '@/types/admin';
+import type { BulkAction } from './mutations';
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly issues: Record<string, string> = {},
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    ...init,
+    headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+  });
+  const isJson = res.headers.get('content-type')?.includes('application/json');
+  const payload = isJson ? await res.json().catch(() => null) : null;
+
+  if (!res.ok) {
+    const message =
+      (payload && typeof payload.message === 'string' && payload.message) ||
+      `İstek başarısız (${res.status})`;
+    throw new ApiError(message, res.status, payload?.issues ?? {});
+  }
+  return payload as T;
+}
+
+export interface CatalogResponse {
+  catalog: CatalogFile;
+  meta: { canWrite: boolean };
+}
+
+export const adminApi = {
+  loadCatalog: () => request<CatalogResponse>('/api/admin/catalog', { cache: 'no-store' }),
+
+  saveCatalog: (catalog: CatalogFile) =>
+    request<CatalogResponse>('/api/admin/catalog', {
+      method: 'PUT',
+      body: JSON.stringify({ catalog }),
+    }),
+
+  createProduct: (product: AdminProduct) =>
+    request<{ product: AdminProduct }>('/api/admin/products', {
+      method: 'POST',
+      body: JSON.stringify(product),
+    }),
+
+  updateProduct: (id: string, patch: Partial<AdminProduct>) =>
+    request<{ product: AdminProduct }>(`/api/admin/products/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+
+  deleteProduct: (id: string) =>
+    request<{ ok: true }>(`/api/admin/products/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  bulkProducts: (op: BulkAction) =>
+    request<{ ok: true }>('/api/admin/products/bulk', {
+      method: 'POST',
+      body: JSON.stringify(op),
+    }),
+
+  saveCategory: (category: AdminCategory) =>
+    request<{ category: AdminCategory }>('/api/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(category),
+    }),
+
+  updateCategory: (id: string, patch: Partial<AdminCategory>) =>
+    request<{ category: AdminCategory }>(`/api/admin/categories/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+
+  deleteCategory: (id: string) =>
+    request<{ ok: true }>(`/api/admin/categories/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  reorderCategories: (orderedIds: string[]) =>
+    request<{ categories: AdminCategory[] }>('/api/admin/categories/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ orderedIds }),
+    }),
+
+  saveCollection: (collection: AdminCollection) =>
+    request<{ collection: AdminCollection }>('/api/admin/collections', {
+      method: 'POST',
+      body: JSON.stringify(collection),
+    }),
+
+  updateCollection: (id: string, patch: Partial<AdminCollection>) =>
+    request<{ collection: AdminCollection }>(`/api/admin/collections/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+
+  deleteCollection: (id: string) =>
+    request<{ ok: true }>(`/api/admin/collections/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  reorderCollections: (orderedIds: string[]) =>
+    request<{ collections: AdminCollection[] }>('/api/admin/collections/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ orderedIds }),
+    }),
+
+  importCatalog: (format: 'json' | 'csv', data: string) =>
+    request<Record<string, unknown>>('/api/admin/settings/import', {
+      method: 'POST',
+      body: JSON.stringify({ format, data }),
+    }),
+
+  resetCatalog: () =>
+    request<{ ok: true; products: number }>('/api/admin/settings/reset', { method: 'POST' }),
+
+  login: (password: string) =>
+    request<{ ok: true }>('/api/admin/auth', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+
+  logout: () => request<{ ok: true }>('/api/admin/auth', { method: 'DELETE' }),
+};

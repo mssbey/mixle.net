@@ -53,20 +53,68 @@ npm run qa:responsive
 
 Bu betikler Puppeteer kullanır. Önce `CHROME_PATH`, sonra yaygın Windows, macOS ve Linux Chrome/Chromium yolları kontrol edilir. Tarayıcı bulunamazsa açıklayıcı hata verilir. Hedef adres `http://localhost:3111` olarak tanımlıdır.
 
+## Admin paneli
+
+`/admin` altında ürün ve varyasyon yönetimi için ayrı bir panel bulunur.
+
+### Giriş
+
+`/admin/giris` üzerinden çerez tabanlı basit bir giriş vardır. Parola
+`ADMIN_PASSWORD` ortam değişkeninden okunur; tanımlı değilse `nefis-admin`
+kullanılır. **Bu gerçek bir kimlik doğrulama değildir:** tek paylaşılan parola,
+tek kullanıcı, rol yok. Yalnızca demo/vitrin korumasıdır. Erişim `src/proxy.ts`
+ile (Next.js 16'da `middleware` yerine `proxy`) sağlanır.
+
+### Rotalar
+
+| Rota | İçerik |
+| --- | --- |
+| `/admin` | Özet: toplam ürün, durum dağılımı, stokta olmayan varyant sayısı, son düzenlenenler |
+| `/admin/urunler` | Liste: arama, kategori/koleksiyon/durum filtresi, sıralama, sayfalama, toplu işlemler |
+| `/admin/urunler/yeni` · `/admin/urunler/[slug]` | Ürün formu (iki kolon + varyant tablosu) |
+| `/admin/kategoriler` · `/admin/koleksiyonlar` | Ekle/düzenle/sil + sürükle-bırak sıralama |
+| `/admin/ayarlar` | Dışa aktar (JSON/CSV), içe aktar, demo verisine sıfırla |
+
+### Veri ve kalıcılık
+
+Katalog verisi tek kaynak olarak `src/data/catalog.json` dosyasında tutulur
+(`src/data/catalog.seed.json` demoya sıfırlama yedeğidir). `src/data/products.ts`
+ve `src/data/categories.ts` bu JSON'u `src/data/catalog-adapter.ts` üzerinden
+mevcut `Product` / `Category` tiplerine indirger; vitrin bileşenlerinin gördüğü
+export imzaları değişmez.
+
+Yazma işlemleri `src/app/api/admin/**` altındaki Route Handler'larla yapılır.
+Yazma yalnızca `NODE_ENV !== "production"` veya `ADMIN_WRITE_ENABLED=true` iken
+çalışır; aksi halde uçlar **403** döner ve panelde "salt okunur" rozeti görünür.
+Kayıt öncesi hem istemci hem sunucu tarafında Zod ile doğrulama yapılır; dosyaya
+yazım atomiktir (geçici dosya + `rename`) ve `schemaVersion` alanı taşınır.
+
+### Varyasyon modeli
+
+İki katmanlıdır: ürün bazında **seçenek tanımları** (ör. `Aroma` → Vanilya/Fındık,
+`Hacim` → 30ml/60ml/100ml) ve bu seçeneklerin kombinasyonundan üretilen
+**varyantlar** (`sku`, `price`, `compareAtPrice`, `stock`, `barcode`, `image`,
+`isDefault`, `isActive`). Seçenek değeri eklenince matris yeniden üretilir ve
+mevcut varyant verisi kombinasyon anahtarına göre korunur. Her üründe tam olarak
+bir varsayılan varyant bulunur; seçeneksiz ürünler tek gizli varyantla yönetilir.
+
 ## Proje yapısı
 
 | Klasör | İçerik |
 | --- | --- |
-| `src/app` | Sayfalar, ana yerleşim, genel stiller ve SEO uçları |
-| `src/components` | Arayüz, ürün, ana sayfa ve yerleşim bileşenleri |
-| `src/data` | Ürünler, kategoriler, menüler ve içerikler |
+| `src/app` | Sayfalar, ana yerleşim, genel stiller, SEO uçları ve `/admin` paneli |
+| `src/app/api/admin` | Admin CRUD Route Handler'ları |
+| `src/components` | Arayüz, ürün, ana sayfa, yerleşim ve `admin/` bileşenleri |
+| `src/data` | Ürünler, kategoriler, menüler, içerikler ve `catalog.json` |
 | `src/store` | Sepet, favoriler ve arayüz durumu |
-| `src/lib` | Arama, filtreleme, sepet hesapları ve yardımcı işlevler |
-| `src/types` | TypeScript tipleri |
+| `src/lib` | Arama, filtreleme, sepet hesapları, yardımcılar ve `admin/` (şema, kalıcılık, varyant) |
+| `src/types` | TypeScript tipleri (`index.ts`, `admin.ts`) |
 | `public` | Statik dosyalar |
 | `scripts` | Görsel işleme ve tarayıcı kontrol betikleri |
 
-Ürün içerikleri `src/data/products.ts`, kategoriler `src/data/categories.ts`, genel içerikler `src/data/content.ts` üzerinden düzenlenebilir.
+Ürün içerikleri artık admin panelinden (`/admin`) veya doğrudan
+`src/data/catalog.json` üzerinden düzenlenebilir; genel içerikler
+`src/data/content.ts` üzerindedir.
 
 ## Geliştirme notu
 

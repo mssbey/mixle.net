@@ -1,0 +1,492 @@
+/* Admin paneli — vitrinden ayrışır ama aynı token ailesini kullanır.
+   Yeni renk yok; tüm değerler globals.css / tailwind.config.ts token'larından. */
+
+.admin-scope {
+  --admin-bg: #f4f1ec;
+  --admin-panel: #ffffff;
+  --admin-line: #e7dfe6;
+  --admin-line-strong: #d9cdd8;
+  --admin-ink: var(--ink);
+  --admin-ink-soft: #6b5f70;
+  --admin-accent: var(--brand-purple);
+  --admin-sidebar-w: 248px;
+  --admin-sidebar-w-collapsed: 68px;
+  --admin-topbar-h: 60px;
+  --admin-savebar-h: 64px;
+
+  min-height: 100dvh;
+  background: var(--admin-bg);
+  color: var(--admin-ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.admin-scope h1,
+.admin-scope h2,
+.admin-scope h3,
+.admin-scope h4 {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  color: var(--brand-purple-deep);
+  letter-spacing: -0.01em;
+}
+
+/* Yerleşim ---------------------------------------------------------------- */
+.admin-layout {
+  display: grid;
+  grid-template-columns: var(--admin-sidebar-w) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+.admin-layout[data-collapsed='true'] {
+  grid-template-columns: var(--admin-sidebar-w-collapsed) minmax(0, 1fr);
+}
+@media (max-width: 900px) {
+  .admin-layout,
+  .admin-layout[data-collapsed='true'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+  background: #241329;
+  color: #efe6f3;
+  overflow-y: auto;
+}
+@media (max-width: 900px) {
+  .admin-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 70;
+    width: min(84vw, 300px);
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 24px 60px -20px rgba(20, 11, 25, 0.5);
+  }
+  .admin-sidebar[data-mobile-open='true'] {
+    transform: translateX(0);
+  }
+}
+
+.admin-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(20, 11, 25, 0.45);
+  backdrop-filter: blur(2px);
+}
+@media (min-width: 901px) {
+  .admin-sidebar-backdrop {
+    display: none;
+  }
+}
+
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #cbb8d6;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+.admin-nav-link:hover {
+  background: rgba(239, 230, 243, 0.08);
+  color: #fff;
+}
+.admin-nav-link[aria-current='page'] {
+  background: rgba(210, 148, 11, 0.16);
+  color: #f7e7c2;
+}
+.admin-nav-link svg {
+  flex-shrink: 0;
+}
+.admin-layout[data-collapsed='true'] .admin-nav-label,
+.admin-layout[data-collapsed='true'] .admin-sidebar-foot {
+  display: none;
+}
+
+.admin-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--admin-topbar-h);
+  padding: 8px 16px;
+  background: rgba(244, 241, 236, 0.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--admin-line);
+}
+
+.admin-content {
+  flex: 1;
+  padding: 20px 16px calc(var(--admin-savebar-h) + 32px);
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+}
+@media (min-width: 1024px) {
+  .admin-content {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+}
+
+/* Kartlar ve yüzeyler --------------------------------------------------- */
+.admin-card {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(20, 11, 25, 0.04), 0 12px 32px -24px rgba(20, 11, 25, 0.16);
+}
+
+.admin-stat {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.admin-stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--brand-purple-deep);
+  font-variant-numeric: tabular-nums;
+}
+.admin-stat-label {
+  font-size: 12.5px;
+  color: var(--admin-ink-soft);
+}
+
+/* Tablolar — zebra yok, ince ayırıcı, yapışkan başlık ------------------ */
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  background: var(--admin-panel);
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.admin-table thead th {
+  background: #f7f4ef;
+  text-align: left;
+  font-weight: 600;
+  color: var(--admin-ink-soft);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--admin-line-strong);
+  white-space: nowrap;
+}
+/* Yoğun veri tabloları için yapışkan başlık (opt-in).
+   overflow-x kaldırılır; aksi halde sticky thead sayfa yerine wrapper'a
+   göre yapışır ve çalışmaz. Bu tablonun sütun sayısı masaüstünde sığar. */
+.admin-table-wrap--sticky {
+  overflow: visible;
+}
+.admin-table-wrap--sticky .admin-table thead th {
+  position: sticky;
+  top: var(--admin-topbar-h);
+  z-index: 20;
+}
+.admin-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--admin-line);
+  vertical-align: middle;
+}
+.admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.admin-table tbody tr:hover td {
+  background: #faf7f2;
+}
+.admin-table tbody tr[data-selected='true'] td {
+  background: #f4edf7;
+}
+
+/* Form alanları ------------------------------------------------------- */
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.admin-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--admin-ink);
+}
+.admin-hint {
+  font-size: 11.5px;
+  color: var(--admin-ink-soft);
+}
+.admin-error {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #b4232f;
+}
+.admin-input,
+.admin-textarea,
+.admin-select {
+  width: 100%;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--admin-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-input:focus,
+.admin-textarea:focus,
+.admin-select:focus {
+  outline: none;
+  border-color: var(--brand-purple);
+  box-shadow: 0 0 0 3px rgba(103, 39, 121, 0.14);
+}
+.admin-input[aria-invalid='true'],
+.admin-textarea[aria-invalid='true'] {
+  border-color: #b4232f;
+  box-shadow: 0 0 0 3px rgba(180, 35, 47, 0.12);
+}
+.admin-textarea {
+  min-height: 84px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* Butonlar ---------------------------------------------------------- */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+}
+.admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.admin-btn-primary {
+  background: var(--brand-purple);
+  color: #fff;
+}
+.admin-btn-primary:hover:not(:disabled) {
+  background: #571f66;
+}
+.admin-btn-ghost {
+  background: #fff;
+  border-color: var(--admin-line-strong);
+  color: var(--admin-ink);
+}
+.admin-btn-ghost:hover:not(:disabled) {
+  border-color: var(--brand-purple);
+  color: var(--brand-purple);
+}
+.admin-btn-danger {
+  background: #fff;
+  border-color: #e6b8bd;
+  color: #b4232f;
+}
+.admin-btn-danger:hover:not(:disabled) {
+  background: #fbeff0;
+}
+.admin-btn-sm {
+  padding: 5px 9px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+/* Rozetler -------------------------------------------------------- */
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.admin-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.admin-badge-yayında {
+  background: #e8f5ee;
+  color: #1f7a48;
+}
+.admin-badge-taslak {
+  background: #f3eef7;
+  color: #6b4e86;
+}
+.admin-badge-arşiv {
+  background: #efe9e4;
+  color: #7a6a5c;
+}
+.admin-badge-stok {
+  background: #fdeceb;
+  color: #b4232f;
+}
+
+/* Yapışkan alt kaydet çubuğu ------------------------------------- */
+.admin-savebar {
+  position: fixed;
+  bottom: 0;
+  left: var(--admin-sidebar-w);
+  right: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--admin-savebar-h);
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--admin-line-strong);
+  transition: left 0.2s ease;
+}
+.admin-layout[data-collapsed='true'] ~ .admin-savebar,
+.admin-layout[data-collapsed='true'] .admin-savebar {
+  left: var(--admin-sidebar-w-collapsed);
+}
+@media (max-width: 900px) {
+  .admin-savebar {
+    left: 0;
+  }
+}
+
+/* Boş durum / iskelet ------------------------------------------- */
+.admin-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--admin-ink-soft);
+}
+.admin-skeleton-row {
+  height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eee7ec 25%, #f6f1f4 37%, #eee7ec 63%);
+  background-size: 400% 100%;
+  animation: admin-shimmer 1.4s ease infinite;
+}
+@keyframes admin-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-skeleton-row {
+    animation: none;
+  }
+}
+
+/* Mobil kart görünümü (tablo -> kart) -------------------------- */
+.admin-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Duyarlı görünüm anahtarı — Tailwind md: yerine (specifiklik çakışmasını önler) */
+.admin-view-desktop {
+  display: none;
+}
+.admin-view-mobile {
+  display: block;
+}
+@media (min-width: 768px) {
+  .admin-view-desktop {
+    display: block;
+  }
+  .admin-view-mobile {
+    display: none;
+  }
+}
+.admin-row-card {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+/* Diyalog / drawer ------------------------------------------- */
+.admin-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(20, 11, 25, 0.44);
+}
+.admin-dialog {
+  width: min(440px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 30px 80px -24px rgba(20, 11, 25, 0.5);
+}
+.admin-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 90;
+  width: min(560px, 100%);
+  background: #fff;
+  box-shadow: -24px 0 60px -24px rgba(20, 11, 25, 0.4);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--admin-line-strong);
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.admin-focusable:focus-visible {
+  outline: 2px solid var(--brand-gold);
+  outline-offset: 2px;
+}
+
+.admin-drag-handle {
+  cursor: grab;
+  color: var(--admin-ink-soft);
+}
+.admin-row-dragging {
+  opacity: 0.4;
+}

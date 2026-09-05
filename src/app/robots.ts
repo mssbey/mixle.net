@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/sepet', '/hesabim', '/siparis', '/favoriler', '/arama'],
+      disallow: ['/sepet', '/hesabim', '/siparis', '/favoriler', '/arama', '/admin', '/api/'],
     },
     sitemap: `${site.domain}/sitemap.xml`,
     host: site.domain,
