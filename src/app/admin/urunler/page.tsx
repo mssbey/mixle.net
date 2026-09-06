@@ -11,7 +11,7 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EmptyState, StatusBadge, TableSkeleton } from '@/components/admin/primitives';
 import { listProducts, type ProductQuery } from '@/lib/admin/mutations';
 import { priceRangeOf } from '@/lib/admin/variants';
-import { currency } from '@/lib/admin/format';
+import { formatMinor } from '@/lib/admin/format';
 import { useDebounced } from '@/lib/hooks';
 
 const PAGE_SIZE = 20;
@@ -389,8 +389,8 @@ function ProductsView() {
                       </td>
                       <td className="whitespace-nowrap">
                         {range.min === range.max
-                          ? currency(range.min)
-                          : `${currency(range.min)} – ${currency(range.max)}`}
+                          ? formatMinor(range.min)
+                          : `${formatMinor(range.min)} – ${formatMinor(range.max)}`}
                       </td>
                       <td>
                         {stock <= 0 ? (
@@ -443,8 +443,8 @@ function ProductsView() {
                         <StatusBadge status={p.status} />
                         <span className="text-xs text-[var(--admin-ink-soft)]">
                           {range.min === range.max
-                            ? currency(range.min)
-                            : `${currency(range.min)}–${currency(range.max)}`}
+                            ? formatMinor(range.min)
+                            : `${formatMinor(range.min)}–${formatMinor(range.max)}`}
                         </span>
                       </div>
                     </div>

@@ -204,7 +204,7 @@ export function listProducts(catalog: CatalogFile, query: ProductQuery): Product
   });
 
   const minPrice = (p: AdminProduct) =>
-    Math.min(...p.variants.filter((v) => v.isActive).map((v) => v.price).concat(Infinity));
+    Math.min(...p.variants.filter((v) => v.isActive).map((v) => v.priceMinor).concat(Infinity));
   const totalStock = (p: AdminProduct) =>
     p.variants.filter((v) => v.isActive).reduce((sum, v) => sum + v.stock, 0);
 

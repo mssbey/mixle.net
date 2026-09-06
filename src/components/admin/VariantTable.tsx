@@ -8,11 +8,10 @@ import {
   comboLabel,
   ensureSingleDefault,
   priceRangeOf,
-  round2,
   setDefaultVariant,
   type BulkVariantPatch,
 } from '@/lib/admin/variants';
-import { currency } from '@/lib/admin/format';
+import { formatMinor, fromMinor, toMinor } from '@/lib/admin/format';
 
 interface Props {
   product: AdminProduct;
@@ -75,7 +74,7 @@ export function VariantTable({ product, variants, disabled, onChange }: Props) {
             className="admin-btn admin-btn-ghost admin-btn-sm"
             disabled={disabled || bulkPrice === ''}
             onClick={() => {
-              applyBulk({ kind: 'price', value: num(bulkPrice) });
+              applyBulk({ kind: 'priceMinor', value: toMinor(num(bulkPrice)) });
               setBulkPrice('');
             }}
           >
@@ -201,10 +200,10 @@ export function VariantTable({ product, variants, disabled, onChange }: Props) {
                         step="0.01"
                         className="admin-input admin-btn-sm"
                         style={{ width: 90 }}
-                        value={v.price}
+                        value={fromMinor(v.priceMinor)}
                         disabled={disabled}
                         aria-label="Fiyat"
-                        onChange={(e) => patch(v.id, { price: round2(num(e.target.value)) })}
+                        onChange={(e) => patch(v.id, { priceMinor: toMinor(num(e.target.value)) })}
                       />
                     </td>
                     <td>
@@ -214,14 +213,16 @@ export function VariantTable({ product, variants, disabled, onChange }: Props) {
                         step="0.01"
                         className="admin-input admin-btn-sm"
                         style={{ width: 100 }}
-                        value={v.compareAtPrice ?? ''}
+                        value={
+                          v.compareAtPriceMinor == null ? '' : fromMinor(v.compareAtPriceMinor)
+                        }
                         disabled={disabled}
                         aria-label="İndirim öncesi fiyat"
                         placeholder="—"
                         onChange={(e) =>
                           patch(v.id, {
-                            compareAtPrice:
-                              e.target.value === '' ? null : round2(num(e.target.value)),
+                            compareAtPriceMinor:
+                              e.target.value === '' ? null : toMinor(num(e.target.value)),
                           })
                         }
                       />
@@ -281,8 +282,8 @@ export function VariantTable({ product, variants, disabled, onChange }: Props) {
       <p className="admin-hint">
         Fiyat aralığı:{' '}
         {range.min === range.max
-          ? currency(range.min)
-          : `${currency(range.min)} – ${currency(range.max)}`}{' '}
+          ? formatMinor(range.min)
+          : `${formatMinor(range.min)} – ${formatMinor(range.max)}`}{' '}
         · {variants.filter((v) => v.isActive).length}/{variants.length} varyant aktif
       </p>
     </div>

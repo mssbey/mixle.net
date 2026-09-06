@@ -1,6 +1,6 @@
 // Admin paneli veri modeli — vitrin tarafındaki `Product` tipini bozmadan genişletir.
-// Kaynak dosya: src/data/catalog.json. Vitrin, src/data/catalog-adapter.ts üzerinden
-// bu modeli mevcut `Product` tipine indirger.
+// Kaynak: veritabanı (Prisma). Vitrin, src/data/catalog-adapter.ts üzerinden
+// bu modeli mevcut `Product` tipine indirger. Fiyatlar KURUŞ cinsindendir.
 
 import type {
   BadgeKind,
@@ -54,8 +54,10 @@ export interface AdminVariant {
   /** optionId -> valueId */
   optionValues: Record<string, string>;
   sku: string;
-  price: number;
-  compareAtPrice: number | null;
+  /** Tam sayı KURUŞ (12990 = 129,90 ₺). Asla float tutulmaz. */
+  priceMinor: number;
+  /** Üstü çizili karşılaştırma fiyatı, kuruş. İndirim yoksa null. */
+  compareAtPriceMinor: number | null;
   stock: number;
   barcode: string | null;
   image: string | null;

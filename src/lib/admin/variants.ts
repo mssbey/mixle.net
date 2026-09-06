@@ -44,8 +44,8 @@ export function emptyVariant(overrides: Partial<AdminVariant> = {}): AdminVarian
     comboKey: '',
     optionValues: {},
     sku: '',
-    price: 0,
-    compareAtPrice: null,
+    priceMinor: 0,
+    compareAtPriceMinor: null,
     stock: 0,
     barcode: null,
     image: null,
@@ -79,8 +79,8 @@ export function generateMatrix(
           ? {
               id: keep.id,
               sku: keep.sku,
-              price: keep.price,
-              compareAtPrice: keep.compareAtPrice,
+              priceMinor: keep.priceMinor,
+              compareAtPriceMinor: keep.compareAtPriceMinor,
               stock: keep.stock,
               barcode: keep.barcode,
               image: keep.image,
@@ -136,29 +136,32 @@ export function setDefaultVariant(variants: AdminVariant[], variantId: string): 
 }
 
 export type BulkVariantPatch =
-  | { kind: 'price'; value: number }
+  | { kind: 'priceMinor'; value: number }
   | { kind: 'stock'; value: number }
-  | { kind: 'compareAtPrice'; value: number | null }
+  | { kind: 'compareAtPriceMinor'; value: number | null }
   | { kind: 'discountPercent'; value: number };
 
 /** "Tüm satırlara uygula" hızlı işlemi. */
 export function applyToAll(variants: AdminVariant[], patch: BulkVariantPatch): AdminVariant[] {
   return variants.map((v) => {
     switch (patch.kind) {
-      case 'price':
-        return { ...v, price: round2(patch.value) };
+      case 'priceMinor':
+        return { ...v, priceMinor: Math.max(0, Math.round(patch.value)) };
       case 'stock':
         return { ...v, stock: Math.max(0, Math.round(patch.value)) };
-      case 'compareAtPrice':
-        return { ...v, compareAtPrice: patch.value == null ? null : round2(patch.value) };
-      case 'discountPercent': {
-        const pct = Math.min(90, Math.max(0, patch.value));
-        if (pct === 0) return { ...v, compareAtPrice: null };
-        const base = v.compareAtPrice ?? v.price;
+      case 'compareAtPriceMinor':
         return {
           ...v,
-          compareAtPrice: round2(base),
-          price: round2(base * (1 - pct / 100)),
+          compareAtPriceMinor: patch.value == null ? null : Math.max(0, Math.round(patch.value)),
+        };
+      case 'discountPercent': {
+        const pct = Math.min(90, Math.max(0, patch.value));
+        if (pct === 0) return { ...v, compareAtPriceMinor: null };
+        const base = v.compareAtPriceMinor ?? v.priceMinor;
+        return {
+          ...v,
+          compareAtPriceMinor: base,
+          priceMinor: Math.round((base * (100 - pct)) / 100),
         };
       }
       default:
@@ -171,6 +174,7 @@ export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
+/** Kuruş cinsinden fiyat aralığı. */
 export interface VariantPriceRange {
   min: number;
   max: number;
@@ -178,7 +182,7 @@ export interface VariantPriceRange {
 
 export function priceRangeOf(variants: AdminVariant[]): VariantPriceRange {
   const active = variants.filter((v) => v.isActive);
-  const pool = (active.length ? active : variants).map((v) => v.price).filter((p) => p > 0);
+  const pool = (active.length ? active : variants).map((v) => v.priceMinor).filter((p) => p > 0);
   if (pool.length === 0) return { min: 0, max: 0 };
   return { min: Math.min(...pool), max: Math.max(...pool) };
 }

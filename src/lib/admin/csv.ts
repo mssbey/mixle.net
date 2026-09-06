@@ -1,9 +1,14 @@
 // Basit CSV üretimi/ayrıştırması — tam katalog yedeği JSON'dur.
 // CSV, tablo programında gözden geçirme ve toplu fiyat/stok güncellemesi içindir:
 // her satır bir varyant; içe aktarımda SKU eşleşen varyantların
-// price / compareAtPrice / stock / barcode alanları ve ürün status'ü güncellenir.
+// price / compare_at_price / stock / barcode alanları ve ürün status'ü güncellenir.
+//
+// PARA BİRİMİ: CSV insan tarafından düzenlendiği için fiyat sütunları TL
+// cinsindendir ("129.9"). Sınırda kuruşa çevrilir; hem "129,90" hem "129.90"
+// kabul edilir. Modelde tutulan değer her zaman kuruştur.
 
 import type { CatalogFile } from '@/types/admin';
+import { fromMinor, parseMajorInput } from '@/lib/money';
 import { comboLabel } from './variants';
 
 const COLUMNS = [
@@ -37,8 +42,8 @@ export function catalogToCsv(catalog: CatalogFile): string {
         product.categoryIds[0] ?? '',
         variant.sku,
         comboLabel(product, variant),
-        String(variant.price),
-        variant.compareAtPrice == null ? '' : String(variant.compareAtPrice),
+        String(fromMinor(variant.priceMinor)),
+        variant.compareAtPriceMinor == null ? '' : String(fromMinor(variant.compareAtPriceMinor)),
         String(variant.stock),
         variant.barcode ?? '',
         variant.isDefault ? '1' : '0',
@@ -84,8 +89,10 @@ export interface CsvVariantPatch {
   sku: string;
   productSlug: string;
   status?: string;
-  price?: number;
-  compareAtPrice?: number | null;
+  /** Kuruş. */
+  priceMinor?: number;
+  /** Kuruş; boş hücre null demektir. */
+  compareAtPriceMinor?: number | null;
   stock?: number;
   barcode?: string | null;
 }
@@ -121,10 +128,13 @@ export function parseCsvPatches(text: string): CsvVariantPatch[] {
 
     const patch: CsvVariantPatch = { sku, productSlug };
     if (iStatus !== -1 && cells[iStatus]?.trim()) patch.status = cells[iStatus].trim();
-    if (iPrice !== -1 && cells[iPrice]?.trim()) patch.price = Number(cells[iPrice]);
+    if (iPrice !== -1 && cells[iPrice]?.trim()) {
+      const parsed = parseMajorInput(cells[iPrice]);
+      if (parsed != null) patch.priceMinor = parsed;
+    }
     if (iCompare !== -1) {
       const raw = cells[iCompare]?.trim() ?? '';
-      patch.compareAtPrice = raw === '' ? null : Number(raw);
+      patch.compareAtPriceMinor = raw === '' ? null : parseMajorInput(raw);
     }
     if (iStock !== -1 && cells[iStock]?.trim()) patch.stock = Number(cells[iStock]);
     if (iBarcode !== -1) {
@@ -158,12 +168,9 @@ export function applyCsvPatches(catalog: CatalogFile, patches: CsvVariantPatch[]
       skipped += 1;
       continue;
     }
-    if (patch.price != null && Number.isFinite(patch.price)) variant.price = patch.price;
-    if (patch.compareAtPrice !== undefined) {
-      variant.compareAtPrice =
-        patch.compareAtPrice != null && Number.isFinite(patch.compareAtPrice)
-          ? patch.compareAtPrice
-          : null;
+    if (patch.priceMinor != null) variant.priceMinor = patch.priceMinor;
+    if (patch.compareAtPriceMinor !== undefined) {
+      variant.compareAtPriceMinor = patch.compareAtPriceMinor;
     }
     if (patch.stock != null && Number.isFinite(patch.stock)) {
       variant.stock = Math.max(0, Math.round(patch.stock));
