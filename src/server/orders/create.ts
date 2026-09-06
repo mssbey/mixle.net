@@ -47,7 +47,8 @@ export const createOrderSchema = quoteInputSchema
     shippingMethodId: z.string().min(1, 'Kargo yöntemi seçin'),
     paymentMethod: z.enum(PAYMENT_METHODS, { errorMap: () => ({ message: 'Ödeme yöntemi seçin' }) }),
     customerNote: z.string().trim().max(500).default(''),
-    consents: consentsSchema,
+    /** Vitrin siparişinde zorunlu; panelden manuel siparişte (source=panel) yok. */
+    consents: consentsSchema.optional(),
     /** Misafir, sipariş sonunda hesap açmak isterse. */
     createAccountPassword: z.string().min(10).max(200).optional(),
   })
@@ -67,6 +68,12 @@ export interface CreateOrderContext {
   ip: string | null;
   userAgent: string | null;
   idempotencyKey: string | null;
+  /** web (varsayılan) | panel | telefon — panel siparişinde onaylar aranmaz. */
+  source?: 'web' | 'panel' | 'telefon';
+  /** Panel kullanıcısı (manuel sipariş). */
+  createdByUserId?: string | null;
+  /** Manuel siparişte ödeme zaten alındıysa hemen 'ödendi'ye geçir. */
+  markPaid?: boolean;
 }
 
 export class CheckoutError extends Error {
@@ -188,6 +195,11 @@ export async function createOrder(
   }
   const input = parsed.data;
   const email = input.email.toLocaleLowerCase('tr');
+  const source = ctx.source ?? 'web';
+  if (source === 'web' && !input.consents) {
+    throw new CheckoutError('Yasal onaylar zorunludur.', 422, { consents: 'Onayları işaretleyin' });
+  }
+  const marketing = input.consents?.marketing ?? false;
 
   // 1b) Adres defterinden seçilen adresler yalnız bu müşteriye aitse kullanılır.
   const shippingFromBook = await resolveStoredAddress(ctx.customerId, input.shippingAddressId);
@@ -241,7 +253,7 @@ export async function createOrder(
   if (quote.coupon && !quote.coupon.ok) {
     throw new CheckoutError(quote.coupon.reason, 422, { couponCode: quote.coupon.reason });
   }
-  if (input.paymentMethod === 'kart' && !DEMO_MODE) {
+  if (input.paymentMethod === 'kart' && !DEMO_MODE && source === 'web') {
     throw new CheckoutError(
       'Kart ödemesi henüz canlı sağlayıcıya bağlı değil. Havale veya kapıda ödeme seçin.',
       422,
@@ -275,8 +287,8 @@ export async function createOrder(
           lastName: shippingAddress.lastName,
           phone: shippingAddress.phone,
           tags: [],
-          marketingOptIn: input.consents.marketing,
-          marketingOptInAt: input.consents.marketing ? now : null,
+          marketingOptIn: marketing,
+          marketingOptInAt: marketing ? now : null,
         },
         update: {
           // Misafir verisi tazelenir; kayıtlı hesabın adı ezilmez.
@@ -287,11 +299,11 @@ export async function createOrder(
                 phone: shippingAddress.phone,
               }
             : {},
-          ...(input.consents.marketing ? { marketingOptIn: true, marketingOptInAt: now } : {}),
+          ...(marketing ? { marketingOptIn: true, marketingOptInAt: now } : {}),
         },
       });
       customerId = guest.id;
-    } else if (input.consents.marketing) {
+    } else if (marketing) {
       await tx.customer.update({
         where: { id: customerId },
         data: { marketingOptIn: true, marketingOptInAt: now },
@@ -340,13 +352,15 @@ export async function createOrder(
         customerNote: input.customerNote || null,
         ipAddress: ctx.ip,
         userAgent: ctx.userAgent?.slice(0, 400) ?? null,
-        consents: {
-          distanceSales: { version: legalDs.version, acceptedAt: now.toISOString() },
-          preInfo: { version: legalPi.version, acceptedAt: now.toISOString() },
-          kvkk: { version: legalKvkk.version, acceptedAt: now.toISOString() },
-          marketing: input.consents.marketing ? { acceptedAt: now.toISOString() } : null,
-        } as Prisma.InputJsonValue,
-        source: 'web',
+        consents: (input.consents
+          ? {
+              distanceSales: { version: legalDs.version, acceptedAt: now.toISOString() },
+              preInfo: { version: legalPi.version, acceptedAt: now.toISOString() },
+              kvkk: { version: legalKvkk.version, acceptedAt: now.toISOString() },
+              marketing: marketing ? { acceptedAt: now.toISOString() } : null,
+            }
+          : { manual: true, createdByUserId: ctx.createdByUserId ?? null, at: now.toISOString() }) as Prisma.InputJsonValue,
+        source,
         idempotencyKey: ctx.idempotencyKey,
         placedAt: now,
         items: {
@@ -370,8 +384,9 @@ export async function createOrder(
             kind: 'durum-degisti',
             fromStatus: 'taslak',
             toStatus: 'ödeme-bekliyor',
-            message: 'Sipariş vitrinden oluşturuldu',
+            message: source === 'web' ? 'Sipariş vitrinden oluşturuldu' : 'Sipariş panelden oluşturuldu',
             visibleToCustomer: true,
+            userId: ctx.createdByUserId ?? null,
           },
         },
         payments: {
@@ -420,8 +435,20 @@ export async function createOrder(
   // Stok düştü: vitrin katalog önbelleği tazelensin (stok rozetleri).
   revalidateCatalog();
 
+  // 5a) Manuel sipariş, ödeme zaten alındı: doğrudan ödendi.
+  if (ctx.markPaid && source !== 'web') {
+    await db.payment.updateMany({
+      where: { orderId: created.id, status: 'bekliyor' },
+      data: { status: 'başarılı', capturedAt: now, rawResponse: { manual: true, by: ctx.createdByUserId } as Prisma.InputJsonValue },
+    });
+    await transitionOrder(created.id, 'ödendi', { userId: ctx.createdByUserId ?? null }, {
+      note: 'Manuel sipariş — ödeme alındı olarak işaretlendi',
+      skipEmail: true,
+    });
+  }
+
   // 5) Kapıda ödeme: ödeme teslimatta; sipariş hemen hazırlığa geçer, stok kesinleşir.
-  if (input.paymentMethod === 'kapida') {
+  if (input.paymentMethod === 'kapida' && !ctx.markPaid) {
     await transitionOrder(created.id, 'hazırlanıyor', { system: 'kapida' }, {
       note: 'Kapıda ödeme — hazırlığa alındı, ödeme teslimatta alınacak',
       visibleToCustomer: true,
@@ -444,7 +471,7 @@ export async function createOrder(
   return {
     orderId: created.id,
     orderNumber: created.orderNumber,
-    status: input.paymentMethod === 'kapida' ? 'hazırlanıyor' : created.status,
+    status: ctx.markPaid && source !== 'web' ? 'ödendi' : input.paymentMethod === 'kapida' ? 'hazırlanıyor' : created.status,
     paymentMethod: created.paymentMethod,
     grandTotalMinor: created.grandTotalMinor,
     reused: false,

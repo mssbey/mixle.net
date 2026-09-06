@@ -9,8 +9,14 @@ import { AdminShell } from './AdminShell';
 export function AdminApp({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === '/admin/giris') {
+  if (pathname === '/admin/giris' || pathname === '/admin/yetkisiz') {
     return <div className="admin-scope">{children}</div>;
+  }
+
+  // Yazdırma sayfaları (fatura/irsaliye) kabuk ve panel stilleri olmadan,
+  // kendi print CSS'iyle render edilir.
+  if (pathname.includes('/yazdir')) {
+    return <>{children}</>;
   }
 
   return (

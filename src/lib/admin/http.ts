@@ -70,6 +70,15 @@ export function toErrorResponse(err: unknown): Response {
       { status: 422 },
     );
   }
+  // Servis hataları (InvalidTransitionError, RefundError, ShipmentError, …):
+  // hepsi 4xx `status` taşır ve mesajı Türkçedir.
+  const e = err as { status?: unknown; message?: unknown; issues?: unknown };
+  if (typeof e?.status === 'number' && e.status >= 400 && e.status < 500 && typeof e.message === 'string') {
+    return Response.json(
+      { error: e.status === 409 ? 'conflict' : e.status === 404 ? 'not-found' : 'invalid', message: e.message, issues: (e.issues as Record<string, string>) ?? {} },
+      { status: e.status },
+    );
+  }
   const message = err instanceof Error ? err.message : 'Beklenmeyen hata';
   console.error('[admin api]', err);
   return Response.json({ error: 'server', message }, { status: 500 });

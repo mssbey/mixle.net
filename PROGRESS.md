@@ -3,20 +3,72 @@
 > **Devam talimatı:** Kullanıcı "devam et" dediğinde bu dosyadan devam et. Projeyi
 > baştan analiz etme. Aşağıdaki "SONRAKİ ADIM" bölümünden başla.
 
-Son güncelleme: 2026-09-06 (F1 tamamlandı — checkout, müşteri hesabı, sipariş servisleri)
+Son güncelleme: 2026-09-07 (F2 kodu tamamlandı — ÇALIŞMA ZAMANI DOĞRULAMASI BEKLİYOR)
 
 ## SONRAKİ ADIM
 
-**F2 — Sipariş yönetimi (panel).** Plan: `PLAN-YONETIM-PANELI.md`.
-`/admin/siparisler` liste (durum sekmeleri, arama, filtreler), `/admin/siparisler/[id]`
-WooCommerce düzeninde detay (kalemler, toplamlar, müşteri kartı, adresler, ödeme,
-kargo, zaman çizelgesi, notlar), aksiyonlar (durum değiştir, ödeme al/havale
-eşleştir, kısmi iade, iptal, kargo oluştur, e-posta yeniden gönder), toplu işlemler,
-`/admin/siparisler/yeni` manuel sipariş. Kullanılacak hazır servisler:
-`transitionOrder`, `addOrderNote`, `restock`, `queueEmail`, `publicOrderView`
-(panel görünümü ayrı yazılacak: adminNote, IP, ham ödeme yanıtı dahil).
-Ödeme al → Payment satırı 'başarılı' + transition 'ödendi'. Kısmi iade →
-Refund kaydı + OrderItem.refundedQuantity + restock + refundedTotalMinor.
+**ÖNCE ORTAM ENGELİNİ KALDIR.** 2026-09-07 00:44'ten itibaren Windows Code Integrity
+(Smart App Control, policy 0283ac0f-fff1-49ae-ada1-8a933130cad6)
+`node_modules/@next/swc-win32-x64-msvc/next-swc.win32-x64-msvc.node` dosyasını
+"Enterprise imza seviyesini karşılamıyor" diye engelliyor (Olay 3033/3077,
+Microsoft-Windows-CodeIntegrity/Operational). Dosya 4 Eylül'den beri değişmedi;
+bulut itibar kararı değişti. Sonuç: `next build` ve `next dev` açılmıyor
+(Turbopack native ister; `--webpack` + WASM SWC de Next'in iç eklentisinde
+patlıyor). Kullanıcı kararı: Smart App Control'ü kapatmak (Windows Güvenliği →
+Uygulama ve tarayıcı denetimi → Akıllı Uygulama Denetimi; KAPATILDIKTAN SONRA
+GERİ AÇILAMAZ) ya da başka makine/WSL. Engel kalkınca sırayla:
+
+```sh
+npm run build
+SMOKE_OWNER_EMAIL=… SMOKE_OWNER_PASSWORD=… npm run qa:orders -- 3993   # F2 kabul testi (henüz HİÇ çalışmadı)
+npm run qa:checkout -- 3994                                              # F1 regresyon
+npm run qa:snapshot -- <klasor> 3999 && npm run qa:compare -- <baseline> <klasor>
+```
+
+Sonra F2'de kalanlar (küçük): panel QA (qa:console/qa:responsive rota listesine
+/admin/siparisler ekle), README'deki F2 tablosunu doğrula, PLAN'da F2'yi kapat.
+Ardından **F3 — Ödemeler** (mock sağlayıcı iskeleti `src/server/payments/mock.ts`;
+`PaymentProvider` arayüzü + iyzico/PayTR/Stripe adaptörleri + webhook idempotency;
+kullanıcı sandbox anahtarlarını F3'te verecek, DEMO_MODE test).
+
+---
+
+## F2 — KOD TAMAMLANDI, DOĞRULAMA BEKLİYOR (2026-09-07)
+
+lint + typecheck temiz, 56 birim testi geçiyor. `npm run qa:orders` (38+ kontrol,
+scripts/admin-orders-smoke.mts) yazıldı ama ortam engeli yüzünden HİÇ ÇALIŞTIRILMADI.
+Bu yüzden F2'de çalışma zamanı hatası olabilir; engel kalkınca ilk iş bu.
+
+**Sunucu (`src/server/orders/*`, `src/server/shipping/shipments.ts`)**
+- admin-view: panel görünümü (adminNote, IP, maskeli ham ödeme yanıtı, iadeler,
+  tüm olaylar, e-posta günlüğü, müşteri özeti, birleşik zaman çizelgesi,
+  refundableMinor, allowedTransitions) + filtreli liste (sekme sayaçları) + CSV.
+- payments-admin: havale eşleştir / kapıda tahsil / manuel; tam ödeme + ödeme-bekliyor
+  → transitionOrder('ödendi'); aksi halde yalnız paymentStatus.
+- refunds: kalem seçerek kısmi/tam; tutar = satır/adet oranı (son adette kuruş
+  farkı kapanır); refundedQuantity, refundedTotalMinor, paymentStatus; restock;
+  tam iade → teslim edilmişse iade-talebi→iade-edildi, değilse iptal (çift
+  restock yok: refundedQuantity önce güncellenir).
+- shipments: manuel adaptör; kısmi sevkiyat; tümü sevk → kargolandı; tümü
+  teslim → teslim-edildi → tamamlandı; takip URL üretimi firma bazında.
+- edit: adres/not; kalem düzenle + computeTotals ile yeniden hesap + stok farkı
+  hareketi (+ ödenmemişte rezervasyon güncelle); e-posta yeniden gönder.
+- create.ts: `source` (web|panel|telefon), consents panelde opsiyonel, markPaid.
+
+**API** `/api/admin/orders/**` — handle(izin) ile: siparis:oku/yaz/iade, kargo:yaz.
+toErrorResponse artık `status` taşıyan tüm servis hatalarını 4xx'e çevirir.
+
+**UI (`src/components/admin/orders/*`)** — OrderList (sekme/filtre/toplu/CSV),
+OrderDetail (WooCommerce düzeni) + diyaloglar (durum, ödeme, kargo, sevkiyat
+güncelle, iade, kalem editörü, adres, not, e-posta), NewOrderForm (kopyalama),
+PrintDocument (fatura fişi/irsaliye; AdminApp `/yazdir` yollarında kabuğu atlar).
+
+**Karar:** Fatura "PDF" = yazdırılabilir HTML (tarayıcıdan PDF). Resmi e-Fatura F7.
+
+**Notlar**
+- React Compiler lint: bileşen tanımını render içinde yapma (Action modül
+  seviyesine taşındı); useCallback bağımlılığı ifade olamaz.
+- SAC engeli sırasında `npm run build` ve `next dev` çalışmaz; vitest çalışır.
 
 ---
 

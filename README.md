@@ -219,6 +219,10 @@ ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 | `/admin/urunler/yeni` · `/admin/urunler/[slug]` | Ürün formu: solda içerik, sağda durum/kategori/koleksiyon/SEO yan paneli; tam genişlik varyant tablosu; yapışkan alt kaydet çubuğu |
 | `/admin/kategoriler` · `/admin/koleksiyonlar` | Ekle / düzenle / sil + sürükle-bırak sıralama |
 | `/admin/ayarlar` | Veri dışa aktar (JSON/CSV), içe aktar, demo verisine sıfırla |
+| `/admin/siparisler` | Sipariş listesi: durum sekmeleri (sayaçlı), arama (no/ad/e-posta/telefon/ürün/SKU/takip no), tarih/tutar/ödeme/kargo/kaynak filtreleri, sıralama, sayfalama, toplu işlemler (durum, kargoya ver, yazdır), CSV |
+| `/admin/siparisler/[id]` | WooCommerce düzeninde detay: kalemler (düzenle + yeniden hesapla), toplamlar ve KDV matrahı, müşteri kartı (sipariş sayısı, harcama), adresler (düzenlenebilir), ödemeler (maskeli), sevkiyatlar, iadeler, zaman çizelgesi, admin/müşteri notu |
+| `/admin/siparisler/yeni` | Manuel / telefon siparişi (`?kopya=<id>` ile kopyalama); vitrinle aynı `createOrder` servisi |
+| `/admin/siparisler/[id]/yazdir?tip=fatura\|irsaliye` | Yazdırılabilir bilgi fişi / irsaliye (tarayıcıdan PDF); toplu: `/admin/siparisler/yazdir?ids=…` |
 | `/admin/giris` | Parola girişi |
 
 ### Ürün ve varyasyon modeli
@@ -282,6 +286,10 @@ CRUD işlemleri `src/app/api/admin/**` Route Handler'larıyla yapılır:
 | `/api/admin/settings/import` | `POST` (JSON tam katalog \| CSV fiyat/stok yaması) |
 | `/api/admin/settings/reset` | `POST` (seed'den geri yükle) |
 | `/api/admin/auth` | `POST` (giriş), `DELETE` (çıkış), `GET` (oturum bilgisi) |
+| `/api/admin/orders` | `GET` liste (+`format=csv`), `POST` manuel sipariş |
+| `/api/admin/orders/[id]` | `GET` panel görünümü, `PATCH` adres/not |
+| `/api/admin/orders/[id]/durum` · `odeme` · `iade` · `kargo` · `kargo/[shipmentId]` · `kalemler` · `eposta` | Durum geçişi (409 ile korunur), ödeme al, kısmi iade, kısmi sevkiyat, sevkiyat güncelle, kalem düzenle + yeniden hesapla, e-posta yeniden gönder |
+| `/api/admin/orders/toplu` | Toplu durum / kargoya ver / e-posta — kısmi başarı raporlanır |
 | `/api/catalog/slim` | `GET` — vitrin client bileşenleri için hafif katalog (herkese açık) |
 
 - **Yetki:** her uç `handle(<izin>, …)` ile sarılır; izin yoksa **403**, oturum
@@ -389,6 +397,19 @@ npm run build && npm run qa:checkout   # gerçek HTTP + veritabanı: teklif → 
 ```
 
 `qa:checkout` test verisini sonunda temizler ve stoku geri koyar.
+
+### Panel sipariş yönetimi duman testi (F2)
+
+```sh
+npm run build
+SMOKE_OWNER_EMAIL=… SMOKE_OWNER_PASSWORD=… npm run qa:orders -- 3993
+```
+
+Vitrinden havale siparişi açar; panel API'siyle kalem düzenler, ödeme alır, iki
+kısmi sevkiyat yapar (ikincisinde sipariş `kargolandı`), tüm sevkiyatları teslim
+edip otomatik `tamamlandı`yı doğrular, kısmi iade yapar (stok geri, tutar kuruş
+tutarlı), geçersiz geçiş 409 / görüntüleyici 403, denetim kaydı, manuel sipariş,
+toplu işlem ve yazdırma sayfalarını sınar. Test verisini temizler.
 
 ### Kimlik doğrulama duman testi
 

@@ -25,7 +25,8 @@
     "qa:auth": "node scripts/auth-smoke.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "qa:checkout": "tsx scripts/checkout-smoke.mts"
+    "qa:checkout": "tsx scripts/checkout-smoke.mts",
+    "qa:orders": "tsx scripts/admin-orders-smoke.mts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.0",
