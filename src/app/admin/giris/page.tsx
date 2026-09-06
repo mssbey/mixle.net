@@ -10,7 +10,9 @@ function LoginForm() {
   const params = useSearchParams();
   const next = params.get('next') || '/admin';
 
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -19,7 +21,7 @@ function LoginForm() {
     setBusy(true);
     setError(null);
     try {
-      await adminApi.login(password);
+      await adminApi.login(email, password, remember);
       router.replace(next.startsWith('/admin') ? next : '/admin');
       router.refresh();
     } catch (err) {
@@ -39,45 +41,75 @@ function LoginForm() {
             <h1 className="text-base font-semibold text-[var(--brand-purple-deep)]">
               Yönetim Paneli
             </h1>
-            <p className="admin-hint">Nefis Aroma katalog yönetimi</p>
+            <p className="admin-hint">Nefis Aroma mağaza yönetimi</p>
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="admin-field" noValidate>
-          <label className="admin-label" htmlFor="admin-password">
-            Parola
+        <form onSubmit={onSubmit} noValidate>
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="admin-email">
+              E-posta
+            </label>
+            <input
+              id="admin-email"
+              name="email"
+              type="email"
+              autoComplete="username"
+              className="admin-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={error ? 'true' : undefined}
+              aria-describedby={error ? 'admin-login-error' : undefined}
+              autoFocus
+              required
+            />
+          </div>
+
+          <div className="admin-field mt-3">
+            <label className="admin-label" htmlFor="admin-password">
+              Parola
+            </label>
+            <input
+              id="admin-password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              className="admin-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={error ? 'true' : undefined}
+              aria-describedby={error ? 'admin-login-error' : undefined}
+              required
+            />
+          </div>
+
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            Beni hatırla (30 gün)
           </label>
-          <input
-            id="admin-password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            className="admin-input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            aria-invalid={error ? 'true' : undefined}
-            aria-describedby={error ? 'admin-password-error' : 'admin-password-hint'}
-            autoFocus
-            required
-          />
-          {error ? (
-            <p className="admin-error" id="admin-password-error" role="alert">
-              {error}
-            </p>
-          ) : (
-            <p className="admin-hint" id="admin-password-hint">
-              Bu koruma tek paylaşılan parola kullanır; gerçek kimlik doğrulama değildir.
-            </p>
-          )}
+
+          {/* Hata alanın altında metinle bildirilir; aria-live ile okuyucuya duyurulur. */}
+          <p className="admin-error mt-2" id="admin-login-error" role="alert" aria-live="polite">
+            {error ?? ''}
+          </p>
 
           <button
             type="submit"
-            className="admin-btn admin-btn-primary mt-3"
-            disabled={busy || password.length === 0}
+            className="admin-btn admin-btn-primary mt-1"
+            disabled={busy || email.length === 0 || password.length === 0}
           >
             {busy ? 'Kontrol ediliyor…' : 'Giriş yap'}
           </button>
         </form>
+
+        <p className="admin-hint mt-4">
+          Kullanıcınız yoksa sunucuda{' '}
+          <code>npm run admin:create-user</code> komutuyla oluşturun.
+        </p>
       </div>
     </div>
   );
