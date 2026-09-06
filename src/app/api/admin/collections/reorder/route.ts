@@ -1,15 +1,15 @@
-import { readJson, withWrite } from '@/lib/admin/http';
+import { handle, readJson } from '@/lib/admin/http';
 import { reorderCollections } from '@/lib/admin/mutations';
-import { readCatalog, writeCatalog } from '@/lib/admin/store';
+import { readCatalog, saveCollectionOrder } from '@/server/catalog/persist';
 
 export const dynamic = 'force-dynamic';
 
 export function POST(request: Request): Promise<Response> {
-  return withWrite(async () => {
+  return handle('katalog:yaz', async () => {
     const { orderedIds } = await readJson<{ orderedIds: string[] }>(request);
     const catalog = await readCatalog();
     const next = reorderCollections(catalog, orderedIds);
-    const saved = await writeCatalog(next);
-    return Response.json({ collections: saved.collections });
+    await saveCollectionOrder(next.collections);
+    return Response.json({ collections: next.collections });
   });
 }

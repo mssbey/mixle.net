@@ -1,11 +1,11 @@
-import { withRead } from '@/lib/admin/http';
+import { handle } from '@/lib/admin/http';
 import { catalogToCsv } from '@/lib/admin/csv';
-import { readCatalog } from '@/lib/admin/store';
+import { readCatalog } from '@/server/catalog/persist';
 
 export const dynamic = 'force-dynamic';
 
 export function GET(request: Request): Promise<Response> {
-  return withRead(async () => {
+  return handle('ayar:oku', async () => {
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') === 'csv' ? 'csv' : 'json';
     const catalog = await readCatalog();

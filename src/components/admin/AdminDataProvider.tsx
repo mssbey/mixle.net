@@ -15,13 +15,21 @@ import type {
   AdminProduct,
   CatalogFile,
 } from '@/types/admin';
-import { adminApi, ApiError } from '@/lib/admin/client';
+import { adminApi, ApiError, type AdminSessionUser } from '@/lib/admin/client';
+import type { Permission } from '@/server/auth/rbac';
 import type { BulkAction } from '@/lib/admin/mutations';
 import { toast } from '@/store/toast';
 
 interface AdminDataValue {
   status: 'loading' | 'ready' | 'error';
   error: string | null;
+  /** Giriş yapmış panel kullanıcısı. */
+  user: AdminSessionUser | null;
+  /** Rolün sahip olduğu izinler — arayüz bunları GİZLEME için kullanır;
+   *  asıl kontrol her zaman sunucudadır (bkz. src/lib/admin/http.ts). */
+  permissions: Permission[];
+  can: (permission: Permission) => boolean;
+  /** Kısayol: `can('katalog:yaz')`. */
   canWrite: boolean;
   catalog: CatalogFile | null;
   products: AdminProduct[];
@@ -65,7 +73,8 @@ function reportError(err: unknown, fallback: string): void {
 export function AdminDataProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
-  const [canWrite, setCanWrite] = useState(true);
+  const [user, setUser] = useState<AdminSessionUser | null>(null);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [catalog, setCatalog] = useState<CatalogFile | null>(null);
 
   const reload = useCallback(async () => {
@@ -73,7 +82,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
     try {
       const { catalog: data, meta } = await adminApi.loadCatalog();
       setCatalog(data);
-      setCanWrite(meta.canWrite);
+      setUser(meta.user);
+      setPermissions(meta.permissions);
       setStatus('ready');
       setError(null);
     } catch (err) {
@@ -104,10 +114,15 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
     const categories = [...(catalog?.categories ?? [])].sort((a, b) => a.order - b.order);
     const collections = [...(catalog?.collections ?? [])].sort((a, b) => a.order - b.order);
 
+    const can = (permission: Permission) => permissions.includes(permission);
+
     return {
       status,
       error,
-      canWrite,
+      user,
+      permissions,
+      can,
+      canWrite: can('katalog:yaz'),
       catalog,
       products,
       categories,
@@ -311,7 +326,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [status, error, canWrite, catalog, reload, applyProduct]);
+  }, [status, error, user, permissions, catalog, reload, applyProduct]);
 
   return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>;
 }

@@ -15,11 +15,12 @@ import {
   Menu,
   LogOut,
   Store,
-  Lock,
+  UserRound,
 } from 'lucide-react';
 import { adminApi } from '@/lib/admin/client';
 import { toast } from '@/store/toast';
 import { useAdminData } from './AdminDataProvider';
+import { roleLabels } from '@/server/auth/rbac';
 import { AdminToaster } from './AdminToaster';
 
 const NAV = [
@@ -44,7 +45,7 @@ const COLLAPSE_KEY = 'na-admin-sidebar-collapsed';
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? '/admin';
   const router = useRouter();
-  const { canWrite, status, updatedAt } = useAdminData();
+  const { user, status, updatedAt } = useAdminData();
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -220,13 +221,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
             />
           </form>
 
-          {!canWrite && (
+          {user && (
             <span
               className="admin-chip"
-              style={{ borderColor: '#e6b8bd', color: '#b4232f' }}
-              title="Bu ortamda katalog dosyasına yazılamaz"
+              title={`${user.email} — ${roleLabels[user.role]}`}
             >
-              <Lock size={12} aria-hidden="true" /> Salt okunur
+              <UserRound size={12} aria-hidden="true" />
+              <span className="hidden sm:inline">{user.name || user.email}</span>
+              <span aria-hidden="true">·</span>
+              {roleLabels[user.role]}
             </span>
           )}
         </header>

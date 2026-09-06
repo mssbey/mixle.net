@@ -10,7 +10,9 @@ import { formatDateTime } from '@/lib/admin/format';
 import { toast } from '@/store/toast';
 
 export default function AdminSettingsPage() {
-  const { status, canWrite, updatedAt, products, categories, collections, reload } = useAdminData();
+  const { status, can, updatedAt, products, categories, collections, reload } = useAdminData();
+  // Yedek yükleme ve demoya sıfırlama bakım iznine bağlıdır.
+  const canMaintain = can('bakim:yaz');
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -119,16 +121,16 @@ export default function AdminSettingsPage() {
             ref={fileRef}
             type="file"
             accept=".json,.csv,application/json,text/csv"
-            disabled={!canWrite || busy}
+            disabled={!canMaintain || busy}
             className="block text-sm"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) void onImport(file);
             }}
           />
-          {!canWrite && (
+          {!canMaintain && (
             <p className="admin-error mt-2">
-              Salt okunur mod: bu ortamda içe aktarma kapalı.
+              İçe aktarma için bakım yetkisi gerekiyor. Rolünüz bu işleme izin vermiyor.
             </p>
           )}
         </div>
@@ -142,7 +144,7 @@ export default function AdminSettingsPage() {
         <button
           type="button"
           className="admin-btn admin-btn-danger mt-3"
-          disabled={!canWrite || busy}
+          disabled={!canMaintain || busy}
           onClick={() => setConfirmReset(true)}
         >
           <RotateCcw size={14} /> Sıfırla

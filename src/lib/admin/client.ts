@@ -8,7 +8,15 @@ import type {
   AdminProduct,
   CatalogFile,
 } from '@/types/admin';
+import type { Permission, Role } from '@/server/auth/rbac';
 import type { BulkAction } from './mutations';
+
+export interface AdminSessionUser {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -40,17 +48,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export interface CatalogResponse {
   catalog: CatalogFile;
-  meta: { canWrite: boolean };
+  meta: { user: AdminSessionUser; permissions: Permission[] };
 }
 
 export const adminApi = {
   loadCatalog: () => request<CatalogResponse>('/api/admin/catalog', { cache: 'no-store' }),
-
-  saveCatalog: (catalog: CatalogFile) =>
-    request<CatalogResponse>('/api/admin/catalog', {
-      method: 'PUT',
-      body: JSON.stringify({ catalog }),
-    }),
 
   createProduct: (product: AdminProduct) =>
     request<{ product: AdminProduct }>('/api/admin/products', {
@@ -124,11 +126,16 @@ export const adminApi = {
   resetCatalog: () =>
     request<{ ok: true; products: number }>('/api/admin/settings/reset', { method: 'POST' }),
 
-  login: (password: string) =>
-    request<{ ok: true }>('/api/admin/auth', {
-      method: 'POST',
-      body: JSON.stringify({ password }),
-    }),
+  login: (email: string, password: string, remember = false) =>
+    request<{ ok: true; user: AdminSessionUser & { permissions: Permission[] } }>(
+      '/api/admin/auth',
+      { method: 'POST', body: JSON.stringify({ email, password, remember }) },
+    ),
 
   logout: () => request<{ ok: true }>('/api/admin/auth', { method: 'DELETE' }),
+
+  session: () =>
+    request<{ user: AdminSessionUser & { permissions: Permission[] } }>('/api/admin/auth', {
+      cache: 'no-store',
+    }),
 };

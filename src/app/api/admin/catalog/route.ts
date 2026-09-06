@@ -1,21 +1,18 @@
-import type { CatalogFile } from '@/types/admin';
-import { canWrite } from '@/lib/admin/guard';
-import { readJson, withRead, withWrite } from '@/lib/admin/http';
-import { readCatalog, writeCatalog } from '@/lib/admin/store';
+import { handle } from '@/lib/admin/http';
+import { readCatalog } from '@/server/catalog/persist';
+import { rolePermissions } from '@/server/auth/rbac';
 
 export const dynamic = 'force-dynamic';
 
 export function GET(): Promise<Response> {
-  return withRead(async () => {
+  return handle('katalog:oku', async (user) => {
     const catalog = await readCatalog();
-    return Response.json({ catalog, meta: { canWrite: canWrite() } });
-  });
-}
-
-export function PUT(request: Request): Promise<Response> {
-  return withWrite(async () => {
-    const body = await readJson<{ catalog: CatalogFile }>(request);
-    const saved = await writeCatalog(body.catalog);
-    return Response.json({ catalog: saved, meta: { canWrite: true } });
+    return Response.json({
+      catalog,
+      meta: {
+        user: { id: user.id, email: user.email, name: user.name, role: user.role },
+        permissions: rolePermissions[user.role],
+      },
+    });
   });
 }

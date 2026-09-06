@@ -1,12 +1,13 @@
 import type { AdminProduct, ProductStatus } from '@/types/admin';
-import { readJson, withRead, withWrite } from '@/lib/admin/http';
+import { handle, readJson } from '@/lib/admin/http';
 import { createProduct, listProducts, type ProductQuery } from '@/lib/admin/mutations';
-import { readCatalog, writeCatalog } from '@/lib/admin/store';
+import { readCatalog, saveProduct } from '@/server/catalog/persist';
+import { auditChange } from '@/server/audit';
 
 export const dynamic = 'force-dynamic';
 
 export function GET(request: Request): Promise<Response> {
-  return withRead(async () => {
+  return handle('katalog:oku', async () => {
     const { searchParams } = new URL(request.url);
     const query: ProductQuery = {
       search: searchParams.get('search') ?? undefined,
@@ -24,11 +25,19 @@ export function GET(request: Request): Promise<Response> {
 }
 
 export function POST(request: Request): Promise<Response> {
-  return withWrite(async () => {
+  return handle('katalog:yaz', async (user) => {
     const input = await readJson<AdminProduct>(request);
     const catalog = await readCatalog();
-    const { catalog: next, product } = createProduct(catalog, input);
-    await writeCatalog(next);
+    // Doğrulama/normalizasyon saf mutasyonda; yazma yalnızca etkilenen üründe.
+    const { product } = createProduct(catalog, input);
+    await saveProduct(product);
+    await auditChange({
+      user,
+      action: 'olustur',
+      entityType: 'Product',
+      entityId: product.id,
+      after: { slug: product.slug, name: product.name, status: product.status },
+    });
     return Response.json({ product }, { status: 201 });
   });
 }
