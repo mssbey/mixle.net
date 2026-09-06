@@ -11,6 +11,7 @@ import { useUI } from '@/store/ui';
 import { useCart } from '@/store/cart';
 import { useMounted } from '@/lib/hooks';
 import { detailLines, summarize } from '@/lib/cart-math';
+import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { currency, site } from '@/lib/site';
 import { clamp } from '@/lib/utils';
 
@@ -20,7 +21,9 @@ export function CartDrawer() {
   const { lines, setQty, remove, changeVariant } = useCart();
   const promo = useCart((s) => s.promo);
 
-  const detailed = mounted ? detailLines(lines) : [];
+  // Katalog yalnızca çekmece açıldığında indirilir.
+  const { products, loading } = useSlimProducts(cartOpen);
+  const detailed = mounted && !loading ? detailLines(lines, products) : [];
   const summary = summarize(detailed, promo);
   const progress = clamp(
     (1 - summary.freeShippingRemaining / site.commerce.freeShippingThreshold) * 100,

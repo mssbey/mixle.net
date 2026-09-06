@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { products, productBySlug } from '@/data/products';
-import { categories } from '@/data/categories';
+import { getProducts, getProductBySlug } from '@/data/products';
+import { getCategories } from '@/data/categories';
 import { reviewsFor, qaFor } from '@/data/reviews';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
 import { ProductInfoTabs } from '@/components/product/ProductInfoTabs';
@@ -14,13 +14,13 @@ import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/seo';
 
 type Params = Promise<{ slug: string }>;
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  return (await getProducts()).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  const product = productBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) return {};
   return {
     title: product.name,
@@ -36,7 +36,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function ProductPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const product = productBySlug(slug);
+  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+  const product = products.find((p) => p.slug === slug);
   if (!product) notFound();
 
   const category = categories.find((c) => c.slug === product.category);
@@ -49,7 +50,7 @@ export default async function ProductPage({ params }: { params: Params }) {
 
   return (
     <div className="container-page section !pt-6 pb-28 lg:pb-16">
-      <JsonLd data={productJsonLd(product)} />
+      <JsonLd data={productJsonLd(product, category?.name)} />
       <JsonLd
         data={breadcrumbJsonLd([
           ...(category ? [{ name: category.name, href: `/kategori/${category.slug}` }] : []),

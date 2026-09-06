@@ -1,6 +1,4 @@
-import { products } from '@/data/products';
-import { categories } from '@/data/categories';
-import type { Product } from '@/types';
+import type { Category, Product } from '@/types';
 
 const norm = (s: string) =>
   s
@@ -14,7 +12,16 @@ export interface SearchHit {
   score: number;
 }
 
-export function searchProducts(query: string, limit = 24): SearchHit[] {
+/**
+ * Saf arama: veri parametreyle gelir. Böylece hem sunucu bileşeni (/arama) hem
+ * de client bileşeni (SearchOverlay) aynı sıralama mantığını kullanır.
+ */
+export function searchProducts(
+  query: string,
+  products: Product[],
+  categories: Category[],
+  limit = 24,
+): SearchHit[] {
   const q = norm(query);
   if (q.length < 2) return [];
   const terms = q.split(/\s+/).filter(Boolean);

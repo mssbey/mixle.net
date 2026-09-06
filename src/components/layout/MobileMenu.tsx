@@ -5,8 +5,7 @@ import { useState } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Phone, MessageCircle } from 'lucide-react';
 import { Drawer } from '@/components/ui/Drawer';
-import { categories } from '@/data/categories';
-import { collections } from '@/data/categories';
+import { useTaxonomy } from '@/components/catalog/CatalogProvider';
 import { site } from '@/lib/site';
 
 const flat = [
@@ -19,6 +18,7 @@ const flat = [
 ];
 
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { categories, collections } = useTaxonomy();
   const [catOpen, setCatOpen] = useState(true);
 
   return (

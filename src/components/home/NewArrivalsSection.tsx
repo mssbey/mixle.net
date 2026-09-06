@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { newArrivals, products } from '@/data/products';
+import { getProducts } from '@/data/products';
 import { ProductRail } from '@/components/product/ProductRail';
 import { SectionHeading, Reveal } from '@/components/ui/Reveal';
 
-export function NewArrivalsSection() {
-  const list = [...newArrivals(), ...products.filter((p) => p.newArrival === false)]
+export async function NewArrivalsSection() {
+  const products = await getProducts();
+  const list = [...products.filter((p) => p.newArrival), ...products.filter((p) => p.newArrival === false)]
     .filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i)
     .slice(0, 10);
 

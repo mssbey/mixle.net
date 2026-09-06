@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { bestSellers, products } from '@/data/products';
+import { getProducts } from '@/data/products';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { SectionHeading, Reveal } from '@/components/ui/Reveal';
 
-export function BestSellersSection() {
-  const list = [...bestSellers(), ...products]
+export async function BestSellersSection() {
+  const products = await getProducts();
+  const list = [...products.filter((p) => p.bestSeller), ...products]
     .filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i)
     .slice(0, 8);
 

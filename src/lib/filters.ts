@@ -1,5 +1,4 @@
 import type { Product, FlavorProfile } from '@/types';
-import { products } from '@/data/products';
 
 export type SortKey =
   | 'onerilen'
@@ -136,7 +135,8 @@ export function defaultFilters(priceMin: number, priceMax: number): FilterState 
   };
 }
 
-export const allSeries = () => Array.from(new Set(products.map((p) => p.series))).sort();
+export const allSeries = (products: Product[]) =>
+  Array.from(new Set(products.map((p) => p.series))).sort();
 
-export const allSubcategories = () =>
+export const allSubcategories = (products: Product[]) =>
   Array.from(new Set(products.map((p) => p.subcategory))).sort((a, b) => a.localeCompare(b, 'tr'));

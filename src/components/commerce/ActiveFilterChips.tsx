@@ -3,7 +3,7 @@
 import { X } from 'lucide-react';
 import type { FilterState } from '@/lib/filters';
 import { profileLabels, formLabels } from '@/lib/filters';
-import { categories } from '@/data/categories';
+import { useCategories } from '@/components/catalog/CatalogProvider';
 import { currency } from '@/lib/site';
 import type { FlavorProfile } from '@/types';
 
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export function ActiveFilterChips({ filters, set, clear, priceMin, priceMax }: Props) {
+  const categories = useCategories();
   const chips: { label: string; onRemove: () => void }[] = [];
 
   filters.categories.forEach((c) =>

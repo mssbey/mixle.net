@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import type { FilterState } from '@/lib/filters';
 import { profileLabels, formLabels } from '@/lib/filters';
 import { RangeSlider } from '@/components/ui/RangeSlider';
-import { categories } from '@/data/categories';
+import { useCategories } from '@/components/catalog/CatalogProvider';
 import { currency } from '@/lib/site';
 import { cn } from '@/lib/utils';
 import type { FlavorProfile } from '@/types';
@@ -80,6 +80,8 @@ export function FilterPanel({
   volumeOptions,
   lockCategory,
 }: Props) {
+  const categories = useCategories();
+
   return (
     <div>
       <Group title="Hızlı filtreler">

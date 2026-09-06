@@ -1,13 +1,33 @@
-// Vitrin kategori/koleksiyon verisi. Kaynak: src/data/catalog.json.
-// Dışa verilen isimler ve tipler DEĞİŞMEZ.
+// Vitrin kategori/koleksiyon verisi. Kaynak: veritabanı (Prisma).
+//
+// SUNUCU-ONLY — bkz. `src/data/products.ts` başındaki açıklama. Client
+// bileşenleri taksonomiyi `useTaxonomy()` (CatalogProvider) üzerinden alır.
 
+import 'server-only';
+import { cache } from 'react';
 import type { Category, Collection } from '@/types';
-import { adminCategories, adminCollections } from './catalog';
+import { getAdminCategories, getAdminCollections } from '@/server/catalog/queries';
 import { toStorefrontCategory, toStorefrontCollection } from './catalog-adapter';
 
-export const categories: Category[] = adminCategories.map(toStorefrontCategory);
+export const getCategories = cache(async (): Promise<Category[]> =>
+  (await getAdminCategories()).map(toStorefrontCategory),
+);
 
-export const collections: Collection[] = adminCollections.map(toStorefrontCollection);
+export const getCollections = cache(async (): Promise<Collection[]> =>
+  (await getAdminCollections()).map(toStorefrontCollection),
+);
 
-export const categoryBySlug = (slug: string) => categories.find((c) => c.slug === slug);
-export const collectionBySlug = (slug: string) => collections.find((c) => c.slug === slug);
+export const getCategoryBySlug = async (slug: string): Promise<Category | undefined> =>
+  (await getCategories()).find((c) => c.slug === slug);
+
+export const getCollectionBySlug = async (slug: string): Promise<Collection | undefined> =>
+  (await getCollections()).find((c) => c.slug === slug);
+
+/** Kök layout'un `CatalogProvider`'a verdiği küçük taksonomi paketi. */
+export const getTaxonomy = cache(async (): Promise<{
+  categories: Category[];
+  collections: Collection[];
+}> => {
+  const [categories, collections] = await Promise.all([getCategories(), getCollections()]);
+  return { categories, collections };
+});

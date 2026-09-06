@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { products } from '@/data/products';
+import { getProducts } from '@/data/products';
 import { ProductRail } from '@/components/product/ProductRail';
 import { SectionHeading, Reveal } from '@/components/ui/Reveal';
 
-export function Diy25Section() {
+export async function Diy25Section() {
+  const products = await getProducts();
   const list = products.filter((p) => p.series === '25 Yüksek Aroma');
   if (list.length === 0) return null;
 

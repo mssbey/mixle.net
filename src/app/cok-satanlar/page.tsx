@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { bestSellers } from '@/data/products';
+import { getBestSellers } from '@/data/products';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/cok-satanlar' },
 };
 
-export default function BestSellersPage() {
-  const list = bestSellers();
+export default async function BestSellersPage() {
+  const list = await getBestSellers();
   return (
     <div className="container-page section !pt-8">
       <Breadcrumbs items={[{ label: 'Çok Satanlar' }]} />

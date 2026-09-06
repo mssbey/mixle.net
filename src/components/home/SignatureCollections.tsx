@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
-import { collections } from '@/data/categories';
-import { productsByCollection } from '@/data/products';
+import { getCollections } from '@/data/categories';
+import { getProducts } from '@/data/products';
 import { SectionHeading, Reveal } from '@/components/ui/Reveal';
 
-export function SignatureCollections() {
+export async function SignatureCollections() {
+  const [collections, products] = await Promise.all([getCollections(), getProducts()]);
   return (
     <section className="section container-page">
       <SectionHeading
@@ -16,7 +17,7 @@ export function SignatureCollections() {
 
       <div className="mt-10 grid gap-5 lg:grid-cols-3">
         {collections.map((c, i) => {
-          const count = productsByCollection(c.slug).length;
+          const count = products.filter((p) => p.collection === c.slug).length;
           return (
             <Reveal key={c.slug} delay={i * 0.06}>
               <Link

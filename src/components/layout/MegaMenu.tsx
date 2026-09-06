@@ -4,9 +4,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { m } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
-import { megaMenuColumns, megaMenuCollections } from '@/data/nav';
+import { buildMegaMenuColumns, buildMegaMenuCollections } from '@/data/nav';
+import { useTaxonomy } from '@/components/catalog/CatalogProvider';
 
 export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
+  const { categories, collections } = useTaxonomy();
+  const megaMenuColumns = buildMegaMenuColumns(categories);
+  const megaMenuCollections = buildMegaMenuCollections(collections);
+
   return (
     <m.div
       initial={{ opacity: 0, y: -8 }}

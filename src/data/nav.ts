@@ -1,4 +1,4 @@
-import { categories, collections } from '@/data/categories';
+import type { Category, Collection } from '@/types';
 
 export interface NavLink {
   label: string;
@@ -22,40 +22,46 @@ export const primaryNav: NavLink[] = [
   { label: 'Aroma Rehberi', href: '/aroma-rehberi' },
 ];
 
-export const megaMenuColumns = [
-  {
-    heading: 'Tat Aileleri',
-    links: categories
-      .filter((c) => !['diy-kitler', 'nbase'].includes(c.slug))
-      .map((c) => ({ label: c.name, href: `/kategori/${c.slug}`, hint: c.tagline })),
-  },
-  {
-    heading: 'Set & Baz',
-    links: [
-      ...categories
-        .filter((c) => ['diy-kitler', 'nbase'].includes(c.slug))
+// Kategoriler artık veritabanından geldiği için mega menü modül yüklenirken
+// değil, taksonomi elde edildiğinde kurulur (bkz. `useTaxonomy()`).
+export function buildMegaMenuColumns(categories: Category[]) {
+  return [
+    {
+      heading: 'Tat Aileleri',
+      links: categories
+        .filter((c) => !['diy-kitler', 'nbase'].includes(c.slug))
         .map((c) => ({ label: c.name, href: `/kategori/${c.slug}`, hint: c.tagline })),
-      { label: 'Aroma Rehberi', href: '/aroma-rehberi', hint: 'Oran, karışım ve saklama' },
-      { label: 'Aroma Bulucu', href: '/aroma-rehberi#bulucu', hint: 'Sana uygun profili keşfet' },
-    ],
-  },
-  {
-    heading: 'Keşfet',
-    links: [
-      { label: 'Tüm Ürünler', href: '/urunler', hint: `${categories.length} kategori` },
-      { label: 'Yeni Gelenler', href: '/yeni-gelenler', hint: 'Son eklenenler' },
-      { label: 'Çok Satanlar', href: '/cok-satanlar', hint: 'En çok tercih edilenler' },
-      { label: 'Kampanyalar', href: '/kampanyalar', hint: 'İndirimli seçkiler' },
-    ],
-  },
-];
+    },
+    {
+      heading: 'Set & Baz',
+      links: [
+        ...categories
+          .filter((c) => ['diy-kitler', 'nbase'].includes(c.slug))
+          .map((c) => ({ label: c.name, href: `/kategori/${c.slug}`, hint: c.tagline })),
+        { label: 'Aroma Rehberi', href: '/aroma-rehberi', hint: 'Oran, karışım ve saklama' },
+        { label: 'Aroma Bulucu', href: '/aroma-rehberi#bulucu', hint: 'Sana uygun profili keşfet' },
+      ],
+    },
+    {
+      heading: 'Keşfet',
+      links: [
+        { label: 'Tüm Ürünler', href: '/urunler', hint: `${categories.length} kategori` },
+        { label: 'Yeni Gelenler', href: '/yeni-gelenler', hint: 'Son eklenenler' },
+        { label: 'Çok Satanlar', href: '/cok-satanlar', hint: 'En çok tercih edilenler' },
+        { label: 'Kampanyalar', href: '/kampanyalar', hint: 'İndirimli seçkiler' },
+      ],
+    },
+  ];
+}
 
-export const megaMenuCollections = collections.map((c) => ({
-  label: c.name,
-  href: `/koleksiyon/${c.slug}`,
-  subtitle: c.subtitle,
-  cover: c.cover,
-}));
+export function buildMegaMenuCollections(collections: Collection[]) {
+  return collections.map((c) => ({
+    label: c.name,
+    href: `/koleksiyon/${c.slug}`,
+    subtitle: c.subtitle,
+    cover: c.cover,
+  }));
+}
 
 export const footerNav = [
   {

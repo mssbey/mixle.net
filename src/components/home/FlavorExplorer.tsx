@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { AnimatePresence, m } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import type { FlavorProfile } from '@/types';
-import { products } from '@/data/products';
 import { flavorMeta } from '@/components/ui/FlavorTag';
 import { ProductCard } from '@/components/product/ProductCard';
 import { QuickView } from '@/components/product/QuickView';
@@ -15,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 const order: FlavorProfile[] = ['meyveli', 'ferah', 'tatli', 'eksi', 'kremsi', 'tutun', 'icecek', 'mentollu'];
 
-export function FlavorExplorer() {
+export function FlavorExplorer({ products }: { products: Product[] }) {
   const [active, setActive] = useState<FlavorProfile>('meyveli');
   const [quick, setQuick] = useState<Product | null>(null);
 
@@ -25,7 +24,7 @@ export function FlavorExplorer() {
         .filter((p) => p.flavorProfiles.includes(active))
         .sort((a, b) => Number(b.featured) - Number(a.featured))
         .slice(0, 4),
-    [active],
+    [active, products],
   );
 
   return (

@@ -1,6 +1,5 @@
 // DEMO veri — gerçek müşteri yorumu/sorusu değildir. `demo: true` ile işaretlenmiştir.
 import type { Review, QuestionAnswer } from '@/types';
-import { products } from '@/data/products';
 import { seededRandom } from '@/lib/utils';
 
 const NAMES = [
@@ -74,4 +73,3 @@ export function qaFor(productId: string): QuestionAnswer[] {
   });
 }
 
-export const allProductIds = products.map((p) => p.id);

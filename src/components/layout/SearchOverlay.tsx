@@ -9,7 +9,7 @@ import { useUI } from '@/store/ui';
 import { useSearchHistory } from '@/store/favorites';
 import { useMounted, useScrollLock, useDialog, useDebounced } from '@/lib/hooks';
 import { searchProducts, popularSearches } from '@/lib/search';
-import { categories } from '@/data/categories';
+import { useCategories, useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { currency } from '@/lib/site';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, m } from 'framer-motion';
@@ -27,13 +27,19 @@ export function SearchOverlay() {
   useScrollLock(searchOpen);
   const dialogRef = useDialog(searchOpen, () => setSearch(false));
 
-  const results = useMemo(() => (debounced.trim().length >= 2 ? searchProducts(debounced, 6) : []), [debounced]);
+  const categories = useCategories();
+  // Katalog yalnızca arama katmanı açıldığında indirilir.
+  const { products } = useSlimProducts(searchOpen);
+  const results = useMemo(
+    () => (debounced.trim().length >= 2 ? searchProducts(debounced, products, categories, 6) : []),
+    [debounced, products, categories],
+  );
   const catHits = useMemo(
     () =>
       debounced.trim().length >= 2
         ? categories.filter((c) => c.name.toLocaleLowerCase('tr').includes(debounced.toLocaleLowerCase('tr'))).slice(0, 3)
         : [],
-    [debounced],
+    [debounced, categories],
   );
 
   useEffect(() => {

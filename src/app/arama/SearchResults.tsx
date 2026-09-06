@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SearchX } from 'lucide-react';
 import { searchProducts, popularSearches } from '@/lib/search';
+import { useCategories, useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { EmptyState } from '@/components/ui/EmptyState';
 import Link from 'next/link';
@@ -11,7 +12,12 @@ import Link from 'next/link';
 export function SearchResults() {
   const params = useSearchParams();
   const q = params.get('q')?.trim() ?? '';
-  const hits = useMemo(() => (q ? searchProducts(q, 60) : []), [q]);
+  const categories = useCategories();
+  const { products: catalog } = useSlimProducts();
+  const hits = useMemo(
+    () => (q ? searchProducts(q, catalog, categories, 60) : []),
+    [q, catalog, categories],
+  );
   const products = hits.map((h) => h.product);
 
   if (!q) {

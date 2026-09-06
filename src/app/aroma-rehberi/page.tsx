@@ -4,6 +4,7 @@ import { BookOpen } from 'lucide-react';
 import { guideTopics, guideDisclaimer } from '@/data/content';
 import { AromaFinder } from '@/components/home/AromaFinder';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { getProducts } from '@/data/products';
 
 export const metadata: Metadata = {
   title: 'Aroma Rehberi',
@@ -14,7 +15,8 @@ export const metadata: Metadata = {
 
 const images = ['/images/nefisaroma/guide/tat-notalari.webp', '/images/nefisaroma/story/aroma-atolyesi.webp', '/images/nefisaroma/categories/mix.webp', '/images/nefisaroma/categories/ferah.webp'];
 
-export default function GuidePage() {
+export default async function GuidePage() {
+  const products = await getProducts();
   return (
     <div>
       <section className="surface-dark relative overflow-hidden">
@@ -83,7 +85,7 @@ export default function GuidePage() {
             </ul>
           </div>
           <div id="bulucu" className="mt-6 scroll-mt-32">
-            <AromaFinder compact />
+            <AromaFinder products={products} compact />
           </div>
         </aside>
       </div>

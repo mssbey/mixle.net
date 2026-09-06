@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Tag } from 'lucide-react';
-import { onSaleProducts } from '@/data/products';
+import { getOnSaleProducts } from '@/data/products';
 import { campaign } from '@/data/content';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/kampanyalar' },
 };
 
-export default function CampaignsPage() {
-  const list = onSaleProducts();
+export default async function CampaignsPage() {
+  const list = await getOnSaleProducts();
   return (
     <div>
       <section className="surface-dark relative overflow-hidden">

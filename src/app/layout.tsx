@@ -3,6 +3,7 @@ import { fontSans, fontDisplay, fontScript } from './fonts';
 import './globals.css';
 import { MotionProvider } from '@/components/motion';
 import { LayoutFrame } from '@/components/layout/LayoutFrame';
+import { getTaxonomy } from '@/data/categories';
 import { JsonLd, organizationJsonLd, webSiteJsonLd } from '@/lib/seo';
 import { site } from '@/lib/site';
 
@@ -51,14 +52,20 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Kategori/koleksiyon listesi küçüktür (~10 KB) ve neredeyse her client
+  // bileşeni ister; bu yüzden tek seferde sunucuda okunup context'e verilir.
+  const { categories, collections } = await getTaxonomy();
+
   return (
     <html lang="tr" className={`${fontSans.variable} ${fontDisplay.variable} ${fontScript.variable}`}>
       <body className="min-h-dvh bg-cream font-sans text-ink antialiased">
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={webSiteJsonLd()} />
         <MotionProvider>
-          <LayoutFrame>{children}</LayoutFrame>
+          <LayoutFrame categories={categories} collections={collections}>
+            {children}
+          </LayoutFrame>
         </MotionProvider>
       </body>
     </html>

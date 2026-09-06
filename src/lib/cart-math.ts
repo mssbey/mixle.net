@@ -1,9 +1,13 @@
-import type { CartLine, CartLineDetailed } from '@/types';
-import { products } from '@/data/products';
+import type { CartLine, CartLineDetailed, Product } from '@/types';
 import { promoInfo } from '@/store/cart';
 import { site } from '@/lib/site';
 
-export function detailLines(lines: CartLine[]): CartLineDetailed[] {
+/**
+ * Sepet satırlarını ürün verisiyle eşler. Ürün listesi parametreyle gelir:
+ * veri katmanı sunucu-only olduğu için client bileşenleri onu
+ * `useSlimProducts()` ile alır.
+ */
+export function detailLines(lines: CartLine[], products: Product[]): CartLineDetailed[] {
   return lines
     .map((line) => {
       const product = products.find((p) => p.id === line.productId);

@@ -2,21 +2,21 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { collections, collectionBySlug } from '@/data/categories';
-import { productsByCollection } from '@/data/products';
+import { getCollections, getCollectionBySlug } from '@/data/categories';
+import { getProductsByCollection } from '@/data/products';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 type Params = Promise<{ slug: string }>;
 
-export function generateStaticParams() {
-  return collections.map((c) => ({ slug: c.slug }));
+export async function generateStaticParams() {
+  return (await getCollections()).map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  const c = collectionBySlug(slug);
+  const c = await getCollectionBySlug(slug);
   if (!c) return {};
   return {
     title: c.name,
@@ -28,9 +28,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function CollectionPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const c = collectionBySlug(slug);
+  const c = await getCollectionBySlug(slug);
   if (!c) notFound();
-  const list = productsByCollection(c.slug);
+  const list = await getProductsByCollection(c.slug);
 
   return (
     <div>

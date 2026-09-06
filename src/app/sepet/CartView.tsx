@@ -13,7 +13,7 @@ import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import { ButtonLink } from '@/components/ui/Button';
 import { RelatedRail } from '@/components/product/RelatedRail';
 import { currency, site } from '@/lib/site';
-import { products } from '@/data/products';
+import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { toast } from '@/store/toast';
 import { clamp } from '@/lib/utils';
 
@@ -24,11 +24,13 @@ export function CartView() {
   const promo = useCart((s) => s.promo);
   const [code, setCode] = useState('');
 
-  const detailed = mounted ? detailLines(lines) : [];
+  const { products, loading } = useSlimProducts();
+  const ready = mounted && !loading;
+  const detailed = ready ? detailLines(lines, products) : [];
   const summary = summarize(detailed, promo);
   const progress = clamp((1 - summary.freeShippingRemaining / site.commerce.freeShippingThreshold) * 100, 0, 100);
 
-  if (mounted && detailed.length === 0) {
+  if (ready && detailed.length === 0) {
     return (
       <>
         <EmptyState

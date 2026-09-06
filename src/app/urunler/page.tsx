@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { products } from '@/data/products';
+import { getProducts } from '@/data/products';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/urunler' },
 };
 
-export default function AllProductsPage() {
+export default async function AllProductsPage() {
+  const products = await getProducts();
   return (
     <div className="container-page section !pt-8">
       <Breadcrumbs items={[{ label: 'Tüm Aromalar' }]} />

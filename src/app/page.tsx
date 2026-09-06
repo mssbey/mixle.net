@@ -12,17 +12,19 @@ import { CampaignBanner } from '@/components/home/CampaignBanner';
 import { GuideTeaser } from '@/components/home/GuideTeaser';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
 import { ProductFormats } from '@/components/home/ProductFormats';
+import { getProducts } from '@/data/products';
 
 export const metadata: Metadata = { alternates: { canonical: '/' } };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const products = await getProducts();
   return (
     <>
       <Hero />
       <TrustStrip />
       <CategoryShowcase />
 
-      <FlavorExplorer />
+      <FlavorExplorer products={products} />
       <LabProcess />
       <ProductFormats />
       <Diy25Section />

@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { AnimatePresence, m } from 'framer-motion';
 import { RefreshCw, Share2, Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import type { FlavorProfile, Product } from '@/types';
-import { products } from '@/data/products';
 import { currency } from '@/lib/site';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/utils';
@@ -70,7 +69,7 @@ const questions: Question[] = [
   },
 ];
 
-function recommend(picks: (Choice | null)[]): Product[] {
+function recommend(picks: (Choice | null)[], products: Product[]): Product[] {
   const profileWeights: Partial<Record<FlavorProfile, number>> = {};
   let freshTarget: number | null = null;
   let sweetTarget: number | null = null;
@@ -104,11 +103,11 @@ function recommend(picks: (Choice | null)[]): Product[] {
     .map((x) => x.p);
 }
 
-export function AromaFinder({ compact = false }: { compact?: boolean }) {
+export function AromaFinder({ products, compact = false }: { products: Product[]; compact?: boolean }) {
   const [step, setStep] = useState(0);
   const [picks, setPicks] = useState<(Choice | null)[]>(Array(questions.length).fill(null));
   const done = step >= questions.length;
-  const results = useMemo(() => (done ? recommend(picks) : []), [done, picks]);
+  const results = useMemo(() => (done ? recommend(picks, products) : []), [done, picks, products]);
 
   const choose = (choice: Choice) => {
     setPicks((prev) => {

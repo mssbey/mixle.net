@@ -3,7 +3,7 @@
 import { Heart, ShoppingBag } from 'lucide-react';
 import { useFavorites } from '@/store/favorites';
 import { useMounted } from '@/lib/hooks';
-import { products } from '@/data/products';
+import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ButtonLink } from '@/components/ui/Button';
@@ -18,9 +18,11 @@ export function FavoritesView() {
   const add = useCart((s) => s.add);
   const openCart = useUI((s) => s.openCart);
 
-  const favProducts = mounted ? ids.map((id) => products.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p) : [];
+  const { products, loading } = useSlimProducts();
+  const ready = mounted && !loading;
+  const favProducts = ready ? ids.map((id) => products.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p) : [];
 
-  if (mounted && favProducts.length === 0) {
+  if (ready && favProducts.length === 0) {
     return (
       <EmptyState
         icon={Heart}

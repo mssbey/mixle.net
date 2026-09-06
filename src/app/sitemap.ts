@@ -1,10 +1,15 @@
 import type { MetadataRoute } from 'next';
 import { site } from '@/lib/site';
-import { products } from '@/data/products';
-import { categories, collections } from '@/data/categories';
+import { getProducts } from '@/data/products';
+import { getCategories, getCollections } from '@/data/categories';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const [products, categories, collections] = await Promise.all([
+    getProducts(),
+    getCategories(),
+    getCollections(),
+  ]);
   const staticPaths = [
     '',
     '/urunler',

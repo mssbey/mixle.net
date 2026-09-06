@@ -13,7 +13,7 @@ import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
 import { site, currency } from '@/lib/site';
-import { categories } from '@/data/categories';
+import { useCategories } from '@/components/catalog/CatalogProvider';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -32,6 +32,7 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
   const add = useCart((s) => s.add);
   const openCart = useUI((s) => s.openCart);
   const { volumes, intensities } = uniqueOptions(product);
+  const categories = useCategories();
   const catName = categories.find((c) => c.slug === product.category)?.name;
   const sel = { volume, intensity };
   const soldOut = variant.stock === 'out-of-stock';

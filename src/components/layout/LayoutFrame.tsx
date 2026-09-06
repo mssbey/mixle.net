@@ -2,6 +2,8 @@
 
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import type { Category, Collection } from '@/types';
+import { CatalogProvider } from '@/components/catalog/CatalogProvider';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { MobileTabBar } from '@/components/layout/MobileTabBar';
@@ -14,7 +16,15 @@ import { WhatsAppFab } from '@/components/layout/WhatsAppFab';
  * Vitrin çerçevesi (header/footer/drawer'lar) yalnızca vitrin rotalarında görünür.
  * /admin altında panel kendi yerleşimini kullanır.
  */
-export function LayoutFrame({ children }: { children: ReactNode }) {
+export function LayoutFrame({
+  categories,
+  collections,
+  children,
+}: {
+  categories: Category[];
+  collections: Collection[];
+  children: ReactNode;
+}) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith('/admin');
 
@@ -23,7 +33,7 @@ export function LayoutFrame({ children }: { children: ReactNode }) {
   }
 
   return (
-    <>
+    <CatalogProvider categories={categories} collections={collections}>
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-full focus:bg-purple-800 focus:px-4 focus:py-2 focus:text-sm focus:text-cream"
@@ -40,6 +50,6 @@ export function LayoutFrame({ children }: { children: ReactNode }) {
       <SearchOverlay />
       <WhatsAppFab />
       <Toaster />
-    </>
+    </CatalogProvider>
   );
 }

@@ -1,6 +1,5 @@
 import { site } from '@/lib/site';
 import type { Product } from '@/types';
-import { categories } from '@/data/categories';
 
 export function organizationJsonLd() {
   return {
@@ -27,8 +26,9 @@ export function webSiteJsonLd() {
   };
 }
 
-export function productJsonLd(product: Product) {
-  const catName = categories.find((c) => c.slug === product.category)?.name ?? 'Aroma';
+/** `categoryName` çağıran sunucu bileşeninden gelir (veri katmanı sunucu-only). */
+export function productJsonLd(product: Product, categoryName?: string) {
+  const catName = categoryName ?? 'Aroma';
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',

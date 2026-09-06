@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { newArrivals } from '@/data/products';
+import { getNewArrivals } from '@/data/products';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/yeni-gelenler' },
 };
 
-export default function NewArrivalsPage() {
-  const list = newArrivals();
+export default async function NewArrivalsPage() {
+  const list = await getNewArrivals();
   return (
     <div className="container-page section !pt-8">
       <Breadcrumbs items={[{ label: 'Yeni Gelenler' }]} />

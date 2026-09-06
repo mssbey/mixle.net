@@ -1,5 +1,6 @@
 // Admin veri modeli → vitrin `Product` / `Category` / `Collection` tipleri.
-// Amaç: catalog.json değişse bile vitrin bileşenlerinin gördüğü sözleşme aynı kalsın.
+// Amaç: veri kaynağı değişse bile vitrin bileşenlerinin gördüğü sözleşme aynı
+// kalsın. Kuruş → TL dönüşümü de burada, tek noktada yapılır.
 
 import type {
   Category,
@@ -20,6 +21,7 @@ import type {
   AdminProduct,
   AdminVariant,
 } from '@/types/admin';
+import { fromMinor } from '@/lib/money';
 
 const VOLUMES: VariantVolume[] = ['10ml', '30ml', '60ml', '100ml'];
 const INTENSITIES: VariantIntensity[] = ['Standart', 'Yoğun', 'Extra Fresh'];
@@ -73,7 +75,7 @@ function toStorefrontVariant(product: AdminProduct, v: AdminVariant): ProductVar
     : 'Standart';
 
   const stockCount = Math.max(0, Math.round(v.stock));
-  const onSale = v.compareAtPrice != null && v.compareAtPrice > v.price;
+  const onSale = v.compareAtPriceMinor != null && v.compareAtPriceMinor > v.priceMinor;
 
   return {
     id: v.id,
@@ -81,8 +83,9 @@ function toStorefrontVariant(product: AdminProduct, v: AdminVariant): ProductVar
     volume,
     type: FORM_TYPE[product.form],
     intensity,
-    price: v.price,
-    oldPrice: onSale ? (v.compareAtPrice as number) : undefined,
+    // Vitrin sözleşmesi TL (float) bekler; kuruş → TL dönüşümü burada, tek noktada.
+    price: fromMinor(v.priceMinor),
+    oldPrice: onSale ? fromMinor(v.compareAtPriceMinor as number) : undefined,
     stock: stockStatusFromCount(stockCount),
     stockCount,
     image: v.image || product.images[0]?.src || FALLBACK_IMAGE,

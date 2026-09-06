@@ -2,8 +2,8 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { categories, categoryBySlug } from '@/data/categories';
-import { productsByCategory } from '@/data/products';
+import { getCategories, getCategoryBySlug } from '@/data/categories';
+import { getProductsByCategory } from '@/data/products';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -11,13 +11,13 @@ import { JsonLd, breadcrumbJsonLd } from '@/lib/seo';
 
 type Params = Promise<{ slug: string }>;
 
-export function generateStaticParams() {
-  return categories.map((c) => ({ slug: c.slug }));
+export async function generateStaticParams() {
+  return (await getCategories()).map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  const cat = categoryBySlug(slug);
+  const cat = await getCategoryBySlug(slug);
   if (!cat) return {};
   return {
     title: cat.name,
@@ -29,9 +29,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function CategoryPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const cat = categoryBySlug(slug);
+  const cat = await getCategoryBySlug(slug);
   if (!cat) notFound();
-  const list = productsByCategory(cat.slug);
+  const list = await getProductsByCategory(cat.slug);
 
   return (
     <div>

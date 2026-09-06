@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
-import { categories } from '@/data/categories';
+import { getCategories } from '@/data/categories';
 import { SectionHeading } from '@/components/ui/Reveal';
 
-export function CategoryShowcase() {
+export async function CategoryShowcase() {
+  const categories = await getCategories();
   return (
     <section className="section container-page">
       <div className="flex flex-wrap items-end justify-between gap-5">
