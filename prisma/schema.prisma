@@ -334,6 +334,20 @@ model Order {
   couponCode     String?
   couponSnapshot Json?
 
+  /// Kapıda ödeme gibi ek hizmet bedeli, kuruş.
+  surchargeMinor Int @default(0)
+  /// Oran bazında KDV matrahı dökümü: [{ rateBps, netMinor, taxMinor }]
+  taxBreakdown   Json?
+
+  /// havale | kapida | kart | mock — Payment satırındaki provider'ın listeleme
+  /// için denormalize kopyası.
+  paymentMethod  String @default("")
+  /// Seçilen kargo yönteminin anlık görüntüsü: { id, name, carrier, priceMinor, estimatedDays }
+  shippingMethod Json?
+
+  /// Çift sipariş engeli: aynı Idempotency-Key ile gelen istek aynı siparişi döndürür.
+  idempotencyKey String? @unique
+
   customerNote String?
   adminNote    String?
 

@@ -1,0 +1,230 @@
+// E-posta kuyruğu ve şablonları (F1 sürümü).
+//
+// DEMO_MODE=true iken hiçbir şey gönderilmez: e-posta `EmailLog`'a
+// "demo-yakalandı" durumuyla ve gövdesiyle yazılır, panelde görüntülenir.
+// Gerçek gönderim (SMTP/Resend) ve panelden düzenlenebilir şablonlar F7'de.
+//
+// Şablonlar `{{degisken}}` yer tutucularıyla Türkçe metindir; değişkenler
+// gönderim anında doldurulur. Kişisel veri (tam adres, TCKN) e-postaya konmaz.
+
+import 'server-only';
+import { db } from '../db';
+import { DEMO_MODE } from '../config';
+import { formatMinor } from '@/lib/money';
+
+export type EmailTemplateKey =
+  | 'siparis-alindi'
+  | 'odeme-basarili'
+  | 'odeme-basarisiz'
+  | 'kargoya-verildi'
+  | 'teslim-edildi'
+  | 'iptal'
+  | 'iade-onayi'
+  | 'iade-tamamlandi'
+  | 'parola-sifirla'
+  | 'yeni-siparis-yonetici'
+  | 'hesap-olusturuldu';
+
+interface Template {
+  subject: string;
+  body: string;
+}
+
+const TEMPLATES: Record<EmailTemplateKey, Template> = {
+  'siparis-alindi': {
+    subject: 'Siparişiniz alındı — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişinizi aldık. Ödemeniz onaylandığında hazırlamaya başlayacağız.
+
+Sipariş toplamı: {{toplam}}
+Ödeme yöntemi: {{odemeYontemi}}
+
+{{odemeTalimati}}
+
+Siparişinizi takip etmek için: {{takipLinki}}
+
+Kabul ettiğiniz Mesafeli Satış Sözleşmesi (sürüm {{sozlesmeSurumu}}) ve Ön Bilgilendirme Formu bu e-postanın ekinde yer alır.
+
+Nefis Aroma`,
+  },
+  'odeme-basarili': {
+    subject: 'Ödemeniz alındı — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişinizin ödemesi ({{toplam}}) başarıyla alındı. Siparişiniz hazırlanıyor.
+
+Takip: {{takipLinki}}
+
+Nefis Aroma`,
+  },
+  'odeme-basarisiz': {
+    subject: 'Ödeme alınamadı — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişiniz için ödeme alınamadı. Siparişiniz bekliyor; yeniden ödeme yapmak için: {{takipLinki}}
+
+Nefis Aroma`,
+  },
+  'kargoya-verildi': {
+    subject: 'Siparişiniz kargoda — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişiniz {{kargoFirmasi}} ile yola çıktı.
+Takip numarası: {{kargoTakipNo}}
+Takip linki: {{kargoTakipLinki}}
+
+Nefis Aroma`,
+  },
+  'teslim-edildi': {
+    subject: 'Siparişiniz teslim edildi — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişiniz teslim edildi. Keyifli kullanımlar!
+
+Cayma hakkınız teslim tarihinden itibaren {{caymaGun}} gündür. İade talebi için: {{takipLinki}}
+
+Nefis Aroma`,
+  },
+  iptal: {
+    subject: 'Siparişiniz iptal edildi — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişiniz iptal edildi. Ödeme yaptıysanız iade işlemi başlatılmıştır.
+
+Nefis Aroma`,
+  },
+  'iade-onayi': {
+    subject: 'İade talebiniz alındı — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişiniz için iade talebiniz alındı. İnceleme sonucunu e-posta ile bildireceğiz.
+
+Nefis Aroma`,
+  },
+  'iade-tamamlandi': {
+    subject: 'İadeniz tamamlandı — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişinizin iadesi tamamlandı. {{iadeTutari}} ödeme yönteminize iade edildi.
+
+Nefis Aroma`,
+  },
+  'parola-sifirla': {
+    subject: 'Parola sıfırlama',
+    body: `Merhaba,
+
+Parolanızı sıfırlamak için bağlantı (1 saat geçerli): {{sifirlamaLinki}}
+
+Bu isteği siz yapmadıysanız bu e-postayı yok sayın.
+
+Nefis Aroma`,
+  },
+  'yeni-siparis-yonetici': {
+    subject: 'Yeni sipariş: {{siparisNo}} — {{toplam}}',
+    body: `Yeni sipariş alındı.
+
+No: {{siparisNo}}
+Müşteri: {{musteriAdi}} ({{musteriEposta}})
+Toplam: {{toplam}}
+Ödeme: {{odemeYontemi}}
+
+Panel: {{panelLinki}}`,
+  },
+  'hesap-olusturuldu': {
+    subject: 'Nefis Aroma hesabınız oluşturuldu',
+    body: `Merhaba {{musteriAdi}},
+
+Hesabınız oluşturuldu. Siparişlerinizi ve adreslerinizi {{hesapLinki}} adresinden yönetebilirsiniz.
+
+Nefis Aroma`,
+  },
+};
+
+export type EmailVars = Record<string, string | number | null | undefined>;
+
+export function renderTemplate(key: EmailTemplateKey, vars: EmailVars): Template {
+  const fill = (text: string) =>
+    text.replace(/\{\{(\w+)\}\}/g, (_, name: string) => {
+      const v = vars[name];
+      return v == null ? '' : String(v);
+    });
+  const t = TEMPLATES[key];
+  return { subject: fill(t.subject), body: fill(t.body).replace(/\n{3,}/g, '\n\n') };
+}
+
+export interface QueueEmailInput {
+  to: string;
+  template: EmailTemplateKey;
+  vars: EmailVars;
+  orderId?: string | null;
+}
+
+/**
+ * E-postayı kuyruğa alır. Demo modda anında "yakalandı" olarak kaydedilir;
+ * gerçek gönderim F7'de bu fonksiyonun içine bağlanır, çağrı yerleri değişmez.
+ * Gönderim hatası asıl işlemi (sipariş oluşturma vb.) asla düşürmez.
+ */
+export async function queueEmail(input: QueueEmailInput): Promise<void> {
+  const { subject, body } = renderTemplate(input.template, input.vars);
+  try {
+    await db.emailLog.create({
+      data: {
+        to: input.to,
+        template: input.template,
+        subject,
+        body,
+        orderId: input.orderId ?? null,
+        status: DEMO_MODE ? 'demo-yakalandı' : 'kuyrukta',
+        sentAt: DEMO_MODE ? new Date() : null,
+      },
+    });
+  } catch (err) {
+    console.error('[e-posta] kuyruğa yazılamadı:', err);
+  }
+}
+
+/** Sipariş e-postalarının ortak değişkenleri. */
+export function orderEmailVars(order: {
+  orderNumber: string;
+  grandTotalMinor: number;
+  paymentMethod: string;
+  guestEmail: string | null;
+  customer?: { firstName: string; lastName: string; email: string } | null;
+  shippingAddress: unknown;
+}): EmailVars {
+  const addr = (order.shippingAddress ?? {}) as { firstName?: string; lastName?: string };
+  const name =
+    order.customer && (order.customer.firstName || order.customer.lastName)
+      ? `${order.customer.firstName} ${order.customer.lastName}`.trim()
+      : `${addr.firstName ?? ''} ${addr.lastName ?? ''}`.trim() || 'Müşterimiz';
+  const email = order.customer?.email ?? order.guestEmail ?? '';
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const takip = `${base}/siparis-takibi?no=${encodeURIComponent(order.orderNumber)}&eposta=${encodeURIComponent(email)}`;
+
+  return {
+    siparisNo: order.orderNumber,
+    musteriAdi: name,
+    musteriEposta: email,
+    toplam: formatMinor(order.grandTotalMinor),
+    odemeYontemi: paymentMethodLabel(order.paymentMethod),
+    takipLinki: takip,
+    panelLinki: `${base}/admin/siparisler`,
+    hesapLinki: `${base}/hesabim`,
+  };
+}
+
+export function paymentMethodLabel(method: string): string {
+  switch (method) {
+    case 'havale':
+      return 'Havale / EFT';
+    case 'kapida':
+      return 'Kapıda ödeme';
+    case 'kart':
+      return 'Kredi / banka kartı';
+    case 'mock':
+      return 'Test ödemesi';
+    default:
+      return method || '—';
+  }
+}
