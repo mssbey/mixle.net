@@ -3,7 +3,76 @@
 > **Devam talimatı:** Kullanıcı "devam et" dediğinde bu dosyadan devam et. Projeyi
 > baştan analiz etme. Aşağıdaki "SONRAKİ ADIM" bölümünden başla.
 
-Son güncelleme: 2026-09-05 (Aşama 1-18 tamamlandı — 100 ürün, 134 route)
+Son güncelleme: 2026-09-06 (F0 tamamlandı — veri katmanı DB'ye taşındı, gerçek auth)
+
+## SONRAKİ ADIM
+
+**F1 — Vitrin checkout.** Plan: `PLAN-YONETIM-PANELI.md`.
+`/odeme` çok adımlı checkout, misafir + hesapla alışveriş, kupon/kargo/KDV
+hesabı, mesafeli satış onayları, sunucuda sipariş oluşturma (fiyat istemciden
+alınmaz), stok rezervasyonu, Idempotency-Key, `/siparis-takibi`, `/hesabim`.
+
+Şema zaten hazır (Order/OrderItem/Payment/Shipment/… `prisma/schema.prisma`);
+F1'de yalnız iş mantığı ve arayüz yazılacak.
+
+---
+
+## F0 — TAMAMLANDI (2026-09-06)
+
+**Veri katmanı**
+- Prisma 7.10.0 + SQLite (`data/nefis.db`). Prisma 7 **driver adapter** ister:
+  `@prisma/adapter-better-sqlite3`. Bağlantı `prisma.config.ts` + `src/server/db.ts`.
+- Şema: katalog + sipariş + ödeme + kargo + iade + kupon + stok + müşteri +
+  kullanıcı/oturum/denetim + ayar/medya/sayfa (~35 model).
+- **Taşınabilirlik kuralları (bozma):** Prisma `enum` YOK (Türkçe değerler
+  tanımlayıcı olamaz + Postgres migrasyon yükü) → `String` + Zod.
+  Skaler liste (`String[]`) YOK (yalnız Postgres) → `Json`.
+  Para `Int` kuruş, oran `Int` on binde.
+- **Seçenek kimlikleri ürün içinde benzersiz, global değil** (`opt-hacim` 100
+  üründe geçiyor) → `ProductOption`/`OptionValue` birincil anahtarı cuid,
+  ürün içi kimlik `localId` sütununda. Bunu bozarsan varyant eşlemesi kırılır.
+- `catalog.json` → `src/data/legacy/catalog.json` arşivlendi; artık okunmuyor.
+  Geçiş: `npm run db:migrate-catalog` (idempotent, `--dry-run`, checksum doğrular).
+
+**Para birimi**
+- `AdminVariant.price/compareAtPrice` → `priceMinor/compareAtPriceMinor` (Int kuruş).
+- `src/lib/money.ts`: `toMinor/fromMinor/formatMinor/parseMajorInput/allocateMinor`
+  + KDV yardımcıları (`taxFromGross/taxFromNet`).
+- Vitrin `Product.basePrice` TL float KALDI; dönüşüm yalnız `catalog-adapter.ts`'de.
+
+**Vitrin veri erişimi (karar: plan §5.1-B)**
+- `products.ts` / `categories.ts` artık `server-only` ve **async** (`getProducts()` …).
+- Client bileşenleri veriyi üç yoldan alır: sunucu prop'u, `CatalogProvider`
+  context'i (kategori+koleksiyon, ~10 KB), `/api/catalog/slim` (talep üzerine).
+- 527 KB katalog artık istemci paketinde DEĞİL.
+- `search.ts`/`filters.ts`/`cart-math.ts`/`seo.tsx` saflaştırıldı: veri parametre.
+
+**Kimlik doğrulama**
+- `crypto.scrypt` parola özeti (argon2/bcrypt native derleme istediği için değil).
+- `jose` imzalı JWT + `Session` tablosu → iptal edilebilir oturum.
+- 5 rol / 17 izin: `src/server/auth/rbac.ts` (tek doğruluk kaynağı).
+- **İki katman:** `proxy.ts` rota bazlı kaba filtre (Edge, DB'siz);
+  Route Handler'da `requirePermission()` asıl kontrol. Rol jetondan değil DB'den.
+- Kaba kuvvet: `LoginAttempt`, 15 dk / 5 deneme kilidi.
+- `AuditLog` + `diffOf()` alan bazlı öncesi/sonrası.
+- `ADMIN_PASSWORD`, `ADMIN_WRITE_ENABLED`, "salt okunur" rozeti KALDIRILDI.
+  Yerine `DEMO_MODE` (varsayılan true).
+
+**Doğrulama**
+- `npm run qa:snapshot` + `npm run qa:compare`: 26 rota, **0 fark** (vitrin
+  çıktısı JSON dönemiyle birebir aynı).
+- `npm run qa:auth`: 18/18 kontrol geçti (401/403/oturum iptali dahil).
+- `npm run lint`, `npm run typecheck` temiz; `npm run build` başarılı,
+  100 ürün sayfası hâlâ SSG.
+
+**BİLİNEN EKSİK / YAPILACAK**
+- Parola sıfırlama akışı (tablo hazır: `PasswordResetToken`, uç yazılmadı).
+- Panelden kullanıcı yönetimi ekranı (şimdilik `npm run admin:create-user`).
+- `ENCRYPTION_KEY` altyapısı tanımlı ama AES-256-GCM sarmalayıcısı F3'te yazılacak.
+- SQLite Vercel'de kalıcı değil → canlıya çıkmadan Postgres'e geçilmeli.
+
+---
+
 
 ## ÖNEMLİ — Next.js 16 API notu
 Bu sürümde (Next 16.3.4) dinamik route'larda `params` bir **Promise**'dır.

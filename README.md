@@ -23,18 +23,30 @@ durumu Zustand ile, katalog verisi tek bir JSON dosyasıyla yönetilir.
 | Doğrulama | Zod (admin formları + Route Handler'lar) |
 | Animasyon | framer-motion (`LazyMotion`, `reducedMotion="user"`) |
 | İkon | lucide-react |
-| Kalıcılık | `src/data/catalog.json` + atomik dosya yazımı (backend yok) |
+| Veritabanı | Prisma 7 + SQLite (`data/nefis.db`); `DATABASE_URL` ile Postgres'e taşınabilir |
+| Kimlik doğrulama | `jose` imzalı httpOnly oturum çerezi + `crypto.scrypt` parola özeti, rol tabanlı yetki |
 
 ## Kurulum ve çalıştırma
 
 Node.js ve npm kurulu olmalıdır.
 
 ```sh
-npm ci
+npm ci                      # postinstall Prisma istemcisini üretir
+cp .env.example .env        # SESSION_SECRET ve ENCRYPTION_KEY doldurun
+npm run db:deploy           # veritabanı şemasını uygula
+npm run db:seed             # demo kataloğu yükle
+npm run admin:create-user   # ilk `sahip` kullanıcısını oluştur
 npm run dev
 ```
 
-Uygulamayı http://localhost:3000 adresinde açın.
+Uygulamayı http://localhost:3000, paneli http://localhost:3000/admin adresinde açın.
+
+`SESSION_SECRET` ve `ENCRYPTION_KEY` üretmek için:
+
+```sh
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  # SESSION_SECRET
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"     # ENCRYPTION_KEY
+```
 
 Üretim derlemesi:
 
@@ -45,15 +57,25 @@ npm start
 
 ## Ortam değişkenleri
 
-Zorunlu değişken yoktur. Örnekler `.env.example` dosyasındadır; gerçek değerleri
-`.env.local` içine yazın.
+Şablon `.env.example` dosyasındadır; gerçek değerleri `.env` içine yazın
+(`.env` git'e girmez).
 
-| Değişken | Varsayılan | Açıklama |
+| Değişken | Zorunlu | Açıklama |
 | --- | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | `https://nefisaroma.example` | Canonical, Open Graph ve sitemap için doğrulanmış alan adı |
-| `ADMIN_PASSWORD` | `nefis-admin` | Admin paneli giriş parolası (tek paylaşılan parola) |
-| `ADMIN_WRITE_ENABLED` | `false` | Üretimde katalog dosyasına yazmayı açar; geliştirmede zaten açıktır |
-| `CHROME_PATH` | — | Yerel tarayıcı QA betikleri için Chrome/Chromium yolu |
+| `DATABASE_URL` | evet | Prisma bağlantısı. Varsayılan `file:./data/nefis.db` (yol proje köküne göre) |
+| `SESSION_SECRET` | evet | Oturum çerezini imzalar; en az 32 karakter |
+| `ENCRYPTION_KEY` | `DEMO_MODE=false` iken | Hassas ayarların AES-256-GCM anahtarı (32 bayt base64). **Kaybedilirse şifreli veriler okunamaz** |
+| `DEMO_MODE` | hayır (varsayılan `true`) | Ödeme sağlayıcılarını test moduna zorlar; e-postalar gönderilmez, `EmailLog`'a yazılır |
+| `NEXT_PUBLIC_SITE_URL` | hayır | Canonical, Open Graph ve sitemap için doğrulanmış alan adı |
+| `CHROME_PATH` | hayır | Yerel tarayıcı QA betikleri için Chrome/Chromium yolu |
+
+Ödeme, kargo, e-posta ve e-fatura değişkenleri `.env.example` içinde listelenir;
+ilgili faz (F3/F4/F7) uygulanana kadar boş kalabilir.
+
+> **Dağıtım uyarısı:** SQLite dosyası Vercel gibi sunucusuz ortamlarda kalıcı
+> **değildir**. Canlıya çıkmadan önce `DATABASE_URL`'i Postgres'e çevirin ve
+> `prisma/schema.prisma` içindeki `provider` alanını `postgresql` yapıp yeniden
+> migration üretin.
 
 ---
 
@@ -92,10 +114,28 @@ stok ve varyasyonlar temsilidir.
 ### Veri
 
 Vitrin bileşenleri `src/data/products.ts` ve `src/data/categories.ts`'ten okur.
-Bu modüller `src/data/catalog.json`'u `src/data/catalog-adapter.ts` üzerinden
-mevcut `Product` / `Category` tiplerine indirger — **export imzaları
-değişmez**, yalnızca `status: "yayında"` olan ürünler vitrinde görünür. Genel
-metinler `src/data/content.ts` içindedir.
+Bu modüller **veritabanından** okur ve `src/data/catalog-adapter.ts` üzerinden
+mevcut `Product` / `Category` tiplerine indirger; yalnızca `status: "yayında"`
+olan ürünler vitrinde görünür. Genel metinler `src/data/content.ts` içindedir.
+
+**Sunucu / istemci ayrımı.** Veri katmanı `server-only`dir; artık asenkron
+fonksiyonlar dışa verir (`getProducts()`, `getCategories()`, …). Client
+bileşenleri veriyi üç yoldan alır:
+
+| Kaynak | Kullanan |
+| --- | --- |
+| Sunucu bileşeninden prop | Ana sayfa bölümleri, ürün/kategori sayfaları |
+| `CatalogProvider` context'i (kategoriler + koleksiyonlar, ~10 KB) | Header, mega menü, filtreler, footer |
+| `/api/catalog/slim` (talep üzerine) | Sepet, favoriler, arama katmanı, son görüntülenenler |
+
+Bu ayrım sayesinde 527 KB'lık katalog artık istemci paketine **girmiyor**.
+Vitrin sorguları `unstable_cache` ile etiketlenir; panelden her yazma sonrası
+`revalidateCatalog()` önbelleği düşürür.
+
+**Para birimi.** Tutarlar veritabanında ve admin modelinde tam sayı **kuruş**
+olarak tutulur (`priceMinor: 12990` = 129,90 ₺). Vitrin `Product` tipi geriye
+dönük uyumluluk için TL cinsindedir; dönüşüm yalnızca
+`src/data/catalog-adapter.ts` içinde yapılır. Yardımcılar `src/lib/money.ts`.
 
 ---
 
@@ -106,14 +146,44 @@ metinler `src/data/content.ts` içindedir.
 
 ### Giriş
 
-`/admin/giris` üzerinden çerez tabanlı basit bir giriş vardır. Parola
-`ADMIN_PASSWORD`'den okunur; tanımlı değilse `nefis-admin`. Erişim
-`src/proxy.ts` ile sağlanır (Next.js 16'da `middleware` yerine `proxy`);
-`/admin/**` ve `/api/admin/**` çerezsiz istekte sırasıyla `/admin/giris`'e
-yönlendirilir veya **401** döner.
+E-posta + parola ile gerçek kimlik doğrulama. Kullanıcılar `User` tablosunda
+tutulur; parolalar Node yerleşik `crypto.scrypt` ile özetlenir (native derleme
+gerektirmez). Oturum, `jose` ile imzalanmış bir JWT'yi `httpOnly` + `sameSite=lax`
+çerezde taşır ve ayrıca `Session` tablosunda kayıtlıdır.
 
-> **Bu gerçek bir kimlik doğrulama değildir:** tek paylaşılan parola, tek
-> kullanıcı, rol yok. Yalnızca demo/vitrin korumasıdır.
+İlk kullanıcıyı oluşturmak için:
+
+```sh
+npm run admin:create-user                 # etkileşimli
+npm run admin:create-user -- --list       # mevcut kullanıcıları listele
+```
+
+**Roller ve izinler** `src/server/auth/rbac.ts` içinde tek tablo olarak tanımlıdır:
+
+| Rol | Yetki |
+| --- | --- |
+| `sahip` | Tam yetki (kullanıcı yönetimi + ödeme anahtarları dahil) |
+| `yönetici` | Kullanıcı yönetimi ve ödeme anahtarları hariç her şey |
+| `editör` | Yalnızca katalog: ürün, kategori, koleksiyon, stok |
+| `sipariş-sorumlusu` | Sipariş, kargo, iade; **ürün silemez** |
+| `görüntüleyici` | Salt okunur |
+
+**İki katmanlı kontrol.** `src/proxy.ts` (Next.js 16'da `middleware` yerine
+`proxy`) yalnızca jetonun imzasına ve rolün rotaya yetip yetmediğine bakan kaba
+bir filtredir — Edge'de çalıştığı için veritabanına erişemez. **Asıl kontrol**
+her Route Handler'da `requirePermission()` ile yapılır: oturum iptal edilmiş mi,
+kullanıcı hâlâ aktif mi, rol bu işleme yetiyor mu. Rol jetondan değil
+veritabanından okunur, böylece rol değişikliği anında geçerli olur.
+
+Yetki asla yalnızca arayüzde gizlenerek uygulanmaz.
+
+**Kaba kuvvet koruması.** IP + e-posta bazlı sayaç (`LoginAttempt`): 15 dakika
+içinde 5 hatalı denemede 15 dakika kilit. Hata mesajı hesabın var olup
+olmadığını sızdırmaz ve kullanıcı bulunamadığında da parola doğrulaması kadar
+zaman harcanır.
+
+**Denetim kaydı.** Katalog, ayar ve oturum işlemleri `AuditLog`'a yazılır: kim,
+ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 
 ### Rotalar
 
@@ -154,14 +224,30 @@ Davranışlar:
 
 ### Kalıcılık ve API
 
-Katalog verisi tek kaynak olarak `src/data/catalog.json`'da tutulur;
-`src/data/catalog.seed.json` demoya sıfırlama yedeğidir.
+Katalog verisi **veritabanındadır** (`prisma/schema.prisma`).
+`src/data/catalog.seed.json` demoya sıfırlama kaynağıdır; özgün
+`catalog.json` geçiş sonrası `src/data/legacy/` altına arşivlenmiştir ve
+uygulama tarafından okunmaz.
+
+Veritabanı komutları:
+
+| Komut | İş |
+| --- | --- |
+| `npm run db:deploy` | Migration'ları uygula (kurulum / dağıtım) |
+| `npm run db:migrate` | Şema değişikliğinden yeni migration üret (geliştirme) |
+| `npm run db:seed` | Demo kataloğu yükle (katalog tablolarını sıfırlar) |
+| `npm run db:migrate-catalog` | Arşivlenmiş JSON'dan içe aktar (`--dry-run` destekler) |
+| `npm run db:studio` | Prisma Studio |
+
+Şema taşınabilirlik kuralları (bozmayın): Prisma `enum` ve skaler liste
+(`String[]`) **kullanılmaz** — ikisi de SQLite'ta yok; durum alanları `String` +
+Zod, listeler `Json`. Tutarlar `Int` kuruş, oranlar `Int` on binde.
 
 CRUD işlemleri `src/app/api/admin/**` Route Handler'larıyla yapılır:
 
 | Uç | Metotlar |
 | --- | --- |
-| `/api/admin/catalog` | `GET` (tüm katalog + `canWrite`), `PUT` |
+| `/api/admin/catalog` | `GET` (tüm katalog + kullanıcı/izinler) |
 | `/api/admin/products` | `GET` (filtreli liste), `POST` |
 | `/api/admin/products/[id]` | `GET`, `PATCH`, `DELETE` |
 | `/api/admin/products/bulk` | `POST` (aktif/pasif, durum, kategori, sil) |
@@ -170,15 +256,18 @@ CRUD işlemleri `src/app/api/admin/**` Route Handler'larıyla yapılır:
 | `/api/admin/settings/export` | `GET` (`?format=json` \| `csv`) |
 | `/api/admin/settings/import` | `POST` (JSON tam katalog \| CSV fiyat/stok yaması) |
 | `/api/admin/settings/reset` | `POST` (seed'den geri yükle) |
-| `/api/admin/auth` | `POST` (giriş), `DELETE` (çıkış) |
+| `/api/admin/auth` | `POST` (giriş), `DELETE` (çıkış), `GET` (oturum bilgisi) |
+| `/api/catalog/slim` | `GET` — vitrin client bileşenleri için hafif katalog (herkese açık) |
 
-- **Yazma koruması:** yazma yalnızca `NODE_ENV !== "production"` **veya**
-  `ADMIN_WRITE_ENABLED=true` iken çalışır. Aksi halde yazma uçları **403** döner
-  ve panelde "salt okunur" rozeti görünür.
+- **Yetki:** her uç `handle(<izin>, …)` ile sarılır; izin yoksa **403**, oturum
+  yoksa **401**. `ADMIN_WRITE_ENABLED` bayrağı ve "salt okunur" rozeti
+  kaldırılmıştır.
 - **Doğrulama:** hem istemci formu hem sunucu tarafı Zod ile
-  (`src/lib/admin/schema.ts`).
-- **Atomik yazım:** geçici dosya + `rename`; `schemaVersion` alanı taşınır
-  (`src/lib/admin/store.ts`).
+  (`src/lib/admin/schema.ts`). Slug tekilliği, varyant matrisi ve tek varsayılan
+  varyant kuralları saf fonksiyonlarda (`src/lib/admin/mutations.ts`) kalır;
+  veritabanına yalnızca etkilenen kayıt yazılır (`src/server/catalog/persist.ts`).
+- **Varyant kimlikleri korunur:** yazma sırasında "hepsini sil, yeniden yaz"
+  yapılmaz — `StockMovement` ve `OrderItem` varyant kimliğine bağlıdır.
 - Kaydedilmemiş değişiklikte sayfadan ayrılma uyarısı gösterilir.
 
 ### Tasarım ve erişilebilirlik
@@ -201,17 +290,24 @@ CRUD işlemleri `src/app/api/admin/**` Route Handler'larıyla yapılır:
 | --- | --- |
 | `src/app` | Vitrin sayfaları, ana yerleşim, genel stiller, SEO uçları |
 | `src/app/admin` | Admin paneli sayfaları + `admin.css` |
-| `src/app/api/admin` | Admin CRUD Route Handler'ları |
-| `src/proxy.ts` | `/admin` ve `/api/admin` erişim koruması |
+| `src/app/api/admin` | Admin CRUD Route Handler'ları (izin kontrollü) |
+| `src/app/api/catalog` | Vitrin client bileşenleri için hafif katalog ucu |
+| `src/proxy.ts` | `/admin` ve `/api/admin` rota bazlı kaba erişim filtresi |
 | `src/components` | Vitrin bileşenleri + `layout/LayoutFrame.tsx` (vitrin/panel ayrımı) |
 | `src/components/admin` | Panel bileşenleri (shell, veri sağlayıcı, form, varyant tablosu, taksonomi vb.) |
-| `src/data` | `catalog.json`, `catalog.seed.json`, adaptör, `products.ts`, `categories.ts`, `content.ts` |
+| `src/data` | `catalog.seed.json`, adaptör, `products.ts`, `categories.ts`, `content.ts`, `legacy/` |
 | `src/store` | Sepet, favoriler, arayüz, toast |
-| `src/lib` | Arama, filtreleme, sepet hesapları, yardımcılar |
-| `src/lib/admin` | Şema, kalıcılık, varyant matrisi, CSV, kimlik, HTTP yardımcıları |
+| `src/lib` | Arama, filtreleme, sepet hesapları, para (`money.ts`), yardımcılar |
+| `src/lib/admin` | Şema, saf mutasyonlar, varyant matrisi, CSV, HTTP yardımcıları |
+| `src/server` | **Sunucu-only iş mantığı** (`server-only`): `db.ts`, `config.ts`, `audit.ts` |
+| `src/server/auth` | Parola, oturum, roller/izinler, oran sınırı, geçerli kullanıcı |
+| `src/server/catalog` | DB↔model eşleme, önbellekli sorgular, yazma katmanı, içe aktarım |
+| `src/generated/prisma` | Üretilen Prisma istemcisi (git'e girmez) |
+| `prisma/` | `schema.prisma`, migration'lar, `seed.ts` |
+| `data/nefis.db` | SQLite veritabanı (git'e girmez) |
 | `src/types` | `index.ts` (vitrin), `admin.ts` (panel) |
 | `public` | Statik dosyalar ve görseller |
-| `scripts` | Görsel işleme ve tarayıcı QA betikleri |
+| `scripts` | Görsel işleme, veri geçişi, kullanıcı oluşturma ve QA betikleri |
 
 ## Kontroller ve QA
 
@@ -233,6 +329,32 @@ npm run qa:console        # 20 sayfa: konsol / hydration hataları
 npm run qa:interactions   # arama, menü, sepet, varyant, favori, filtre, galeri…
 npm run qa:responsive     # 360–1920px × sayfalar: yatay taşma taraması
 node scripts/qa-visual.mjs # ekran görüntüleri + axe (WCAG 2 A/AA) → artifacts/qa/
+```
+
+### Vitrin regresyon karşılaştırması
+
+Veri katmanına dokunan her değişiklikten **önce ve sonra** çalıştırılır; vitrinin
+görünür çıktısının değişmediğini kanıtlar. Ham HTML yerine görünür metin,
+bağlantılar ve görsel yolları karşılaştırılır (chunk/CSS karmaları yok sayılır).
+
+```sh
+npm run build
+npm run qa:snapshot -- ./onceki 3999    # değişiklikten ÖNCE
+# … değişikliği uygula, yeniden derle …
+npm run qa:snapshot -- ./sonraki 3999
+npm run qa:compare -- ./onceki ./sonraki
+```
+
+Fark çıkması = vitrin regresyonu. F0 geçişi bu yöntemle doğrulandı: 26 rota,
+0 fark.
+
+### Kimlik doğrulama duman testi
+
+Oturum, roller ve yetki reddini gerçek HTTP istekleriyle sınar (18 kontrol):
+
+```sh
+npm run build
+SMOKE_OWNER_EMAIL=... SMOKE_OWNER_PASSWORD=... SMOKE_VIEWER_EMAIL=... SMOKE_VIEWER_PASSWORD=...   npm run qa:auth -- 3996
 ```
 
 Betikler Puppeteer kullanır; önce `CHROME_PATH`, sonra yaygın Windows/macOS/Linux
