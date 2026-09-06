@@ -17,5 +17,5 @@ wc-product-export-*.csv
 artifacts/
 
 # Veritabanı (Prisma/SQLite) ve üretilen Prisma istemcisi
-data/
-src/generated/
+/data/
+/src/generated/
