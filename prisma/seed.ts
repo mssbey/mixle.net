@@ -42,6 +42,29 @@ export async function seed(db: PrismaClient): Promise<void> {
     });
   }
 
+  // Demo kuponlar — vitrindeki kampanya sayfasında ilan edilen kodlar.
+  // Yüzde tipinde value ON BİNDE, tutar tipinde KURUŞ.
+  const coupons = [
+    { code: 'NEFIS10', type: 'yüzde', value: 1000, minCartTotalMinor: null, firstOrderOnly: false },
+    { code: 'ILKAROMA', type: 'tutar', value: 6000, minCartTotalMinor: 30_000, firstOrderOnly: true },
+    { code: 'GOLDENDROP', type: 'yüzde', value: 1500, minCartTotalMinor: null, firstOrderOnly: false },
+  ];
+  for (const c of coupons) {
+    await db.coupon.upsert({
+      where: { code: c.code },
+      create: {
+        ...c,
+        maxDiscountMinor: null,
+        includeProductIds: [],
+        excludeProductIds: [],
+        includeCategoryIds: c.code === 'GOLDENDROP' ? ['golden-drop'] : [],
+        isActive: true,
+        stackable: false,
+      },
+      update: { type: c.type, value: c.value, minCartTotalMinor: c.minCartTotalMinor, firstOrderOnly: c.firstOrderOnly, isActive: true },
+    });
+  }
+
   // Sipariş numarası sayacı (NA-YYYY-000123) — yalnızca yoksa oluşturulur.
   await db.counter.upsert({
     where: { key: 'siparis-no' },

@@ -9,6 +9,8 @@ const PAGES = [
   '/aroma-rehberi', '/hakkimizda', '/sss', '/iletisim', '/favoriler', '/sepet',
   '/arama?q=meyve', '/gizlilik-politikasi', '/mesafeli-satis-sozlesmesi',
   '/iade-ve-teslimat', '/cerez-politikasi', '/hesabim', '/does-not-exist',
+  // F1: checkout ve hesap akışları (oturumsuz — /hesabim girişe yönlenir)
+  '/odeme', '/giris', '/kayit', '/siparis-takibi', '/siparis/tamamlandi?no=NA-2026-000001',
 ];
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--window-size=1440,900'] });

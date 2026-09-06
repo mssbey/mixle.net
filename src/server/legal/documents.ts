@@ -149,10 +149,5 @@ export async function getLegalVersion(kind: LegalKind, version: number): Promise
   return (row as LegalDoc | null) ?? (version === 1 ? { kind, version: 1, ...DEFAULT_TEXTS[kind], publishedAt: null } : null);
 }
 
-/** `{{...}}` yer tutucularını sipariş özetiyle doldurur. */
-export function fillLegal(body: string, vars: Record<string, string | number | null | undefined>): string {
-  return body.replace(/\{\{(\w+)\}\}/g, (_, k: string) => {
-    const v = vars[k];
-    return v == null || v === '' ? '—' : String(v);
-  });
-}
+// Yer tutucu doldurma saf modülde (istemci de kullanır): src/lib/legal-fill.ts
+export { fillLegal } from '@/lib/legal-fill';

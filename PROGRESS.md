@@ -3,17 +3,69 @@
 > **Devam talimatı:** Kullanıcı "devam et" dediğinde bu dosyadan devam et. Projeyi
 > baştan analiz etme. Aşağıdaki "SONRAKİ ADIM" bölümünden başla.
 
-Son güncelleme: 2026-09-06 (F0 tamamlandı — veri katmanı DB'ye taşındı, gerçek auth)
+Son güncelleme: 2026-09-06 (F1 tamamlandı — checkout, müşteri hesabı, sipariş servisleri)
 
 ## SONRAKİ ADIM
 
-**F1 — Vitrin checkout.** Plan: `PLAN-YONETIM-PANELI.md`.
-`/odeme` çok adımlı checkout, misafir + hesapla alışveriş, kupon/kargo/KDV
-hesabı, mesafeli satış onayları, sunucuda sipariş oluşturma (fiyat istemciden
-alınmaz), stok rezervasyonu, Idempotency-Key, `/siparis-takibi`, `/hesabim`.
+**F2 — Sipariş yönetimi (panel).** Plan: `PLAN-YONETIM-PANELI.md`.
+`/admin/siparisler` liste (durum sekmeleri, arama, filtreler), `/admin/siparisler/[id]`
+WooCommerce düzeninde detay (kalemler, toplamlar, müşteri kartı, adresler, ödeme,
+kargo, zaman çizelgesi, notlar), aksiyonlar (durum değiştir, ödeme al/havale
+eşleştir, kısmi iade, iptal, kargo oluştur, e-posta yeniden gönder), toplu işlemler,
+`/admin/siparisler/yeni` manuel sipariş. Kullanılacak hazır servisler:
+`transitionOrder`, `addOrderNote`, `restock`, `queueEmail`, `publicOrderView`
+(panel görünümü ayrı yazılacak: adminNote, IP, ham ödeme yanıtı dahil).
+Ödeme al → Payment satırı 'başarılı' + transition 'ödendi'. Kısmi iade →
+Refund kaydı + OrderItem.refundedQuantity + restock + refundedTotalMinor.
 
-Şema zaten hazır (Order/OrderItem/Payment/Shipment/… `prisma/schema.prisma`);
-F1'de yalnız iş mantığı ve arayüz yazılacak.
+---
+
+## F1 — TAMAMLANDI (2026-09-06)
+
+**Sunucu iş mantığı (`src/server/**`)** — 56 birim testi (`npm test`)
+- `orders/state-machine`: izinli geçiş tablosu; geçersiz → 409. Kapıda ödeme için
+  `ödeme-bekliyor → hazırlanıyor` (stok bu geçişte kesinleşir).
+- `orders/totals` + `pricing/{tax,coupons,shipping-rates}`: saf, kuruş.
+  Değişmez: subtotal − discount + shipping (+ ek bedel) = grandTotal.
+- `orders/create`: idempotency (Order.idempotencyKey @unique), teklif sunucuda
+  yeniden hesaplanır, tek transaction. TCKN siparişte YOK, Address'te şifreli.
+- `orders/transitions`: TEK geçiş noktası (panel/webhook/müşteri hepsi buradan).
+  `order.status` başka yerde doğrudan güncellenmez.
+- `inventory/reserve`: koşullu düşürme, rezervasyon TTL (ayar: 30 dk),
+  commit/release/restock/adjust, süresi dolanları serbest bırakma.
+- `payments/mock`: DEMO_MODE'da kart = mock 3DS (`/odeme/dogrulama`), HMAC jeton.
+- `customers/auth`: `na_musteri` çerezi, CustomerSession, misafir → hesap dönüşümü.
+- `legal/documents`: sürümlü metinler, `consents` siparişe sürüm yazar.
+- `orders/access`: teşekkür sayfası imzalı jeton (sıralı no tahminini engeller).
+
+**API** — `/api/checkout/{quote,siparis,mock-odeme}`, `/api/hesap/**`,
+`/api/siparis-takibi`, `/api/adres/mahalleler`. Vitrin hataları `storefrontError`.
+
+**Arayüz** — `/odeme` (CheckoutClient, 5 adım), `AddressForm` (il/ilçe gömülü,
+mahalle API), `OrderSummary`, `OrderDetail` (ortak), `/hesabim/*`, `/giris`, `/kayit`,
+`/siparis-takibi`, `/siparis/tamamlandi`.
+
+**Doğrulama** — `npm run qa:checkout`: 38/38 (teklif → sipariş → idempotency →
+rezervasyon → mock ödeme → kapıda → sorgulama → hesap → iptal → stok geri).
+Vitrin regresyonu: 26/26 aynı. lint/typecheck temiz.
+
+**ÖNEMLİ NOTLAR**
+- `.ts` betikleri tsx altında CJS → top-level await yok; betikler `.mts`.
+- `server-only` + `next/cache` kullanan modüller tsx betiğinden import EDİLEMEZ;
+  betikler HTTP üzerinden test eder.
+- React Compiler: manuel `useMemo`/`useCallback` bağımlılık uyuşmazlığında lint
+  hatası veriyor (`preserve-manual-memoization`); yeni client bileşenlerde manuel
+  memoization kullanma, render sırasında `ref.current` okuma.
+- `turkey-neighbourhoods` (MIT) runtime bağımlılığı; il/ilçe JSON'u üretildi.
+
+**BİLİNEN EKSİK**
+- `qa:responsive`: ana sayfa 1920px'de 8px yatay taşma (F1 öncesinden geliyor, vitrin
+  çıktısı baseline ile birebir; ayrı ele alınacak).
+- Havale IBAN bilgisi ayarlardan gelmiyor (F7 mağaza ayarları).
+- İade talebi düğmesi placeholder (F5).
+- Parola sıfırlama (müşteri + admin) yazılmadı.
+- Süresi dolan rezervasyonları düzenli temizleyen cron betiği yok (sipariş
+  oluşturma ucunda tetikleniyor).
 
 ---
 

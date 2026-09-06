@@ -111,6 +111,31 @@ stok ve varyasyonlar temsilidir.
 | `/aroma-rehberi` · `/hakkimizda` · `/sss` · `/iletisim` | Bilgilendirme |
 | `/gizlilik-politikasi` · `/cerez-politikasi` · `/mesafeli-satis-sozlesmesi` · `/iade-ve-teslimat` | Hukuki metinler |
 
+### Checkout ve hesap (F1)
+
+| Rota | İçerik |
+| --- | --- |
+| `/odeme` | Beş adımlı checkout: iletişim → adres (il/ilçe/mahalle) → kargo → ödeme → özet + yasal onaylar |
+| `/odeme/dogrulama` | **Test modu** mock 3D Secure sayfası; müşteri sonucu seçer (F3'te gerçek sağlayıcı) |
+| `/siparis/tamamlandi?no=…&t=…` | Gerçek sipariş özeti; `t` imzalı erişim jetonu, yoksa yalnız "alındı" mesajı |
+| `/siparis-takibi` | Misafir sorgulama: sipariş no + e-posta (IP başına dakikada 10 deneme) |
+| `/giris` · `/kayit` | Müşteri hesabı; misafir siparişleri aynı e-postayla kayıt olunca hesaba bağlanır |
+| `/hesabim/siparisler` · `/hesabim/siparisler/[no]` | Siparişlerim, detay, kargolanmamış siparişi iptal, ödemeyi tamamla |
+| `/hesabim/adresler` · `/hesabim/bilgilerim` | Adres defteri (TCKN şifreli, maskeli), profil ve parola |
+
+Ödeme yöntemleri: kart (`DEMO_MODE=true` iken mock), havale/EFT (panelden eşleştirilir),
+kapıda ödeme (ek hizmet bedeli ve üst tutar sınırı ayarlanabilir). Kupon kodları
+veritabanındaki `Coupon` tablosundan gelir; demo kodlar seed ile yüklenir
+(`NEFIS10`, `ILKAROMA`, `GOLDENDROP`).
+
+**Güvenlik ilkeleri.** Tutar istemciden alınmaz — her adımda `/api/checkout/quote`
+sunucuda yeniden hesaplar ve sipariş oluşturulurken bir kez daha hesaplanır.
+Stok rezervasyonla düşürülür (`stock >= adet` koşullu güncelleme), ödeme
+onaylanınca kesinleşir, süresi dolarsa geri verilir. `Idempotency-Key` başlığı
+aynı isteğin ikinci gönderiminde aynı siparişi döndürür. Kabul edilen mesafeli
+satış / ön bilgilendirme / KVKK metinlerinin **sürümü** siparişe yazılır.
+Yazma uçları `Origin` doğrulaması + `sameSite=lax` çerezle korunur.
+
 ### Veri
 
 Vitrin bileşenleri `src/data/products.ts` ve `src/data/categories.ts`'ten okur.
@@ -302,6 +327,14 @@ CRUD işlemleri `src/app/api/admin/**` Route Handler'larıyla yapılır:
 | `src/server` | **Sunucu-only iş mantığı** (`server-only`): `db.ts`, `config.ts`, `audit.ts` |
 | `src/server/auth` | Parola, oturum, roller/izinler, oran sınırı, geçerli kullanıcı |
 | `src/server/catalog` | DB↔model eşleme, önbellekli sorgular, yazma katmanı, içe aktarım |
+| `src/server/orders` | Durum makinesi, toplamlar, teklif, oluşturma, geçişler, numaralandırma, müşteri görünümü |
+| `src/server/pricing` | KDV, kupon kuralları, kargo tarife motoru (saf, testli) |
+| `src/server/inventory` | Stok rezervasyonu / kesinleştirme / geri verme, hareket günlüğü |
+| `src/server/customers` | Müşteri oturumu, adres defteri, adres şeması |
+| `src/server/payments` | Mock sağlayıcı (F3'te gerçek adaptörler) |
+| `src/server/notifications` | E-posta şablonları ve kuyruk (demo modda `EmailLog`) |
+| `src/server/legal` | Sürümlü yasal metinler |
+| `src/data/tr-address` | İl/ilçe listesi (gömülü); mahalle `/api/adres/mahalleler` |
 | `src/generated/prisma` | Üretilen Prisma istemcisi (git'e girmez) |
 | `prisma/` | `schema.prisma`, migration'lar, `seed.ts` |
 | `data/nefis.db` | SQLite veritabanı (git'e girmez) |
@@ -347,6 +380,15 @@ npm run qa:compare -- ./onceki ./sonraki
 
 Fark çıkması = vitrin regresyonu. F0 geçişi bu yöntemle doğrulandı: 26 rota,
 0 fark.
+
+### Birim ve uçtan uca testler
+
+```sh
+npm test                    # vitest: durum makinesi, KDV, kupon, kargo tarifesi, toplamlar, TCKN/VKN/telefon
+npm run build && npm run qa:checkout   # gerçek HTTP + veritabanı: teklif → sipariş → mock ödeme → kapıda → iptal → hesap (38 kontrol)
+```
+
+`qa:checkout` test verisini sonunda temizler ve stoku geri koyar.
 
 ### Kimlik doğrulama duman testi
 

@@ -8,6 +8,7 @@ const PAGES = [
   '/', '/urunler', '/kategori/meyveli', '/koleksiyon/purple-reserve',
   '/urun/purple-mirage', '/sepet', '/favoriler', '/aroma-rehberi',
   '/hakkimizda', '/sss', '/iletisim', '/kampanyalar', '/arama?q=mango', '/arama?q=zzzz', '/does-not-exist',
+  '/odeme', '/giris', '/kayit', '/siparis-takibi',
 ];
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new' });

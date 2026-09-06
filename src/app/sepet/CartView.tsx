@@ -200,13 +200,13 @@ export function CartView() {
 
         <button
           type="button"
-          onClick={() => router.push('/siparis/tamamlandi')}
+          onClick={() => router.push('/odeme')}
           className="btn-primary mt-5 w-full"
         >
-          Siparişi Tamamla <ArrowRight size={16} />
+          Ödemeye Geç <ArrowRight size={16} />
         </button>
         <p className="mt-2 text-center text-[11px] text-ink-soft">
-          Bu bir demo akıştır; gerçek bir ödeme işlemi gerçekleştirilmez.
+          Kargo ve kupon tutarı ödeme adımında adresinize göre kesinleşir.
         </p>
       </aside>
     </div>

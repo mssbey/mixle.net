@@ -14,13 +14,15 @@ import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
 import { DEMO_MODE } from '../config';
 import { maskTckn } from '@/lib/validators/tckn';
-import { seal, isEncryptionConfigured } from '../crypto/secret-box';
+import { seal, isEncryptionConfigured, tryOpen } from '../crypto/secret-box';
 import { reserveStock, releaseExpiredReservations } from '../inventory/reserve';
 import { getCurrentLegal } from '../legal/documents';
 import { orderEmailVars, queueEmail } from '../notifications/email';
 import { getStoreInfo, getStoreSettings } from '../settings';
 import { addressInputSchema, type AddressInput, type AddressSnapshot } from '../customers/address-schema';
 import { nextOrderNumber } from './numbering';
+import { revalidateCatalog } from '../catalog/queries';
+import { thankYouUrl } from './access';
 import { PAYMENT_METHODS, buildQuote, quoteInputSchema, type CheckoutQuote } from './quote';
 import { transitionOrder } from './transitions';
 
@@ -36,7 +38,10 @@ export const createOrderSchema = quoteInputSchema
   .omit({ city: true, country: true, email: true })
   .extend({
     email: z.string().trim().email('Geçerli bir e-posta girin').max(200),
-    shippingAddress: addressInputSchema,
+    /** Kayıtlı müşteri adres defterinden seçtiyse kimlik; form yerine geçer. */
+    shippingAddressId: z.string().optional(),
+    billingAddressId: z.string().optional(),
+    shippingAddress: addressInputSchema.optional(),
     billingSameAsShipping: z.boolean().default(true),
     billingAddress: addressInputSchema.optional(),
     shippingMethodId: z.string().min(1, 'Kargo yöntemi seçin'),
@@ -47,7 +52,10 @@ export const createOrderSchema = quoteInputSchema
     createAccountPassword: z.string().min(10).max(200).optional(),
   })
   .superRefine((v, ctx) => {
-    if (!v.billingSameAsShipping && !v.billingAddress) {
+    if (!v.shippingAddress && !v.shippingAddressId) {
+      ctx.addIssue({ code: 'custom', path: ['shippingAddress'], message: 'Teslimat adresi girin' });
+    }
+    if (!v.billingSameAsShipping && !v.billingAddress && !v.billingAddressId) {
       ctx.addIssue({ code: 'custom', path: ['billingAddress'], message: 'Fatura adresi girin' });
     }
   });
@@ -70,6 +78,33 @@ export class CheckoutError extends Error {
     super(message);
     this.name = 'CheckoutError';
   }
+}
+
+/** Adres defterindeki kaydı form girdisine çevirir (TCKN şifresi çözülerek maskelenir). */
+async function resolveStoredAddress(
+  customerId: string | null,
+  addressId: string | undefined,
+): Promise<AddressInput | null> {
+  if (!customerId || !addressId) return null;
+  const row = await db.address.findFirst({ where: { id: addressId, customerId } });
+  if (!row) throw new CheckoutError('Seçilen adres bulunamadı.', 422, { shippingAddressId: 'Adresi yeniden seçin' });
+  return {
+    title: row.title,
+    firstName: row.firstName,
+    lastName: row.lastName,
+    phone: row.phone,
+    country: 'TR',
+    city: row.city,
+    district: row.district,
+    neighborhood: row.neighborhood,
+    addressLine: row.addressLine,
+    postalCode: row.postalCode ?? '',
+    isCorporate: row.isCorporate,
+    companyName: row.companyName ?? '',
+    taxOffice: row.taxOffice ?? '',
+    taxNumber: row.taxNumber ?? '',
+    identityNumber: tryOpen(row.identityNumberEnc) ?? '',
+  };
 }
 
 function toSnapshot(a: AddressInput): AddressSnapshot {
@@ -120,6 +155,8 @@ export interface CreateOrderResult {
   reused: boolean;
   /** Kart ödemesinde yönlendirilecek sayfa (test modunda mock 3DS). */
   nextUrl: string | null;
+  /** Teşekkür sayfası (imzalı erişim jetonuyla). */
+  thankYouUrl: string;
 }
 
 export async function createOrder(
@@ -138,6 +175,7 @@ export async function createOrder(
         grandTotalMinor: existing.grandTotalMinor,
         reused: true,
         nextUrl: existing.paymentMethod === 'kart' ? mockPaymentUrl(existing.id) : null,
+        thankYouUrl: thankYouUrl(existing.orderNumber, existing.id),
       };
     }
   }
@@ -151,6 +189,20 @@ export async function createOrder(
   const input = parsed.data;
   const email = input.email.toLocaleLowerCase('tr');
 
+  // 1b) Adres defterinden seçilen adresler yalnız bu müşteriye aitse kullanılır.
+  const shippingFromBook = await resolveStoredAddress(ctx.customerId, input.shippingAddressId);
+  const billingFromBook = await resolveStoredAddress(ctx.customerId, input.billingAddressId);
+  const shippingAddress = shippingFromBook ?? input.shippingAddress;
+  if (!shippingAddress) {
+    throw new CheckoutError('Teslimat adresi bulunamadı.', 422, { shippingAddress: 'Adres seçin veya girin' });
+  }
+  const billingAddress = input.billingSameAsShipping
+    ? shippingAddress
+    : (billingFromBook ?? input.billingAddress);
+  if (!billingAddress) {
+    throw new CheckoutError('Fatura adresi bulunamadı.', 422, { billingAddress: 'Adres seçin veya girin' });
+  }
+
   // 2) Süresi dolmuş rezervasyonları temizle ki stok gerçek değeri yansıtsın.
   await db.$transaction((tx) => releaseExpiredReservations(tx));
 
@@ -158,8 +210,8 @@ export async function createOrder(
   const quote: CheckoutQuote = await buildQuote(
     {
       lines: input.lines,
-      city: input.shippingAddress.city,
-      country: input.shippingAddress.country,
+      city: shippingAddress.city,
+      country: shippingAddress.country,
       shippingMethodId: input.shippingMethodId,
       paymentMethod: input.paymentMethod,
       couponCode: input.couponCode,
@@ -205,9 +257,8 @@ export async function createOrder(
   ]);
 
   const now = new Date();
-  const billing = input.billingSameAsShipping ? input.shippingAddress : input.billingAddress!;
-  const shippingSnapshot = toSnapshot(input.shippingAddress);
-  const billingSnapshot = toSnapshot(billing);
+  const shippingSnapshot = toSnapshot(shippingAddress);
+  const billingSnapshot = toSnapshot(billingAddress);
   const t = quote.totals;
 
   // 4) Her şey tek transaction'da: numara, müşteri, sipariş, kalemler, stok, ödeme, kupon.
@@ -220,9 +271,9 @@ export async function createOrder(
         create: {
           email,
           isGuest: true,
-          firstName: input.shippingAddress.firstName,
-          lastName: input.shippingAddress.lastName,
-          phone: input.shippingAddress.phone,
+          firstName: shippingAddress.firstName,
+          lastName: shippingAddress.lastName,
+          phone: shippingAddress.phone,
           tags: [],
           marketingOptIn: input.consents.marketing,
           marketingOptInAt: input.consents.marketing ? now : null,
@@ -231,9 +282,9 @@ export async function createOrder(
           // Misafir verisi tazelenir; kayıtlı hesabın adı ezilmez.
           ...(await tx.customer.findUnique({ where: { email }, select: { isGuest: true } }))?.isGuest
             ? {
-                firstName: input.shippingAddress.firstName,
-                lastName: input.shippingAddress.lastName,
-                phone: input.shippingAddress.phone,
+                firstName: shippingAddress.firstName,
+                lastName: shippingAddress.lastName,
+                phone: shippingAddress.phone,
               }
             : {},
           ...(input.consents.marketing ? { marketingOptIn: true, marketingOptInAt: now } : {}),
@@ -247,8 +298,11 @@ export async function createOrder(
       });
     }
 
-    await saveAddress(tx, customerId, input.shippingAddress, 'teslimat');
-    if (!input.billingSameAsShipping) await saveAddress(tx, customerId, billing, 'fatura');
+    // Formdan girilen adresler deftere yazılır; defterden seçilenler zaten kayıtlı.
+    if (!shippingFromBook) await saveAddress(tx, customerId, shippingAddress, 'teslimat');
+    if (!input.billingSameAsShipping && !billingFromBook) {
+      await saveAddress(tx, customerId, billingAddress, 'fatura');
+    }
 
     const orderNumber = await nextOrderNumber(tx);
 
@@ -363,6 +417,9 @@ export async function createOrder(
     return order;
   });
 
+  // Stok düştü: vitrin katalog önbelleği tazelensin (stok rozetleri).
+  revalidateCatalog();
+
   // 5) Kapıda ödeme: ödeme teslimatta; sipariş hemen hazırlığa geçer, stok kesinleşir.
   if (input.paymentMethod === 'kapida') {
     await transitionOrder(created.id, 'hazırlanıyor', { system: 'kapida' }, {
@@ -392,6 +449,7 @@ export async function createOrder(
     grandTotalMinor: created.grandTotalMinor,
     reused: false,
     nextUrl: input.paymentMethod === 'kart' ? mockPaymentUrl(created.id) : null,
+    thankYouUrl: thankYouUrl(created.orderNumber, created.id),
   };
 }
 

@@ -13,6 +13,7 @@ import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
 import { commitStock, releaseStock, restock } from '../inventory/reserve';
+import { revalidateCatalog } from '../catalog/queries';
 import { orderEmailVars, queueEmail, type EmailTemplateKey } from '../notifications/email';
 import { getStoreSettings } from '../settings';
 import {
@@ -133,6 +134,9 @@ export async function transitionOrder(
 
     return { order: updated, from, effects };
   });
+
+  // Stok değiştiyse vitrin katalog önbelleği tazelensin.
+  if (result.effects.commitStock || result.effects.releaseStock) revalidateCatalog();
 
   if (result.effects.email && !options.skipEmail) {
     const to = result.order.customer?.email ?? result.order.guestEmail;
