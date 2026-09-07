@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // iyzipay kaynak modellerini çalışma anında dizinden okur; paketlenmeden Node require'ı ile yüklensin.
+  serverExternalPackages: ['iyzipay', 'better-sqlite3'],
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [],

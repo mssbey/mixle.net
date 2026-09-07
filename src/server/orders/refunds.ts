@@ -18,6 +18,9 @@ import { orderEmailVars, queueEmail } from '../notifications/email';
 import { formatMinor } from '@/lib/money';
 import { transitionOrder } from './transitions';
 import { revalidateCatalog } from '../catalog/queries';
+import { getProvider, acceptsWebhooks } from '../payments/registry';
+import { log, maskSensitive } from '../log';
+import type { Prisma as PrismaNs } from '@/generated/prisma/client';
 
 export const refundSchema = z.object({
   items: z
@@ -90,6 +93,23 @@ export async function createRefund(orderId: string, raw: unknown, user: AdminUse
   });
   const isFull = amount >= refundable && (perItem.length === 0 || allItemsRefunded);
 
+  // Sağlayıcıya iade (kart): transaction'dan ÖNCE — sağlayıcı reddederse hiçbir şey yazılmaz.
+  const successfulPayment = order.payments.find((p) => p.status === 'başarılı');
+  let providerRefundId: string | null = null;
+  let refundStatus: 'tamamlandı' | 'bekliyor' = 'tamamlandı';
+  let providerRaw: unknown = null;
+  if (successfulPayment && acceptsWebhooks(successfulPayment.provider) && successfulPayment.providerPaymentId) {
+    const provider = await getProvider(successfulPayment.provider);
+    const r = await provider.refund(successfulPayment.providerPaymentId, amount, input.reason);
+    providerRaw = maskSensitive(r.raw);
+    if (!r.ok) {
+      log.warn('iade', 'sağlayıcı iadeyi reddetti', { orderNumber: order.orderNumber, provider: provider.id, message: r.errorMessage });
+      throw new RefundError(`Ödeme sağlayıcısı iadeyi reddetti: ${r.errorMessage ?? 'bilinmeyen hata'}`, 422);
+    }
+    providerRefundId = r.providerRefundId;
+    refundStatus = r.pending ? 'bekliyor' : 'tamamlandı';
+  }
+
   const refund = await db.$transaction(async (tx) => {
     const created = await tx.refund.create({
       data: {
@@ -98,11 +118,12 @@ export async function createRefund(orderId: string, raw: unknown, user: AdminUse
         amountMinor: amount,
         reason: input.reason,
         type: isFull ? 'tam' : 'kısmi',
-        // Sağlayıcı entegrasyonu (F3) gelince kart iadeleri "bekliyor" başlar.
-        status: 'tamamlandı',
+        status: refundStatus,
+        providerRefundId,
         items: perItem as unknown as Prisma.InputJsonValue,
         createdByUserId: user.id,
-        completedAt: new Date(),
+        completedAt: refundStatus === 'tamamlandı' ? new Date() : null,
+        errorMessage: providerRaw ? JSON.stringify(providerRaw as PrismaNs.InputJsonValue).slice(0, 500) : null,
       },
     });
 

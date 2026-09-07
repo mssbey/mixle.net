@@ -13,6 +13,8 @@ import type { CouponOutcome } from '../pricing/coupons';
 import { getShippingZones } from '../shipping/zones';
 import { getStoreSettings } from '../settings';
 import { DEMO_MODE } from '../config';
+import { getPaymentSettings, installmentTables, isMethodEnabled } from '../payments/settings';
+import { installmentOptions, type InstallmentOption } from '../payments/installments';
 
 export const PAYMENT_METHODS = ['kart', 'havale', 'kapida'] as const;
 export type PaymentMethodId = (typeof PAYMENT_METHODS)[number];
@@ -38,6 +40,8 @@ export interface PaymentOption {
   reason: string | null;
   /** Test modunda gerçek sağlayıcı yerine mock akışı çalışır. */
   testMode: boolean;
+  /** Kart için taksit seçenekleri (bilgi amaçlı; nihai taksit sağlayıcı sayfasında kesinleşir). */
+  installments?: InstallmentOption[];
 }
 
 export interface CheckoutQuote {
@@ -51,6 +55,12 @@ export interface CheckoutQuote {
   /** Kullanıcıya gösterilecek uyarılar (stok düşürüldü, kupon reddedildi …). */
   problems: string[];
   pricesIncludeTax: boolean;
+}
+
+function withinLimits(l: { minMinor: number | null; maxMinor: number | null }, amount: number): boolean {
+  if (l.minMinor != null && amount < l.minMinor) return false;
+  if (l.maxMinor != null && amount > l.maxMinor) return false;
+  return true;
 }
 
 export async function buildQuote(
@@ -88,8 +98,14 @@ export async function buildQuote(
     shippingOptions.find((s) => s.methodId === input.shippingMethodId) ?? null;
 
   const grandBeforeSurcharge = subtotal - discount + (selectedShipping?.priceMinor ?? 0);
+  const pay = await getPaymentSettings();
   const codBlockedByMax =
-    settings.codMaxTotalMinor != null && grandBeforeSurcharge > settings.codMaxTotalMinor;
+    (settings.codMaxTotalMinor != null && grandBeforeSurcharge > settings.codMaxTotalMinor) ||
+    !withinLimits(pay.limits.kapida, grandBeforeSurcharge);
+  const kartOff = !isMethodEnabled(pay, 'kart');
+  const kartLimit = !withinLimits(pay.limits.kart, grandBeforeSurcharge);
+  const havaleOff = !isMethodEnabled(pay, 'havale');
+  const havaleLimit = !withinLimits(pay.limits.havale, grandBeforeSurcharge);
 
   const paymentOptions: PaymentOption[] = [
     {
@@ -99,17 +115,30 @@ export async function buildQuote(
         ? 'Test modu: gerçek ödeme alınmaz, sonucu siz seçersiniz.'
         : '3D Secure ile güvenli ödeme.',
       surchargeMinor: 0,
-      available: selectedShipping?.type !== 'kapıda',
-      reason: selectedShipping?.type === 'kapıda' ? 'Kapıda ödeme kargosuyla kart kullanılamaz.' : null,
+      available: !kartOff && !kartLimit && selectedShipping?.type !== 'kapıda',
+      reason: kartOff
+        ? 'Kart ödemesi şu an kapalı.'
+        : kartLimit
+          ? 'Bu tutar için kart ödemesi kullanılamıyor.'
+          : selectedShipping?.type === 'kapıda'
+            ? 'Kapıda ödeme kargosuyla kart kullanılamaz.'
+            : null,
       testMode: DEMO_MODE,
+      installments: installmentOptions(grandBeforeSurcharge, installmentTables(pay)),
     },
     {
       id: 'havale',
       label: 'Havale / EFT',
       description: 'Sipariş sonrası IBAN bilgisi gösterilir; ödeme onaylanınca hazırlanır.',
       surchargeMinor: 0,
-      available: selectedShipping?.type !== 'kapıda',
-      reason: selectedShipping?.type === 'kapıda' ? 'Kapıda ödeme kargosuyla havale kullanılamaz.' : null,
+      available: !havaleOff && !havaleLimit && selectedShipping?.type !== 'kapıda',
+      reason: havaleOff
+        ? 'Havale şu an kapalı.'
+        : havaleLimit
+          ? 'Bu tutar için havale kullanılamıyor.'
+          : selectedShipping?.type === 'kapıda'
+            ? 'Kapıda ödeme kargosuyla havale kullanılamaz.'
+            : null,
       testMode: false,
     },
     {
@@ -117,9 +146,10 @@ export async function buildQuote(
       label: 'Kapıda ödeme',
       description: `Teslimatta nakit veya kart. Hizmet bedeli ${(settings.codSurchargeMinor / 100).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}.`,
       surchargeMinor: settings.codSurchargeMinor,
-      available: selectedShipping?.type === 'kapıda' && !codBlockedByMax,
-      reason:
-        selectedShipping && selectedShipping.type !== 'kapıda'
+      available: isMethodEnabled(pay, 'kapida') && selectedShipping?.type === 'kapıda' && !codBlockedByMax,
+      reason: !isMethodEnabled(pay, 'kapida')
+        ? 'Kapıda ödeme şu an kapalı.'
+        : selectedShipping && selectedShipping.type !== 'kapıda'
           ? 'Kapıda ödeme için "kapıda ödeme ile kargo" yöntemini seçin.'
           : codBlockedByMax
             ? 'Bu tutar için kapıda ödeme kullanılamıyor.'

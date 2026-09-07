@@ -12,7 +12,6 @@ import 'server-only';
 import { z } from 'zod';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
-import { DEMO_MODE } from '../config';
 import { maskTckn } from '@/lib/validators/tckn';
 import { seal, isEncryptionConfigured, tryOpen } from '../crypto/secret-box';
 import { reserveStock, releaseExpiredReservations } from '../inventory/reserve';
@@ -25,6 +24,7 @@ import { revalidateCatalog } from '../catalog/queries';
 import { thankYouUrl } from './access';
 import { PAYMENT_METHODS, buildQuote, quoteInputSchema, type CheckoutQuote } from './quote';
 import { transitionOrder } from './transitions';
+import { startCardPayment } from '../payments/start';
 
 export const consentsSchema = z.object({
   distanceSales: z.literal(true, { errorMap: () => ({ message: 'Mesafeli satış sözleşmesini onaylamalısınız' }) }),
@@ -47,6 +47,8 @@ export const createOrderSchema = quoteInputSchema
     shippingMethodId: z.string().min(1, 'Kargo yöntemi seçin'),
     paymentMethod: z.enum(PAYMENT_METHODS, { errorMap: () => ({ message: 'Ödeme yöntemi seçin' }) }),
     customerNote: z.string().trim().max(500).default(''),
+    /** Kart taksit seçimi (1 = tek çekim). Sağlayıcı sayfası nihai taksiti belirler. */
+    installment: z.number().int().min(1).max(12).optional(),
     /** Vitrin siparişinde zorunlu; panelden manuel siparişte (source=panel) yok. */
     consents: consentsSchema.optional(),
     /** Misafir, sipariş sonunda hesap açmak isterse. */
@@ -181,7 +183,9 @@ export async function createOrder(
         paymentMethod: existing.paymentMethod,
         grandTotalMinor: existing.grandTotalMinor,
         reused: true,
-        nextUrl: existing.paymentMethod === 'kart' ? mockPaymentUrl(existing.id) : null,
+        // Yeniden gönderimde ödeme sayfasına tekrar yönlendirmek yerine teşekkür
+        // sayfası döner; oradan "ödemeyi tamamla" ile devam edilir.
+        nextUrl: null,
         thankYouUrl: thankYouUrl(existing.orderNumber, existing.id),
       };
     }
@@ -252,13 +256,6 @@ export async function createOrder(
   }
   if (quote.coupon && !quote.coupon.ok) {
     throw new CheckoutError(quote.coupon.reason, 422, { couponCode: quote.coupon.reason });
-  }
-  if (input.paymentMethod === 'kart' && !DEMO_MODE && source === 'web') {
-    throw new CheckoutError(
-      'Kart ödemesi henüz canlı sağlayıcıya bağlı değil. Havale veya kapıda ödeme seçin.',
-      422,
-      { paymentMethod: 'Canlı kart ödemesi F3 ile açılacak' },
-    );
   }
 
   const [settings, legalDs, legalPi, legalKvkk] = await Promise.all([
@@ -391,10 +388,10 @@ export async function createOrder(
         },
         payments: {
           create: {
-            provider: input.paymentMethod === 'kart' ? (DEMO_MODE ? 'mock' : 'iyzico') : input.paymentMethod,
+            provider: input.paymentMethod === 'kart' ? 'kart' : input.paymentMethod,
             status: 'bekliyor',
             amountMinor: t.grandTotalMinor,
-            installment: 1,
+            installment: input.installment ?? 1,
             threeDS: input.paymentMethod === 'kart',
           },
         },
@@ -447,6 +444,13 @@ export async function createOrder(
     });
   }
 
+  // 5b) Kart: sağlayıcıda ödeme başlat (DEMO_MODE → mock). Yönlendirme adresi döner.
+  let cardUrl: string | null = null;
+  if (input.paymentMethod === 'kart' && !ctx.markPaid) {
+    const started = await startCardPayment(created.id, { installment: input.installment });
+    cardUrl = started.url;
+  }
+
   // 5) Kapıda ödeme: ödeme teslimatta; sipariş hemen hazırlığa geçer, stok kesinleşir.
   if (input.paymentMethod === 'kapida' && !ctx.markPaid) {
     await transitionOrder(created.id, 'hazırlanıyor', { system: 'kapida' }, {
@@ -475,7 +479,7 @@ export async function createOrder(
     paymentMethod: created.paymentMethod,
     grandTotalMinor: created.grandTotalMinor,
     reused: false,
-    nextUrl: input.paymentMethod === 'kart' ? mockPaymentUrl(created.id) : null,
+    nextUrl: cardUrl,
     thankYouUrl: thankYouUrl(created.orderNumber, created.id),
   };
 }
@@ -489,9 +493,4 @@ function paymentInstruction(method: string, info: { legalName: string }): string
     default:
       return '';
   }
-}
-
-/** Test modunda kart ödemesi mock 3DS sayfasına yönlendirilir (F3'te gerçek sağlayıcı). */
-export function mockPaymentUrl(orderId: string): string {
-  return `/odeme/dogrulama?siparis=${encodeURIComponent(orderId)}`;
 }
