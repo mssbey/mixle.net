@@ -3,25 +3,61 @@
 > **Devam talimatı:** Kullanıcı "devam et" dediğinde bu dosyadan devam et. Projeyi
 > baştan analiz etme. Aşağıdaki "SONRAKİ ADIM" bölümünden başla.
 
-Son güncelleme: 2026-09-07 (F2 tamamlandı ve doğrulandı — sıra F3'te)
+Son güncelleme: 2026-09-07 (F3 tamamlandı ve doğrulandı — sıra F4'te)
 
 ## SONRAKİ ADIM
 
-**F3 — Ödemeler (test modunda).** Plan: `PLAN-YONETIM-PANELI.md`.
-`PaymentProvider` arayüzü (createPayment/capture/refund/verifyWebhook/getStatus),
-adaptörler: iyzico (birincil), PayTR, Stripe (opsiyonel), havale (manuel), kapıda,
-mock (mevcut `src/server/payments/mock.ts` → arayüze uydur). Webhook
-`/api/webhooks/payments/[provider]`: imza doğrulama, `WebhookEvent` (provider+externalId
-@unique) ile idempotent işleme, ham payload maskeli saklama. `/admin/odemeler`
-liste/filtre/mutabakat/başarısız/iade kuyruğu; `/admin/ayarlar/odeme` anahtarlar
-(AES-256-GCM `secret-box.ts` hazır, `Setting.isSecret`), test/canlı, aktif yöntemler,
-min/max. 3DS zorunlu opsiyon, taksit tablosu (BIN → banka; sandbox olmadan
-sabit tablo). Kart iadesi: `refunds.ts` şu an 'tamamlandı' yazıyor → sağlayıcı
-`refund` ile 'bekliyor'→'tamamlandı'. Kullanıcı sandbox anahtarlarını F3'te verecek;
-DEMO_MODE=true iken mock zorunlu. CI tam akış = mock.
+**F4 — Kargo.** Plan: `PLAN-YONETIM-PANELI.md`. `ShippingProvider` arayüzü
+(createShipment/label/track/cancel), adaptörler: Yurtiçi, Aras, MNG, PTT, Sürat
+(API anahtarı yoksa "manuel takip no" modu). Panel: `/admin/kargolar` (sevkiyat
+listesi, etiket PDF, toplu etiket, takip yenileme), kargo ayarları
+`/admin/ayarlar/kargo` (bölge/tarife `shipping/zones.ts` + `pricing/shipping-rates.ts`
+zaten var; desi hesabı, ücretsiz kargo eşiği, kapıda ödeme kısıtları). Takip
+webhook/polling → `Shipment.status` → sipariş `kargolandı`/`teslim-edildi`
+(mevcut `shipping/shipments.ts` akışını kullan). Müşteriye kargo e-postası
+(`queueEmail` şablonu). Mevcut `CARRIERS` sabiti `shipping/carriers.ts` içinde.
 
-Ortam notu: Smart App Control 07.09 sabahı @next/swc'yi engelledi, sonra kendiliğinden
-kalktı. Build panic ("AssetContent::file was canceled") görürsen `rm -rf .next`.
+Ortam notu: QA portlarında (3994/3995/3997) eski `next start` süreçleri kalabiliyor
+→ `Get-NetTCPConnection -State Listen` ile bul, `Stop-Process`. Build panic
+("AssetContent::file was canceled") görürsen `rm -rf .next`.
+
+---
+
+## F3 — TAMAMLANDI (2026-09-07)
+
+Ödeme altyapısı, test modunda. Commit: F3 (bkz. git log).
+
+- `src/server/payments/provider.ts` — `PaymentProvider` arayüzü, `PROVIDER_IDS`,
+  `WebhookVerification` (event: odeme-basarili | odeme-basarisiz | iade-tamamlandi |
+  iade-basarisiz | bilinmiyor).
+- Adaptörler `adapters/`: `mock.ts` (imzalı jeton, `attempt` sayaçlı externalId),
+  `manual.ts` (havale, kapıda), `iyzico.ts` (iyzipay SDK, checkout form —
+  `serverExternalPackages` gerekti), `paytr.ts` (HMAC token/bildirim, birim testli),
+  `stripe.ts` (Checkout Session, `constructEvent`). iyzico/PayTR/Stripe **gerçek
+  sandbox'ta doğrulanmadı** — kullanıcı anahtar verince ilk iş.
+- `registry.ts` — `getProvider`, `getCardProvider` (DEMO_MODE → mock zorunlu).
+- `settings.ts` — `paymentSettingsSchema`, `getPaymentSettings` (çözülmüş, sunucu
+  içi), `getPaymentSettingsMasked`, `savePaymentSettings` (maskeli/boş = koru; yeni
+  değer `seal`; ENCRYPTION_KEY yoksa 422). Setting key `odeme`, `isSecret=true`.
+- `installments.ts` — varsayılan taksit tablosu, BIN eşleme, `installmentOptions`.
+- `webhooks.ts` — `handlePaymentWebhook`: verify → `WebhookEvent` upsert (idempotent)
+  → `applyWebhook`. Başarılı ödemeden sonra gelen "başarısız" yoksayılır.
+- `start.ts` — `startCardPayment` (createOrder ve `/api/payments/yeniden`).
+- `log.ts` — `maskSensitive` (anahtar adları + PAN/TCKN kalıpları).
+- Rotalar: `/api/webhooks/payments/[provider]`, `/api/payments/[provider]/donus`,
+  `/api/payments/yeniden`, `/api/admin/payments` (view=tumu|basarisiz|iadeler|
+  mutabakat|webhooks), `/api/admin/settings/odeme` (GET/PUT, `ayar:odeme`).
+- UI: `/admin/odemeler` (`PaymentsList`), `/admin/ayarlar/odeme`
+  (`PaymentSettingsForm`), nav "Ödemeler"; checkout'ta taksit seçici;
+  `RetryPaymentButton` (teşekkür sayfası + hesabım) `/api/payments/yeniden`'i çağırır.
+- `quote.ts` yöntem açık/kapalı + min/maks limitlerini ödeme ayarlarından okur.
+- Doğrulama: lint/typecheck/build temiz; vitest 63; `qa:checkout` 42/42
+  (webhook idempotency, sahte imza 400, bilinmeyen sağlayıcı 404 dahil);
+  `qa:orders` 42/42 (ödeme listesi, mutabakat, ayar şifreleme/maskeleme, denetim).
+- Bilinen eksikler: havale IBAN'ı teşekkür sayfasında hâlâ mağaza ayarından
+  (`getStoreInfo`) geliyor — F7'de `havale` bölümüne bağlanacak; mutabakat sadece
+  DB içi (sağlayıcı ekstresiyle karşılaştırma yok); Stripe `charge.refunded`
+  webhook'unda iade eşleştirmesi "en son bekleyen iade" varsayımıyla.
 
 ---
 

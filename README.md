@@ -116,15 +116,17 @@ stok ve varyasyonlar temsilidir.
 | Rota | İçerik |
 | --- | --- |
 | `/odeme` | Beş adımlı checkout: iletişim → adres (il/ilçe/mahalle) → kargo → ödeme → özet + yasal onaylar |
-| `/odeme/dogrulama` | **Test modu** mock 3D Secure sayfası; müşteri sonucu seçer (F3'te gerçek sağlayıcı) |
+| `/odeme/dogrulama` | **Test modu** mock 3D Secure sayfası; müşteri sonucu seçer. `DEMO_MODE=false` iken müşteri sağlayıcının kendi sayfasına gider |
 | `/siparis/tamamlandi?no=…&t=…` | Gerçek sipariş özeti; `t` imzalı erişim jetonu, yoksa yalnız "alındı" mesajı |
 | `/siparis-takibi` | Misafir sorgulama: sipariş no + e-posta (IP başına dakikada 10 deneme) |
 | `/giris` · `/kayit` | Müşteri hesabı; misafir siparişleri aynı e-postayla kayıt olunca hesaba bağlanır |
 | `/hesabim/siparisler` · `/hesabim/siparisler/[no]` | Siparişlerim, detay, kargolanmamış siparişi iptal, ödemeyi tamamla |
 | `/hesabim/adresler` · `/hesabim/bilgilerim` | Adres defteri (TCKN şifreli, maskeli), profil ve parola |
 
-Ödeme yöntemleri: kart (`DEMO_MODE=true` iken mock), havale/EFT (panelden eşleştirilir),
-kapıda ödeme (ek hizmet bedeli ve üst tutar sınırı ayarlanabilir). Kupon kodları
+Ödeme yöntemleri: kart (`DEMO_MODE=true` iken mock; taksit seçenekleri teklifte
+gösterilir), havale/EFT (panelden eşleştirilir), kapıda ödeme (ek hizmet bedeli ve
+üst tutar sınırı ayarlanabilir). Yöntemlerin açık/kapalı durumu ve min/maks tutarları
+`/admin/ayarlar/odeme` ekranından yönetilir. Kupon kodları
 veritabanındaki `Coupon` tablosundan gelir; demo kodlar seed ile yüklenir
 (`NEFIS10`, `ILKAROMA`, `GOLDENDROP`).
 
@@ -135,6 +137,39 @@ onaylanınca kesinleşir, süresi dolarsa geri verilir. `Idempotency-Key` başl�
 aynı isteğin ikinci gönderiminde aynı siparişi döndürür. Kabul edilen mesafeli
 satış / ön bilgilendirme / KVKK metinlerinin **sürümü** siparişe yazılır.
 Yazma uçları `Origin` doğrulaması + `sameSite=lax` çerezle korunur.
+
+### Ödeme altyapısı (F3)
+
+Tüm sağlayıcılar tek arayüzü uygular (`src/server/payments/provider.ts`:
+`createPayment / capture / refund / verifyWebhook / getStatus`). Kart verisi
+**hiçbir zaman** bu sunucuya gelmez; müşteri sağlayıcının barındırılan (hosted)
+sayfasına yönlendirilir, sonuç webhook/dönüş adresiyle işlenir.
+
+| Sağlayıcı | Dosya | Durum |
+| --- | --- | --- |
+| `mock` | `adapters/mock.ts` | Test akışı; `DEMO_MODE=true` iken kart için zorunlu |
+| `iyzico` | `adapters/iyzico.ts` | Checkout Form (initialize/retrieve). **Sandbox'ta doğrulanmadı** |
+| `paytr` | `adapters/paytr.ts` | iFrame token + HMAC bildirim. İmza birim testli; **canlıda doğrulanmadı** |
+| `stripe` | `adapters/stripe.ts` | Checkout Session + imzalı webhook. **Test anahtarıyla doğrulanmadı** |
+| `havale`, `kapida` | `adapters/manual.ts` | Manuel; panelden "ödeme alındı" |
+
+Akış: `createOrder` → `startCardPayment` (Payment `başlatıldı`) → sağlayıcı sayfası →
+`POST /api/webhooks/payments/[provider]` (veya `/api/payments/[provider]/donus`) →
+`handlePaymentWebhook`: imza doğrulama, `WebhookEvent(provider, externalId)` ile
+**idempotent** işleme (aynı olay ikinci kez gelirse dokunulmaz), tutar karşılaştırma,
+`transitionOrder` ile `ödendi` / `başarısız`. Başarılı ödemeden sonra gelen geç
+"başarısız" bildirimi yoksayılır. Ham yükler maskelenerek saklanır (PAN/CVV/TCKN
+kalıpları ve `cardNumber`, `cvv`, `secretKey` gibi anahtarlar `src/server/log.ts`
+içinde silinir). Kart iadesi önce sağlayıcıda denenir; `Refund.status`
+`bekliyor → tamamlandı` webhook'la kesinleşir.
+
+Panel: `/admin/odemeler` (tüm işlemler, başarısız, iadeler, mutabakat, webhook
+günlüğü) ve `/admin/ayarlar/odeme` (yalnız `sahip`; sağlayıcı anahtarları
+`ENCRYPTION_KEY` ile AES-256-GCM şifrelenip `Setting` tablosuna yazılır, panele
+maskeli döner, boş/maskeli gönderilen alan değiştirilmez). Ortam değişkenleri
+(`IYZICO_*`, `PAYTR_*`, `STRIPE_*`) panelde kayıt yoksa yedek olarak okunur.
+Webhook adresleri `NEXT_PUBLIC_SITE_URL` üzerinden üretilir; yerelde sağlayıcı
+webhook'u için tünel (ör. `cloudflared`, `ngrok`) gerekir.
 
 ### Veri
 
@@ -223,6 +258,8 @@ ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 | `/admin/siparisler/[id]` | WooCommerce düzeninde detay: kalemler (düzenle + yeniden hesapla), toplamlar ve KDV matrahı, müşteri kartı (sipariş sayısı, harcama), adresler (düzenlenebilir), ödemeler (maskeli), sevkiyatlar, iadeler, zaman çizelgesi, admin/müşteri notu |
 | `/admin/siparisler/yeni` | Manuel / telefon siparişi (`?kopya=<id>` ile kopyalama); vitrinle aynı `createOrder` servisi |
 | `/admin/siparisler/[id]/yazdir?tip=fatura\|irsaliye` | Yazdırılabilir bilgi fişi / irsaliye (tarayıcıdan PDF); toplu: `/admin/siparisler/yazdir?ids=…` |
+| `/admin/odemeler` | Ödeme işlemleri: sağlayıcı/durum/tarih filtresi, tutar özetleri, başarısız ödemeler, iade kuyruğu, mutabakat (sipariş toplamı ≠ başarılı tahsilat), webhook günlüğü (maskeli yük) |
+| `/admin/ayarlar/odeme` | Yalnız `sahip`: aktif kart sağlayıcısı, yöntem açık/kapalı + min/maks tutar, 3DS zorunluluğu, iyzico/PayTR/Stripe anahtarları (şifreli, maskeli), havale IBAN bilgisi |
 | `/admin/giris` | Parola girişi |
 
 ### Ürün ve varyasyon modeli
@@ -392,13 +429,13 @@ Fark çıkması = vitrin regresyonu. F0 geçişi bu yöntemle doğrulandı: 26 r
 ### Birim ve uçtan uca testler
 
 ```sh
-npm test                    # vitest: durum makinesi, KDV, kupon, kargo tarifesi, toplamlar, TCKN/VKN/telefon
-npm run build && npm run qa:checkout   # gerçek HTTP + veritabanı: teklif → sipariş → mock ödeme → kapıda → iptal → hesap (38 kontrol)
+npm test                    # vitest: durum makinesi, KDV, kupon, kargo tarifesi, toplamlar, TCKN/VKN/telefon, taksit, PayTR imzası
+npm run build && npm run qa:checkout   # gerçek HTTP + veritabanı: teklif → sipariş → mock ödeme → webhook idempotency → kapıda → iptal → hesap (42 kontrol)
 ```
 
 `qa:checkout` test verisini sonunda temizler ve stoku geri koyar.
 
-### Panel sipariş yönetimi duman testi (F2)
+### Panel sipariş ve ödeme yönetimi duman testi (F2–F3)
 
 ```sh
 npm run build
@@ -409,7 +446,11 @@ Vitrinden havale siparişi açar; panel API'siyle kalem düzenler, ödeme alır,
 kısmi sevkiyat yapar (ikincisinde sipariş `kargolandı`), tüm sevkiyatları teslim
 edip otomatik `tamamlandı`yı doğrular, kısmi iade yapar (stok geri, tutar kuruş
 tutarlı), geçersiz geçiş 409 / görüntüleyici 403, denetim kaydı, manuel sipariş,
-toplu işlem ve yazdırma sayfalarını sınar. Test verisini temizler.
+toplu işlem ve yazdırma sayfalarını sınar. F3 bölümü ödeme listesi, mutabakat,
+iade kuyruğu ve ödeme ayarlarını (görüntüleyiciye 403, gizli alanın veritabanında
+`v1.` şifreli ve yanıtta maskeli olması, maskeli değerle tekrar kayıtta
+değişmemesi, denetim kaydında gizli değerin bulunmaması) doğrular (42 kontrol).
+Test verisini ve ayar değişikliğini geri alır.
 
 ### Kimlik doğrulama duman testi
 

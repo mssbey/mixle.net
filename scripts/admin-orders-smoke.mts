@@ -185,6 +185,37 @@ try {
   // Not: RSC yükü (__next_f) HTML metnini tekrar taşıdığı için başlık sayısı 2'den fazla olabilir; sheet sayısı esas.
   check('toplu irsaliye (2 sayfa)', printMany.status === 200 && sheets === 2 && manyHtml.split('SEVK İRSALİYESİ').length >= 3,
     `status=${printMany.status} sheet=${sheets} sevk=${manyHtml.split('SEVK İRSALİYESİ').length - 1} bulunamadı=${manyHtml.includes('Sipariş bulunamadı')} sidebar=${manyHtml.includes('admin-sidebar')} len=${manyHtml.length}`);
+
+  console.log('\n9) Ödemeler (F3)');
+  const payList = await api<{ items: { orderNumber: string; provider: string; status: string; cardLast4: string | null }[]; summary: unknown[] }>('GET', '/api/admin/payments?view=tumu&pageSize=50', undefined, cookie);
+  check('ödeme listesi 200 + bu siparişin ödemesi listede', payList.status === 200 && payList.body.items.some((p) => p.orderNumber === created.body.orderNumber), `status=${payList.status}`);
+  const recon = await api<{ items: { orderNumber: string }[] }>('GET', '/api/admin/payments?view=mutabakat', undefined, cookie);
+  check('mutabakat: bu sipariş uyuşmazlık listesinde değil', recon.status === 200 && !recon.body.items.some((m) => m.orderNumber === created.body.orderNumber));
+  const refundsView = await api<{ items: { orderNumber: string; status: string }[] }>('GET', '/api/admin/payments?view=iadeler', undefined, cookie);
+  check('iade kuyruğu: manuel iade tamamlandı olarak görünür', refundsView.status === 200 && refundsView.body.items.some((r) => r.orderNumber === created.body.orderNumber && r.status === 'tamamlandı'));
+  const payViewer = await api('GET', '/api/admin/payments', undefined, vcookie);
+  check('görüntüleyici ödeme listesini okuyabilir (siparis:oku)', payViewer.status === 200, `status=${payViewer.status}`);
+
+  const settingsGet = await api<{ settings: { paytr: { merchantKey: string; merchantKeySet: boolean }; havale: { iban: string } }; demoMode: boolean }>('GET', '/api/admin/settings/odeme', undefined, cookie);
+  check('ödeme ayarları GET 200 (sahip)', settingsGet.status === 200 && typeof settingsGet.body.settings?.paytr === 'object', `status=${settingsGet.status}`);
+  const settingsViewer = await api('GET', '/api/admin/settings/odeme', undefined, vcookie);
+  check('ödeme ayarları görüntüleyiciye 403', settingsViewer.status === 403, `status=${settingsViewer.status}`);
+  const prevRow = await db.setting.findUnique({ where: { key: 'odeme' } });
+  const secretVal = `duman-anahtar-${runId}`;
+  const put = await api<{ settings: { paytr: { merchantKey: string; merchantKeySet: boolean; merchantId: string }; havale: { iban: string } } }>('PUT', '/api/admin/settings/odeme',
+    { ...settingsGet.body.settings, paytr: { ...settingsGet.body.settings.paytr, merchantId: '999', merchantKey: secretVal }, havale: { ...settingsGet.body.settings.havale, iban: 'TR00 TEST' } }, cookie);
+  const row = await db.setting.findUnique({ where: { key: 'odeme' } });
+  const storedKey = (row?.value as { paytr?: { merchantKey?: string } })?.paytr?.merchantKey ?? '';
+  check('PUT 200, gizli alan maskeli döner, veritabanında şifreli (v1.)', put.status === 200 && put.body.settings.paytr.merchantKey.startsWith('••••') && put.body.settings.paytr.merchantKeySet && storedKey.startsWith('v1.') && !storedKey.includes(secretVal) && row?.isSecret === true,
+    `status=${put.status} masked=${put.body.settings?.paytr?.merchantKey} stored=${storedKey.slice(0, 6)}`);
+  const put2 = await api<{ settings: { paytr: { merchantId: string } } }>('PUT', '/api/admin/settings/odeme', { ...put.body.settings, paytr: { ...put.body.settings.paytr, merchantId: '1000' } }, cookie);
+  const row2 = await db.setting.findUnique({ where: { key: 'odeme' } });
+  check('maskeli değerle tekrar PUT gizli alanı değiştirmez', put2.status === 200 && put2.body.settings.paytr.merchantId === '1000' && (row2?.value as { paytr?: { merchantKey?: string } })?.paytr?.merchantKey === storedKey);
+  const auditRow = await db.auditLog.findFirst({ where: { entityType: 'Setting', entityId: 'odeme' }, orderBy: { createdAt: 'desc' } });
+  check('ayar değişikliği denetim kaydına düştü (gizli değer yok)', Boolean(auditRow) && !JSON.stringify(auditRow).includes(secretVal));
+  // Ayarları eski haline getir.
+  if (prevRow) await db.setting.update({ where: { key: 'odeme' }, data: { value: prevRow.value as never } });
+  else await db.setting.delete({ where: { key: 'odeme' } });
 } catch (err) {
   failures.push(String(err));
   console.error(err);

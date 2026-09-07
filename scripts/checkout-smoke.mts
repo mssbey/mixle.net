@@ -181,12 +181,24 @@ try {
   });
   check('ödeme onayı 200 + durum ödendi', pay.status === 200 && pay.body.status === 'ödendi', `${pay.status} ${JSON.stringify(pay.body)}`);
 
-  const pay2 = await post<{ status: string }>('/api/checkout/mock-odeme', {
+  const pay2 = await post<{ status: string; duplicate?: boolean }>('/api/checkout/mock-odeme', {
     orderId: o1.body.orderId,
     token: tokenMatch?.[1],
     outcome: 'basarisiz',
   });
   check('ikinci sonuç idempotent (durum değişmez)', pay2.body.status === 'ödendi', pay2.body.status);
+
+  // Webhook idempotency: aynı olay doğrudan webhook ucuna iki kez gelsin.
+  const whBody = JSON.stringify({ orderId: o1.body.orderId, token: tokenMatch?.[1], outcome: 'basarili', attempt: '1' });
+  const wh1 = await fetch(`${base}/api/webhooks/payments/mock`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: whBody });
+  const whEvents = await db.webhookEvent.count({ where: { provider: 'mock', externalId: `mock:${o1.body.orderId}:basarili:1` } });
+  check('webhook ucu 200 ve WebhookEvent tek kayıt (ikinci kez işlenmedi)', wh1.status === 200 && whEvents === 1, `status=${wh1.status} events=${whEvents}`);
+  const whBad = await fetch(`${base}/api/webhooks/payments/mock`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ orderId: o1.body.orderId, token: 'sahte', outcome: 'basarili' }) });
+  check('webhook sahte imza 400', whBad.status === 400, `status=${whBad.status}`);
+  const whUnknown = await fetch(`${base}/api/webhooks/payments/bilinmeyen`, { method: 'POST', body: '{}' });
+  check('bilinmeyen sağlayıcı 404', whUnknown.status === 404);
+  const paymentRow = await db.payment.findFirst({ where: { orderId: o1.body.orderId } });
+  check('Payment satırı mock/başarılı, kart bilgisi maskeli', paymentRow?.provider === 'mock' && paymentRow?.status === 'başarılı' && paymentRow?.cardLast4 === '0000');
 
   const afterPay = await db.variant.findUnique({ where: { id: variant.id } });
   const openRes = await db.stockReservation.count({ where: { orderId: o1.body.orderId, releasedAt: null } });
@@ -283,6 +295,7 @@ try {
           if (i.variantId) await db.variant.update({ where: { id: i.variantId }, data: { stock: { increment: i.quantity } } });
         }
       }
+      await db.webhookEvent.deleteMany({ where: { externalId: { contains: o.id } } });
       await db.order.delete({ where: { id: o.id } });
     }
     await db.customer.deleteMany({ where: { email: guestEmail } });
