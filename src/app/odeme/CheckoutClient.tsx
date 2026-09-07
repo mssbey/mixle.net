@@ -95,11 +95,13 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
   const [shippingMethodId, setShippingMethodId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'kart' | 'havale' | 'kapida' | ''>('');
   const [couponCode, setCouponCode] = useState<string>(cartPromo ?? '');
+  const [installment, setInstallment] = useState(1);
   const [customerNote, setCustomerNote] = useState('');
   const [consents, setConsents] = useState<Consents>({ distanceSales: false, preInfo: false, kvkk: false, marketing: false });
   const [consentError, setConsentError] = useState<string | null>(null);
 
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
+  const installmentChoices = quote?.paymentOptions.find((p) => p.id === 'kart')?.installments ?? [];
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -220,6 +222,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
       paymentMethod: paymentMethod as 'kart' | 'havale' | 'kapida',
       couponCode: couponCode || undefined,
       customerNote: customerNote || undefined,
+      installment: paymentMethod === 'kart' ? installment : undefined,
       consents,
     };
     if (shippingSel !== 'yeni') body.shippingAddressId = shippingSel;
@@ -473,6 +476,25 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
                   {p.surchargeMinor > 0 && <span className="text-xs font-semibold">+{formatMinor(p.surchargeMinor)}</span>}
                 </label>
               ))}
+              {paymentMethod === 'kart' && installmentChoices.length > 1 && (
+                <fieldset className="mt-1 rounded-xl border border-purple-100 p-3">
+                  <legend className="px-1 text-xs font-semibold text-purple-800">Taksit</legend>
+                  <div className="grid gap-1.5 sm:grid-cols-2">
+                    {installmentChoices.map((o) => (
+                      <label key={o.count} className={cn('flex cursor-pointer items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm', installment === o.count ? 'border-purple-500 bg-purple-50/50' : 'border-purple-100')}>
+                        <span className="flex items-center gap-2">
+                          <input type="radio" name="co-installment" checked={installment === o.count} onChange={() => setInstallment(o.count)} />
+                          {o.count === 1 ? 'Tek çekim' : `${o.count} taksit`}
+                        </span>
+                        <span className="text-xs text-ink-soft">
+                          {o.count === 1 ? formatMinor(o.totalMinor) : `${o.count} × ${formatMinor(o.perMonthMinor)}${o.interestMinor > 0 ? ` (+${formatMinor(o.interestMinor)} vade farkı)` : ''}`}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-ink-soft">Taksit ve vade farkı bankanıza göre ödeme sayfasında kesinleşir.</p>
+                </fieldset>
+              )}
             </div>
           )}
 

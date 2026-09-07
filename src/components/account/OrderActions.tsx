@@ -3,9 +3,9 @@
 // Sipariş detayındaki müşteri eylemleri: iptal, ödemeyi tamamla, iade talebi (F5).
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { XCircle, CreditCard, RotateCcw } from 'lucide-react';
+import { XCircle, RotateCcw } from 'lucide-react';
+import { RetryPaymentButton } from '@/components/orders/RetryPaymentButton';
 import type { PublicOrder } from '@/server/orders/view';
 import { accountApi, CheckoutApiError } from '@/lib/checkout-client';
 import { toast } from '@/store/toast';
@@ -34,11 +34,7 @@ export function OrderActions({ order, orderId }: { order: PublicOrder; orderId: 
 
   return (
     <>
-      {order.canRetryPayment && (
-        <Link href={`/odeme/dogrulama?siparis=${orderId}`} className="btn-primary">
-          <CreditCard size={16} /> Ödemeyi tamamla
-        </Link>
-      )}
+      {order.canRetryPayment && <RetryPaymentButton orderId={orderId} />}
       {CANCELLABLE.has(order.status) && !confirm && (
         <button type="button" className="btn-ghost" onClick={() => setConfirm(true)}>
           <XCircle size={16} /> Siparişi iptal et

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   ShoppingCart,
+  CreditCard,
   Package,
   FolderTree,
   Layers,
@@ -27,6 +28,7 @@ import { AdminToaster } from './AdminToaster';
 const NAV = [
   { href: '/admin', label: 'Özet', icon: LayoutDashboard, exact: true },
   { href: '/admin/siparisler', label: 'Siparişler', icon: ShoppingCart, exact: false },
+  { href: '/admin/odemeler', label: 'Ödemeler', icon: CreditCard, exact: false },
   { href: '/admin/urunler', label: 'Ürünler', icon: Package, exact: false },
   { href: '/admin/kategoriler', label: 'Kategoriler', icon: FolderTree, exact: false },
   { href: '/admin/koleksiyonlar', label: 'Koleksiyonlar', icon: Layers, exact: false },
@@ -36,6 +38,8 @@ const NAV = [
 const CRUMB_LABELS: Record<string, string> = {
   admin: 'Panel',
   siparisler: 'Siparişler',
+  odemeler: 'Ödemeler',
+  odeme: 'Ödeme',
   urunler: 'Ürünler',
   kategoriler: 'Kategoriler',
   koleksiyonlar: 'Koleksiyonlar',

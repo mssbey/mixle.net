@@ -57,7 +57,7 @@ export default async function MockPaymentPage({
           <dt className="text-ink-soft">Tutar</dt>
           <dd className="font-semibold">{formatMinor(ctx.grandTotalMinor)}</dd>
           <dt className="text-ink-soft">Kart</dt>
-          <dd>TEST •••• 0000</dd>
+          <dd>TEST •••• 0000{ctx.installment > 1 ? ` · ${ctx.installment} taksit` : ' · tek çekim'}</dd>
         </dl>
 
         <p className="mt-4 rounded-xl bg-purple-50 p-3 text-xs leading-5 text-ink-soft">
@@ -73,6 +73,7 @@ export default async function MockPaymentPage({
           <MockPaymentForm
             orderId={ctx.id}
             token={ctx.token}
+            attempt={ctx.attempt}
             // Yalnız site içi teşekkür adresi kabul edilir; dış URL'ye yönlendirilmez.
             doneUrl={d && d.startsWith('/siparis/tamamlandi') ? d : thankYouUrl(ctx.orderNumber, ctx.id)}
           />

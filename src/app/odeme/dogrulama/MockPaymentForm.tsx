@@ -8,10 +8,13 @@ import { useCart } from '@/store/cart';
 export function MockPaymentForm({
   orderId,
   token,
+  attempt,
   doneUrl,
 }: {
   orderId: string;
   token: string;
+  /** Deneme sayacı — yeniden denemede webhook olay kimliği değişsin. */
+  attempt: string;
   /** İmzalı teşekkür sayfası adresi. */
   doneUrl: string;
 }) {
@@ -27,7 +30,7 @@ export function MockPaymentForm({
       const res = await fetch('/api/checkout/mock-odeme', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ orderId, token, outcome }),
+        body: JSON.stringify({ orderId, token, outcome, attempt }),
       });
       const body = (await res.json()) as { message?: string; status?: string };
       if (!res.ok) throw new Error(body.message ?? 'Ödeme sonucu işlenemedi');

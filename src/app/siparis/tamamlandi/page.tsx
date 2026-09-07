@@ -7,7 +7,6 @@
 // jetonsuz da görebilir.
 
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { CheckCircle2, Clock, Landmark, Info } from 'lucide-react';
 import { db } from '@/server/db';
 import { getCurrentCustomer } from '@/server/customers/auth';
@@ -17,6 +16,7 @@ import { getStoreInfo } from '@/server/settings';
 import { OrderDetail } from '@/components/orders/OrderDetail';
 import { ButtonLink } from '@/components/ui/Button';
 import { formatMinor } from '@/lib/money';
+import { RetryPaymentButton } from '@/components/orders/RetryPaymentButton';
 
 export const metadata: Metadata = {
   title: 'Siparişiniz Alındı',
@@ -106,7 +106,7 @@ export default async function OrderCompletePage({
 
             {order.canRetryPayment && (
               <div className="mt-4">
-                <Link href={`/odeme/dogrulama?siparis=${row.id}`} className="btn-primary">Ödemeyi tamamla</Link>
+                <RetryPaymentButton orderId={row.id} token={t} />
               </div>
             )}
           </div>

@@ -18,3 +18,15 @@ export function paymentMethodLabel(method: string): string {
       return method || '—';
   }
 }
+
+/** Sağlayıcı kimliği → panel etiketi. */
+export const PROVIDER_LABELS: Record<string, string> = {
+  mock: 'Test (mock)',
+  iyzico: 'iyzico',
+  paytr: 'PayTR',
+  stripe: 'Stripe',
+  havale: 'Havale / EFT',
+  kapida: 'Kapıda ödeme',
+  kart: 'Kart',
+  manuel: 'Manuel',
+};

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { Download, RotateCcw, Upload } from 'lucide-react';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -63,6 +64,16 @@ export default function AdminSettingsPage() {
         <h1 className="text-lg font-semibold text-[var(--brand-purple-deep)]">Ayarlar</h1>
         <p className="admin-hint mt-0.5">Veri yedekleme ve geri yükleme</p>
       </header>
+
+      {can('ayar:odeme') && (
+        <section className="admin-card flex flex-wrap items-center justify-between gap-2" style={{ padding: 16 }}>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">Ödeme ayarları</h2>
+            <p className="admin-hint mt-0.5">Sağlayıcılar, yöntemler, limitler, havale bilgisi</p>
+          </div>
+          <Link href="/admin/ayarlar/odeme" className="admin-btn admin-btn-ghost">Düzenle</Link>
+        </section>
+      )}
 
       <section className="admin-card grid gap-3 sm:grid-cols-3" style={{ padding: 16 }}>
         <div className="admin-stat" style={{ padding: 0 }}>
@@ -162,8 +173,7 @@ export default function AdminSettingsPage() {
       />
 
       <p className="admin-hint flex items-center gap-1.5">
-        <Upload size={12} /> Yazma işlemleri yalnızca geliştirme ortamında veya
-        ADMIN_WRITE_ENABLED=true iken çalışır.
+        <Upload size={12} /> Bakım işlemleri DEMO_MODE=true iken de çalışır; canlıda yalnızca bakım yetkisi olan kullanıcılar için.
       </p>
     </div>
   );

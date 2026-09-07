@@ -90,6 +90,7 @@ export interface QuoteResponse {
     available: boolean;
     reason: string | null;
     testMode: boolean;
+    installments?: { count: number; rateBps: number; totalMinor: number; perMonthMinor: number; interestMinor: number }[];
   }[];
   selectedPayment: 'kart' | 'havale' | 'kapida' | null;
   problems: string[];
@@ -119,6 +120,7 @@ export interface CreateOrderRequest {
   paymentMethod: 'kart' | 'havale' | 'kapida';
   couponCode?: string;
   customerNote?: string;
+  installment?: number;
   consents: { distanceSales: boolean; preInfo: boolean; kvkk: boolean; marketing: boolean };
 }
 
