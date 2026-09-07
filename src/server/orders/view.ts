@@ -7,7 +7,7 @@
 import 'server-only';
 import { jsonArray } from '../catalog/mapping';
 import { orderStatusLabels, type OrderStatus } from './state-machine';
-import { paymentMethodLabel } from '../notifications/email';
+import { paymentMethodLabel } from '@/lib/payment-labels';
 import type { AddressSnapshot } from '../customers/address-schema';
 
 export interface PublicOrderItem {

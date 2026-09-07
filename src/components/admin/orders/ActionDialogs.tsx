@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import type { AdminOrderView } from '@/server/orders/admin-view';
 import { orderStatusLabels, type OrderStatus } from '@/server/orders/state-machine';
-import { CARRIERS, SHIPMENT_STATUSES, carrierLabels, type Carrier, type ShipmentStatus } from '@/server/shipping/shipments';
+import { CARRIERS, SHIPMENT_STATUSES, carrierLabels, type Carrier, type ShipmentStatus } from '@/server/shipping/carriers';
 import { ordersApi } from '@/lib/admin/orders-client';
 import { ApiError } from '@/lib/admin/client';
 import { formatMinor, minorToInput, parseMajorInput } from '@/lib/money';

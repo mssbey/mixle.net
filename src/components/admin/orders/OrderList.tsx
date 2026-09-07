@@ -13,9 +13,10 @@ import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { EmptyState, TableSkeleton } from '@/components/admin/primitives';
 import { toast } from '@/store/toast';
 import { formatMinor } from '@/lib/money';
-import { ORDER_TABS, type OrderListResult, type OrderTab } from '@/server/orders/admin-view';
+import type { OrderListResult } from '@/server/orders/admin-view';
+import { ORDER_TABS, type OrderTab } from '@/server/orders/order-tabs';
 import { ORDER_STATUSES, orderStatusLabels, type OrderStatus } from '@/server/orders/state-machine';
-import { CARRIERS, carrierLabels } from '@/server/shipping/shipments';
+import { CARRIERS, carrierLabels } from '@/server/shipping/carriers';
 import { OrderStatusChip, SmallChip, dateTime, paymentStatusLabels } from './status';
 import { cn } from '@/lib/utils';
 

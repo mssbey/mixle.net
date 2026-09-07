@@ -11,6 +11,7 @@ import 'server-only';
 import { db } from '../db';
 import { DEMO_MODE } from '../config';
 import { formatMinor } from '@/lib/money';
+import { paymentMethodLabel } from '@/lib/payment-labels';
 
 export type EmailTemplateKey =
   | 'siparis-alindi'
@@ -214,17 +215,4 @@ export function orderEmailVars(order: {
   };
 }
 
-export function paymentMethodLabel(method: string): string {
-  switch (method) {
-    case 'havale':
-      return 'Havale / EFT';
-    case 'kapida':
-      return 'Kapıda ödeme';
-    case 'kart':
-      return 'Kredi / banka kartı';
-    case 'mock':
-      return 'Test ödemesi';
-    default:
-      return method || '—';
-  }
-}
+export { paymentMethodLabel } from '@/lib/payment-labels';

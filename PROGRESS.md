@@ -3,41 +3,40 @@
 > **Devam talimatı:** Kullanıcı "devam et" dediğinde bu dosyadan devam et. Projeyi
 > baştan analiz etme. Aşağıdaki "SONRAKİ ADIM" bölümünden başla.
 
-Son güncelleme: 2026-09-07 (F2 kodu tamamlandı — ÇALIŞMA ZAMANI DOĞRULAMASI BEKLİYOR)
+Son güncelleme: 2026-09-07 (F2 tamamlandı ve doğrulandı — sıra F3'te)
 
 ## SONRAKİ ADIM
 
-**ÖNCE ORTAM ENGELİNİ KALDIR.** 2026-09-07 00:44'ten itibaren Windows Code Integrity
-(Smart App Control, policy 0283ac0f-fff1-49ae-ada1-8a933130cad6)
-`node_modules/@next/swc-win32-x64-msvc/next-swc.win32-x64-msvc.node` dosyasını
-"Enterprise imza seviyesini karşılamıyor" diye engelliyor (Olay 3033/3077,
-Microsoft-Windows-CodeIntegrity/Operational). Dosya 4 Eylül'den beri değişmedi;
-bulut itibar kararı değişti. Sonuç: `next build` ve `next dev` açılmıyor
-(Turbopack native ister; `--webpack` + WASM SWC de Next'in iç eklentisinde
-patlıyor). Kullanıcı kararı: Smart App Control'ü kapatmak (Windows Güvenliği →
-Uygulama ve tarayıcı denetimi → Akıllı Uygulama Denetimi; KAPATILDIKTAN SONRA
-GERİ AÇILAMAZ) ya da başka makine/WSL. Engel kalkınca sırayla:
+**F3 — Ödemeler (test modunda).** Plan: `PLAN-YONETIM-PANELI.md`.
+`PaymentProvider` arayüzü (createPayment/capture/refund/verifyWebhook/getStatus),
+adaptörler: iyzico (birincil), PayTR, Stripe (opsiyonel), havale (manuel), kapıda,
+mock (mevcut `src/server/payments/mock.ts` → arayüze uydur). Webhook
+`/api/webhooks/payments/[provider]`: imza doğrulama, `WebhookEvent` (provider+externalId
+@unique) ile idempotent işleme, ham payload maskeli saklama. `/admin/odemeler`
+liste/filtre/mutabakat/başarısız/iade kuyruğu; `/admin/ayarlar/odeme` anahtarlar
+(AES-256-GCM `secret-box.ts` hazır, `Setting.isSecret`), test/canlı, aktif yöntemler,
+min/max. 3DS zorunlu opsiyon, taksit tablosu (BIN → banka; sandbox olmadan
+sabit tablo). Kart iadesi: `refunds.ts` şu an 'tamamlandı' yazıyor → sağlayıcı
+`refund` ile 'bekliyor'→'tamamlandı'. Kullanıcı sandbox anahtarlarını F3'te verecek;
+DEMO_MODE=true iken mock zorunlu. CI tam akış = mock.
 
-```sh
-npm run build
-SMOKE_OWNER_EMAIL=… SMOKE_OWNER_PASSWORD=… npm run qa:orders -- 3993   # F2 kabul testi (henüz HİÇ çalışmadı)
-npm run qa:checkout -- 3994                                              # F1 regresyon
-npm run qa:snapshot -- <klasor> 3999 && npm run qa:compare -- <baseline> <klasor>
-```
-
-Sonra F2'de kalanlar (küçük): panel QA (qa:console/qa:responsive rota listesine
-/admin/siparisler ekle), README'deki F2 tablosunu doğrula, PLAN'da F2'yi kapat.
-Ardından **F3 — Ödemeler** (mock sağlayıcı iskeleti `src/server/payments/mock.ts`;
-`PaymentProvider` arayüzü + iyzico/PayTR/Stripe adaptörleri + webhook idempotency;
-kullanıcı sandbox anahtarlarını F3'te verecek, DEMO_MODE test).
+Ortam notu: Smart App Control 07.09 sabahı @next/swc'yi engelledi, sonra kendiliğinden
+kalktı. Build panic ("AssetContent::file was canceled") görürsen `rm -rf .next`.
 
 ---
 
-## F2 — KOD TAMAMLANDI, DOĞRULAMA BEKLİYOR (2026-09-07)
+## F2 — TAMAMLANDI (2026-09-07)
 
-lint + typecheck temiz, 56 birim testi geçiyor. `npm run qa:orders` (38+ kontrol,
-scripts/admin-orders-smoke.mts) yazıldı ama ortam engeli yüzünden HİÇ ÇALIŞTIRILMADI.
-Bu yüzden F2'de çalışma zamanı hatası olabilir; engel kalkınca ilk iş bu.
+`npm run qa:orders` 33/33 (gerçek HTTP + DB): sipariş → kalem düzenle + yeniden
+hesap → havale eşleştir → 2 kısmi sevkiyat (kargolandı) → teslim → otomatik
+tamamlandı → kısmi iade (stok geri, kuruş tutarlı, refundedQuantity) → 409/403/422
+→ denetim kaydı → manuel sipariş → toplu işlem → yazdırma. `qa:checkout` 38/38,
+vitrin 25/26 (tek fark /sepet "Ödemeye Geç" metni, bilinçli). lint/typecheck temiz.
+
+**Öğrenilen:** client bileşenleri `server-only` zincirindeki modüllerden DEĞER
+import edemez (Turbopack "Pages Router" hatası). Sabitler saf modüllerde:
+`shipping/carriers.ts`, `orders/order-tabs.ts`, `lib/payment-labels.ts`.
+RSC yükü HTML metnini tekrar taşır; testte metin sayısı yerine yapısal sayım kullan.
 
 **Sunucu (`src/server/orders/*`, `src/server/shipping/shipments.ts`)**
 - admin-view: panel görünümü (adminNote, IP, maskeli ham ödeme yanıtı, iadeler,

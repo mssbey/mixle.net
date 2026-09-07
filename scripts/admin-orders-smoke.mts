@@ -180,7 +180,11 @@ try {
   const printHtml = await print.text();
   check('fatura yazdırma sayfası', print.status === 200 && printHtml.includes('SİPARİŞ BİLGİ FİŞİ') && printHtml.includes(created.body.orderNumber) && !printHtml.includes('admin-sidebar'));
   const printMany = await fetch(`${base}/admin/siparisler/yazdir?ids=${id},${manual.body.orderId}&tip=irsaliye`, { headers: { cookie } });
-  check('toplu irsaliye', printMany.status === 200 && (await printMany.text()).split('SEVK İRSALİYESİ').length === 3);
+  const manyHtml = await printMany.text();
+  const sheets = (manyHtml.match(/class="sheet"/g) ?? []).length;
+  // Not: RSC yükü (__next_f) HTML metnini tekrar taşıdığı için başlık sayısı 2'den fazla olabilir; sheet sayısı esas.
+  check('toplu irsaliye (2 sayfa)', printMany.status === 200 && sheets === 2 && manyHtml.split('SEVK İRSALİYESİ').length >= 3,
+    `status=${printMany.status} sheet=${sheets} sevk=${manyHtml.split('SEVK İRSALİYESİ').length - 1} bulunamadı=${manyHtml.includes('Sipariş bulunamadı')} sidebar=${manyHtml.includes('admin-sidebar')} len=${manyHtml.length}`);
 } catch (err) {
   failures.push(String(err));
   console.error(err);

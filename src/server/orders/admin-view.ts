@@ -9,7 +9,8 @@ import { z } from 'zod';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
 import { ORDER_STATUSES, orderStatusLabels, type OrderStatus } from './state-machine';
-import { paymentMethodLabel } from '../notifications/email';
+import { paymentMethodLabel } from '@/lib/payment-labels';
+import { ORDER_TABS, type OrderTab } from './order-tabs';
 import type { AddressSnapshot } from '../customers/address-schema';
 
 // ------------------------------------------------------------- maskeleme ---
@@ -356,17 +357,8 @@ import { allowedTransitions as allowedFor } from './state-machine';
 
 // ------------------------------------------------------------- liste -------
 
-export const ORDER_TABS = {
-  tumu: { label: 'Tümü', statuses: null },
-  'odeme-bekleyen': { label: 'Ödeme bekleyen', statuses: ['ödeme-bekliyor', 'başarısız'] },
-  hazirlanacak: { label: 'Hazırlanacak', statuses: ['ödendi', 'hazırlanıyor'] },
-  kargolanacak: { label: 'Kargolanacak', statuses: ['hazırlanıyor'] },
-  kargoda: { label: 'Kargoda', statuses: ['kargolandı'] },
-  iade: { label: 'İade', statuses: ['iade-talebi', 'iade-edildi'] },
-  iptal: { label: 'İptal / başarısız', statuses: ['iptal', 'başarısız'] },
-} as const;
-
-export type OrderTab = keyof typeof ORDER_TABS;
+export { ORDER_TABS } from './order-tabs';
+export type { OrderTab } from './order-tabs';
 
 export const orderListQuerySchema = z.object({
   tab: z.enum(Object.keys(ORDER_TABS) as [OrderTab, ...OrderTab[]]).default('tumu'),

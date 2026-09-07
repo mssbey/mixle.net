@@ -16,7 +16,7 @@ import { ApiError } from '@/lib/admin/client';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { formatMinor, bpsToPercent } from '@/lib/money';
 import { formatPhoneTR } from '@/lib/validators/phone';
-import { carrierLabels, type Carrier } from '@/server/shipping/shipments';
+import { carrierLabels, type Carrier } from '@/server/shipping/carriers';
 import { toast } from '@/store/toast';
 import { TableSkeleton } from '@/components/admin/primitives';
 import { OrderStatusChip, SmallChip, dateTime, paymentStatusLabels, fulfillmentLabels } from './status';

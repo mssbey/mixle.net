@@ -2,9 +2,10 @@
 
 // Panel sipariş uçları için istemci sarmalayıcısı.
 
-import type { AdminOrderView, OrderListResult, OrderTab } from '@/server/orders/admin-view';
+import type { AdminOrderView, OrderListResult } from '@/server/orders/admin-view';
+import type { OrderTab } from '@/server/orders/order-tabs';
 import type { OrderStatus } from '@/server/orders/state-machine';
-import type { Carrier, ShipmentStatus } from '@/server/shipping/shipments';
+import type { Carrier, ShipmentStatus } from '@/server/shipping/carriers';
 import type { AddressInput } from '@/server/customers/address-schema';
 import { ApiError } from './client';
 
