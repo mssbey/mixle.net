@@ -309,7 +309,7 @@ export const faqGroups: { heading: string; items: { q: string; a: string }[] }[]
     items: [
       {
         q: 'Üyelik zorunlu mu?',
-        a: 'Bu sürüm yalnızca vitrindir; sepet ve favoriler tarayıcınızda saklanır. Üyelik ve ödeme akışı ileride eklenecektir.',
+        a: 'Hayır. Misafir olarak da sipariş verebilirsiniz. Üyelik; sipariş geçmişinizi görmek, adreslerinizi kaydetmek ve iade talebi açmak için önerilir.',
       },
       {
         q: 'Bilgilerim nasıl korunuyor?',

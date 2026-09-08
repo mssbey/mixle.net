@@ -16,6 +16,6 @@ wc-product-export-*.csv
 # Local visual QA and audit artifacts
 artifacts/
 
-# Veritabanı (Prisma/SQLite) ve üretilen Prisma istemcisi
+# Veritabanı (Prisma/SQLite), panelden yüklenen medya ve üretilen Prisma istemcisi
 /data/
 /src/generated/

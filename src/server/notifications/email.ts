@@ -1,8 +1,11 @@
-// E-posta kuyruğu ve şablonları (F1 sürümü).
+// E-posta kuyruğu ve şablonları.
 //
 // DEMO_MODE=true iken hiçbir şey gönderilmez: e-posta `EmailLog`'a
 // "demo-yakalandı" durumuyla ve gövdesiyle yazılır, panelde görüntülenir.
-// Gerçek gönderim (SMTP/Resend) ve panelden düzenlenebilir şablonlar F7'de.
+// DEMO_MODE=false iken `mailer.ts::sendMailNow` ile GERÇEK gönderim denenir
+// (SMTP/Resend, bkz. `/admin/ayarlar/eposta`); sonuç `EmailLog.status`e
+// yazılır. Gönderim hatası ASLA çağıran işlemi (sipariş oluşturma vb.)
+// düşürmez — try/catch ile yutulur, panelde "başarısız" olarak görünür.
 //
 // Şablonlar `{{degisken}}` yer tutucularıyla Türkçe metindir; değişkenler
 // gönderim anında doldurulur. Kişisel veri (tam adres, TCKN) e-postaya konmaz.
@@ -194,8 +197,9 @@ export interface QueueEmailInput {
  */
 export async function queueEmail(input: QueueEmailInput): Promise<void> {
   const { subject, body } = renderTemplate(input.template, input.vars);
+  let row: { id: string } | null = null;
   try {
-    await db.emailLog.create({
+    row = await db.emailLog.create({
       data: {
         to: input.to,
         template: input.template,
@@ -205,9 +209,26 @@ export async function queueEmail(input: QueueEmailInput): Promise<void> {
         status: DEMO_MODE ? 'demo-yakalandı' : 'kuyrukta',
         sentAt: DEMO_MODE ? new Date() : null,
       },
+      select: { id: true },
     });
   } catch (err) {
     console.error('[e-posta] kuyruğa yazılamadı:', err);
+    return;
+  }
+
+  if (DEMO_MODE) return;
+  try {
+    const { sendMailNow } = await import('./mailer');
+    const result = await sendMailNow(input.to, subject, body);
+    await db.emailLog.update({
+      where: { id: row.id },
+      data: result.ok
+        ? { status: 'gönderildi', sentAt: new Date() }
+        : { status: 'başarısız', error: (result.error ?? 'bilinmeyen hata').slice(0, 500) },
+    });
+  } catch (err) {
+    console.error('[e-posta] gönderim denemesi başarısız:', err);
+    await db.emailLog.update({ where: { id: row.id }, data: { status: 'başarısız', error: 'Beklenmeyen hata' } }).catch(() => {});
   }
 }
 

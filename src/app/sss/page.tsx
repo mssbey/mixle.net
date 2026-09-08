@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { faqGroups } from '@/data/content';
+import { getFaqContent } from '@/server/content/settings';
 import { Accordion } from '@/components/ui/Accordion';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { JsonLd } from '@/lib/seo';
@@ -10,7 +10,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/sss' },
 };
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const { groups: faqGroups } = await getFaqContent();
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',

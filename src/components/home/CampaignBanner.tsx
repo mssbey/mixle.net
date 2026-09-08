@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Tag } from 'lucide-react';
-import { campaign } from '@/data/content';
+import { getCampaignContent } from '@/server/content/settings';
 import { Reveal } from '@/components/ui/Reveal';
 
-export function CampaignBanner() {
+export async function CampaignBanner() {
+  const campaign = await getCampaignContent();
   return (
     <section className="section container-page">
       <Reveal>
