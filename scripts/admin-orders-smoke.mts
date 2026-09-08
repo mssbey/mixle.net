@@ -216,6 +216,102 @@ try {
   // Ayarları eski haline getir.
   if (prevRow) await db.setting.update({ where: { key: 'odeme' }, data: { value: prevRow.value as never } });
   else await db.setting.delete({ where: { key: 'odeme' } });
+  console.log('\n10) Kargo (F4)');
+  const kargoOrder = await api<{ orderId: string; orderNumber: string; status: string }>('POST', '/api/checkout/siparis', {
+    lines: [{ variantId: vA.id, quantity: 1 }],
+    email: guestEmail,
+    shippingAddress: { firstName: 'Kargo', lastName: 'Test', phone: '0532 000 00 02', country: 'TR', city: 'Ankara', district: 'Çankaya', neighborhood: '', addressLine: 'Test Sok. No: 2 Daire: 2 Çankaya', postalCode: '', isCorporate: false, identityNumber: '' },
+    billingSameAsShipping: true, shippingMethodId: std.methodId, paymentMethod: 'havale',
+    consents: { distanceSales: true, preInfo: true, kvkk: true, marketing: false },
+  }, undefined, { 'idempotency-key': randomUUID() });
+  const kId = kargoOrder.body.orderId;
+  const kTotals = (await api<{ order: AdminOrder }>('GET', `/api/admin/orders/${kId}`, undefined, cookie)).body.order.totals;
+  await api('POST', `/api/admin/orders/${kId}/odeme`, { amountMinor: kTotals.grandTotalMinor, method: 'havale', reference: 'DEKONT-KARGO' }, cookie);
+  const kShip = await api<{ order: AdminOrder; shipmentId: string }>('POST', `/api/admin/orders/${kId}/kargo`, { carrier: 'aras', trackingNumber: 'ARTEST1', markShipped: true }, cookie);
+  check('F4 test siparişi kargolandı', kShip.status === 201 && kShip.body.order.status === 'kargolandı', `${kShip.status} ${kShip.body.order?.status}`);
+  const shipmentId = kShip.body.shipmentId;
+
+  const shipList = await api<{ items: { id: string; orderNumber: string }[]; counts: Record<string, number> }>('GET', `/api/admin/shipments?tab=yolda&q=${encodeURIComponent(kargoOrder.body.orderNumber)}`, undefined, cookie);
+  check('kargolar listesi: yolda sekmesinde bulunur', shipList.status === 200 && shipList.body.items.some((s) => s.id === shipmentId), `status=${shipList.status}`);
+  const shipListViewer = await api('GET', '/api/admin/shipments', undefined, vcookie);
+  check('görüntüleyici kargo listesini okuyabilir (siparis:oku)', shipListViewer.status === 200);
+
+  const quickPatch = await api('PATCH', `/api/admin/shipments/${shipmentId}`, { status: 'dağıtımda', note: 'panel testi' }, cookie);
+  check('kargolar listesinden hızlı güncelleme 200', quickPatch.status === 200, `status=${quickPatch.status}`);
+  const quickPatchViewer = await api('PATCH', `/api/admin/shipments/${shipmentId}`, { status: 'teslim-edildi' }, vcookie);
+  check('görüntüleyici sevkiyat güncelleyemez (403)', quickPatchViewer.status === 403, `status=${quickPatchViewer.status}`);
+
+  const sync1 = await api<{ updated: boolean; reason: string }>('POST', `/api/admin/shipments/${shipmentId}/takip`, undefined, cookie);
+  check('tek sevkiyat takip yenileme: bağlı sağlayıcı yok, dürüstçe "updated:false"', sync1.status === 200 && sync1.body.updated === false && sync1.body.reason.length > 0, JSON.stringify(sync1.body));
+  const syncBulk = await api<{ updated: number; total: number }>('POST', '/api/admin/shipments/toplu', { ids: [shipmentId] }, cookie);
+  check('toplu takip yenileme çalışır, hiçbiri güncellenmez', syncBulk.status === 200 && syncBulk.body.total === 1 && syncBulk.body.updated === 0, JSON.stringify(syncBulk.body));
+
+  const cronNoSecret = await fetch(`${base}/api/cron/kargo-takip`, { method: 'POST' });
+  check('cron ucu gizli anahtarsız 401', cronNoSecret.status === 401, `status=${cronNoSecret.status}`);
+  const cronBadSecret = await fetch(`${base}/api/cron/kargo-takip`, { method: 'POST', headers: { authorization: 'Bearer yanlis' } });
+  check('cron ucu yanlış anahtarla 401', cronBadSecret.status === 401, `status=${cronBadSecret.status}`);
+  const cronOk = await fetch(`${base}/api/cron/kargo-takip`, { method: 'POST', headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } });
+  check('cron ucu doğru anahtarla 200 (oturumsuz)', cronOk.status === 200, `status=${cronOk.status}`);
+
+  const labelHtml = await (await fetch(`${base}/admin/kargolar/yazdir?ids=${shipmentId}`, { headers: { cookie } })).text();
+  check('kargo etiketi sayfası: sipariş no ve takip no var, panel kabuğu yok', labelHtml.includes(kargoOrder.body.orderNumber) && labelHtml.includes('ARTEST1') && !labelHtml.includes('admin-sidebar'));
+
+  console.log('\n11) Kargo bölge/tarife yönetimi (F4)');
+  const zone = await api<{ zone: { id: string } }>('POST', '/api/admin/shipping/zones', { name: `Test Bölge ${runId}`, countries: ['TR'], cities: ['Bursa'] }, cookie);
+  check('bölge oluşturuldu', zone.status === 201, `status=${zone.status}`);
+  const zoneId = zone.body.zone.id;
+  // Yeni bölge varsayılan "Türkiye" (cities: [] → her ili kapsar) bölgesinden ÖNCE gelmeli, yoksa hiç eşleşmez.
+  const allZones = await api<{ zones: { id: string }[] }>('GET', '/api/admin/shipping/zones', undefined, cookie);
+  await api('POST', '/api/admin/shipping/zones/reorder', { orderedIds: [zoneId, ...allZones.body.zones.map((z) => z.id).filter((id) => id !== zoneId)] }, cookie);
+  const method = await api<{ method: { id: string } }>('POST', `/api/admin/shipping/zones/${zoneId}/methods`, { name: 'Bursa kargo', type: 'sabit', priceMinor: 9900, freeOverMinor: null, tiers: null, estimatedDays: '1-2', carrier: 'mng', isActive: true }, cookie);
+  check('yöntem oluşturuldu', method.status === 201, `status=${method.status}`);
+  const methodId = method.body.method.id;
+
+  const quoteBursa = await api<{ shippingOptions: { name: string; priceMinor: number }[] }>('POST', '/api/checkout/quote', { lines: [{ variantId: vA.id, quantity: 1 }], city: 'Bursa', email: guestEmail });
+  check('yeni bölgenin tarifesi checkout teklifinde görünür (99,00 TL)', quoteBursa.body.shippingOptions.some((o) => o.name === 'Bursa kargo' && o.priceMinor === 9900), JSON.stringify(quoteBursa.body.shippingOptions));
+
+  const methodFree = await api<{ method: { priceMinor: number } }>('PATCH', `/api/admin/shipping/methods/${methodId}`, { type: 'ücretsiz' }, cookie);
+  check('yöntem ücretsize çevrildi', methodFree.status === 200, `status=${methodFree.status}`);
+  const quoteBursaFree = await api<{ shippingOptions: { name: string; priceMinor: number }[] }>('POST', '/api/checkout/quote', { lines: [{ variantId: vA.id, quantity: 1 }], city: 'Bursa', email: guestEmail });
+  check('ücretsize çevrilince teklif 0 gösterir', quoteBursaFree.body.shippingOptions.find((o) => o.name === 'Bursa kargo')?.priceMinor === 0, JSON.stringify(quoteBursaFree.body.shippingOptions));
+
+  const methodDelViewer = await api('DELETE', `/api/admin/shipping/methods/${methodId}`, undefined, vcookie);
+  check('görüntüleyici yöntem silemez (403)', methodDelViewer.status === 403, `status=${methodDelViewer.status}`);
+  await api('DELETE', `/api/admin/shipping/methods/${methodId}`, undefined, cookie);
+  await api('DELETE', `/api/admin/shipping/zones/${zoneId}`, undefined, cookie);
+  const quoteBursaAfter = await api<{ shippingOptions: { name: string }[] }>('POST', '/api/checkout/quote', { lines: [{ variantId: vA.id, quantity: 1 }], city: 'Bursa', email: guestEmail });
+  check('bölge silinince Bursa varsayılan (Türkiye) bölgesine döner', !quoteBursaAfter.body.shippingOptions.some((o) => o.name === 'Bursa kargo') && quoteBursaAfter.body.shippingOptions.some((o) => o.name === 'Standart kargo'), JSON.stringify(quoteBursaAfter.body.shippingOptions));
+
+  console.log('\n12) Kargo ayarları — taşıyıcı anahtarları ve kapıda ödeme (F4)');
+  const kargoSettingsGet = await api<{ providers: Record<string, { apiKey: string }>; cod: { codSurchargeMinor: number; codMaxTotalMinor: number | null } }>('GET', '/api/admin/settings/kargo', undefined, cookie);
+  check('kargo ayarları GET 200', kargoSettingsGet.status === 200 && typeof kargoSettingsGet.body.providers?.aras === 'object', `status=${kargoSettingsGet.status}`);
+  const prevKargoRow = await db.setting.findUnique({ where: { key: 'kargo-saglayici' } });
+  const kargoSecretVal = `kargo-anahtar-${runId}`;
+  const kargoPut = await api<{ providers: Record<string, { apiKey: string; apiKeySet: boolean }> }>('PUT', '/api/admin/settings/kargo', {
+    providers: { ...kargoSettingsGet.body.providers, aras: { ...kargoSettingsGet.body.providers.aras, enabled: true, apiKey: kargoSecretVal } },
+    cod: kargoSettingsGet.body.cod,
+  }, cookie);
+  const kargoRow = await db.setting.findUnique({ where: { key: 'kargo-saglayici' } });
+  const storedAras = (kargoRow?.value as { providers?: { aras?: { apiKey?: string } } })?.providers?.aras?.apiKey ?? '';
+  check('PUT 200, gizli alan maskeli döner, veritabanında şifreli (v1.)', kargoPut.status === 200 && kargoPut.body.providers.aras.apiKey.startsWith('••••') && kargoPut.body.providers.aras.apiKeySet && storedAras.startsWith('v1.') && !storedAras.includes(kargoSecretVal), `status=${kargoPut.status} masked=${kargoPut.body.providers?.aras?.apiKey} stored=${storedAras.slice(0, 6)}`);
+  const kargoPutViewer = await api('PUT', '/api/admin/settings/kargo', { providers: kargoSettingsGet.body.providers, cod: kargoSettingsGet.body.cod }, vcookie);
+  check('görüntüleyici kargo ayarlarını kaydedemez (403)', kargoPutViewer.status === 403, `status=${kargoPutViewer.status}`);
+
+  const codPut = await api<{ cod: { codSurchargeMinor: number } }>('PUT', '/api/admin/settings/kargo', { providers: kargoSettingsGet.body.providers, cod: { codSurchargeMinor: 2500, codMaxTotalMinor: kargoSettingsGet.body.cod.codMaxTotalMinor } }, cookie);
+  check('kapıda ödeme hizmet bedeli güncellendi', codPut.status === 200 && codPut.body.cod.codSurchargeMinor === 2500, `status=${codPut.status}`);
+  const codQuoteRaw = await api<{ shippingOptions: { methodId: string; type: string }[] }>('POST', '/api/checkout/quote', { lines: [{ variantId: vA.id, quantity: 1 }], city: 'Ankara', email: guestEmail });
+  const codMethodId = codQuoteRaw.body.shippingOptions.find((s) => s.type === 'kapıda')!.methodId;
+  const quoteCod = await api<{ paymentOptions: { id: string; surchargeMinor: number }[] }>('POST', '/api/checkout/quote', {
+    lines: [{ variantId: vA.id, quantity: 1 }], city: 'Ankara', email: guestEmail, shippingMethodId: codMethodId,
+  });
+  check('yeni kapıda ödeme bedeli checkout teklifine yansır', quoteCod.body.paymentOptions.find((p) => p.id === 'kapida')?.surchargeMinor === 2500, JSON.stringify(quoteCod.body.paymentOptions));
+
+  // Ayarları eski haline getir.
+  if (prevKargoRow) await db.setting.update({ where: { key: 'kargo-saglayici' }, data: { value: prevKargoRow.value as never } });
+  else await db.setting.deleteMany({ where: { key: 'kargo-saglayici' } });
+  const storeRow = await db.setting.findUnique({ where: { key: 'magaza' } });
+  await db.setting.update({ where: { key: 'magaza' }, data: { value: { ...(storeRow?.value as object), codSurchargeMinor: kargoSettingsGet.body.cod.codSurchargeMinor } as never } });
+
 } catch (err) {
   failures.push(String(err));
   console.error(err);

@@ -68,6 +68,7 @@ npm start
 | `DEMO_MODE` | hayır (varsayılan `true`) | Ödeme sağlayıcılarını test moduna zorlar; e-postalar gönderilmez, `EmailLog`'a yazılır |
 | `NEXT_PUBLIC_SITE_URL` | hayır | Canonical, Open Graph ve sitemap için doğrulanmış alan adı |
 | `CHROME_PATH` | hayır | Yerel tarayıcı QA betikleri için Chrome/Chromium yolu |
+| `CRON_SECRET` | zamanlanmış kargo takibi için | `/api/cron/kargo-takip` ve `scripts/sync-shipments.mts`'i korur (paylaşımlı rastgele dize) |
 
 Ödeme, kargo, e-posta ve e-fatura değişkenleri `.env.example` içinde listelenir;
 ilgili faz (F3/F4/F7) uygulanana kadar boş kalabilir.
@@ -171,6 +172,39 @@ maskeli döner, boş/maskeli gönderilen alan değiştirilmez). Ortam değişken
 Webhook adresleri `NEXT_PUBLIC_SITE_URL` üzerinden üretilir; yerelde sağlayıcı
 webhook'u için tünel (ör. `cloudflared`, `ngrok`) gerekir.
 
+### Kargo altyapısı (F4)
+
+Sevkiyat oluşturma ve durum güncelleme bu sürümde tamamen manueldir: takip
+numarası panelden elle girilir/güncellenir (`src/server/shipping/shipments.ts`).
+`src/server/shipping/provider.ts` + `adapters/{yurtici,aras,mng,surat,ptt}.ts`
+gerçek taşıyıcı API'lerine bağlanmak İÇİNDİR, ama bu firmaların merchant API'leri
+herkese açık/standart olmadığından **gerçek bir HTTP çağrısı bu sürümde
+uygulanmadı** — yanlış bir istek gövdesi üretip sessizce hata almaktansa,
+`configured()` paneldeki ayarları yansıtır ve çağrılar açıkça "uygulanmadı" hatası
+döner (`manuel` ve `kendi-kuryemiz` her zaman çalışır). Anahtarlar yine de
+şifrelenip saklanır ki gerçek entegrasyon eklenince panel değişmeden çalışsın.
+
+Takip senkronizasyonunun TEK giriş noktası `src/server/shipping/tracking.ts`
+(`syncShipment` / `syncAllActiveShipments`) — panelin "Takibi yenile" düğmesi,
+zamanlanmış `POST /api/cron/kargo-takip` (paylaşımlı `CRON_SECRET` ile korunur,
+`src/proxy.ts` matcher'ının kapsamı dışındadır — tıpkı `/api/webhooks/**` gibi)
+ve `scripts/sync-shipments.mts` (`npm run kargo:sync`, ops betiği; gerçek bir
+zamanlayıcının üretimde yapacağı HTTP isteğinin aynısını atar) aynı fonksiyonu
+kullanır. Bugün tüm taşıyıcılar için `updated: false` döner (dürüst mesajla) —
+bağlı bir API olmadığı için beklenen davranış budur.
+
+Bölge/tarife: `/admin/ayarlar/kargo` bölgeleri (il eşleşmesi, ilk eşleşen
+kazanır — bir il için özel tarife istenirse o bölge varsayılan "Türkiye"
+bölgesinden ÖNCE sıralanmalıdır) ve her bölgenin yöntemlerini (sabit / desiye
+göre kademeli / sepet tutarına göre kademeli / her zaman ücretsiz / kapıda)
+yönetir; checkout `src/server/shipping/zones.ts` üzerinden okur (React `cache()`
+— istek başına önbellek, yazma sonrası bir sonraki istekte güncel gelir). Kapıda
+ödeme hizmet bedeli ve üst tutar sınırı da bu ekrandan yönetilir; ayrıca
+Ayarlar → Ödeme → Kapıda ödeme limitleri de uygulanır (iki ayrı kısıtlama).
+
+Etiket: `/admin/kargolar/yazdir?ids=…` gerçek bir taşıyıcı barkodu DEĞİLDİR —
+adres, takip no ve içerik özetini taşıyan A6 paket etiketi (tarayıcıdan PDF).
+
 ### Veri
 
 Vitrin bileşenleri `src/data/products.ts` ve `src/data/categories.ts`'ten okur.
@@ -260,6 +294,9 @@ ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 | `/admin/siparisler/[id]/yazdir?tip=fatura\|irsaliye` | Yazdırılabilir bilgi fişi / irsaliye (tarayıcıdan PDF); toplu: `/admin/siparisler/yazdir?ids=…` |
 | `/admin/odemeler` | Ödeme işlemleri: sağlayıcı/durum/tarih filtresi, tutar özetleri, başarısız ödemeler, iade kuyruğu, mutabakat (sipariş toplamı ≠ başarılı tahsilat), webhook günlüğü (maskeli yük) |
 | `/admin/ayarlar/odeme` | Yalnız `sahip`: aktif kart sağlayıcısı, yöntem açık/kapalı + min/maks tutar, 3DS zorunluluğu, iyzico/PayTR/Stripe anahtarları (şifreli, maskeli), havale IBAN bilgisi |
+| `/admin/kargolar` | Tüm siparişlerdeki sevkiyatlar: durum sekmeleri, firma/arama filtresi, hızlı durum güncelleme, toplu takip yenileme, toplu etiket yazdırma |
+| `/admin/kargolar/yazdir?ids=…` | Yazdırılabilir kargo etiketi (A6), her sevkiyat ayrı sayfada |
+| `/admin/ayarlar/kargo` | Bölge/tarife yönetimi (il eşleşmesi, sabit/desi/tutara-göre/ücretsiz/kapıda kademeler), taşıyıcı bağlantıları (şifreli, maskeli), kapıda ödeme hizmet bedeli ve üst tutar sınırı |
 | `/admin/giris` | Parola girişi |
 
 ### Ürün ve varyasyon modeli
@@ -435,7 +472,7 @@ npm run build && npm run qa:checkout   # gerçek HTTP + veritabanı: teklif → 
 
 `qa:checkout` test verisini sonunda temizler ve stoku geri koyar.
 
-### Panel sipariş ve ödeme yönetimi duman testi (F2–F3)
+### Panel sipariş, ödeme ve kargo yönetimi duman testi (F2–F4)
 
 ```sh
 npm run build
@@ -449,8 +486,13 @@ tutarlı), geçersiz geçiş 409 / görüntüleyici 403, denetim kaydı, manuel 
 toplu işlem ve yazdırma sayfalarını sınar. F3 bölümü ödeme listesi, mutabakat,
 iade kuyruğu ve ödeme ayarlarını (görüntüleyiciye 403, gizli alanın veritabanında
 `v1.` şifreli ve yanıtta maskeli olması, maskeli değerle tekrar kayıtta
-değişmemesi, denetim kaydında gizli değerin bulunmaması) doğrular (42 kontrol).
-Test verisini ve ayar değişikliğini geri alır.
+değişmemesi, denetim kaydında gizli değerin bulunmaması) doğrular. F4 bölümü
+kargo listesi/hızlı güncelleme, takip yenileme (bağlı sağlayıcı yokken dürüst
+"updated:false"), `/api/cron/kargo-takip` yetkilendirmesi (anahtarsız/yanlış
+401, doğru anahtarla oturumsuz 200), kargo etiketi sayfası, bölge/tarife CRUD'un
+checkout teklifine gerçekten yansıması (yeni bölge → ücret görünür → ücretsize
+çevrilince 0 → silinince varsayılana döner) ve taşıyıcı anahtarı şifreleme/
+maskelemesini sınar (65 kontrol). Test verisini ve ayar değişikliklerini geri alır.
 
 ### Kimlik doğrulama duman testi
 

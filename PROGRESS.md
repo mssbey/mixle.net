@@ -3,23 +3,65 @@
 > **Devam talimatı:** Kullanıcı "devam et" dediğinde bu dosyadan devam et. Projeyi
 > baştan analiz etme. Aşağıdaki "SONRAKİ ADIM" bölümünden başla.
 
-Son güncelleme: 2026-09-07 (F3 tamamlandı ve doğrulandı — sıra F4'te)
+Son güncelleme: 2026-09-08 (F4 tamamlandı ve doğrulandı — sıra F5'te)
 
 ## SONRAKİ ADIM
 
-**F4 — Kargo.** Plan: `PLAN-YONETIM-PANELI.md`. `ShippingProvider` arayüzü
-(createShipment/label/track/cancel), adaptörler: Yurtiçi, Aras, MNG, PTT, Sürat
-(API anahtarı yoksa "manuel takip no" modu). Panel: `/admin/kargolar` (sevkiyat
-listesi, etiket PDF, toplu etiket, takip yenileme), kargo ayarları
-`/admin/ayarlar/kargo` (bölge/tarife `shipping/zones.ts` + `pricing/shipping-rates.ts`
-zaten var; desi hesabı, ücretsiz kargo eşiği, kapıda ödeme kısıtları). Takip
-webhook/polling → `Shipment.status` → sipariş `kargolandı`/`teslim-edildi`
-(mevcut `shipping/shipments.ts` akışını kullan). Müşteriye kargo e-postası
-(`queueEmail` şablonu). Mevcut `CARRIERS` sabiti `shipping/carriers.ts` içinde.
+**F5 — Müşteri / iade / kupon / stok.** Plan: `PLAN-YONETIM-PANELI.md`.
+`src/app/admin/{musteriler,iadeler,kuponlar,stok}/**`, `src/server/{returns,coupons,inventory,kvkk}/**`.
+Müşteri listesi (sipariş sayısı/harcama, adres defteri, KVKK anonimleştirme),
+iade TALEBİ akışı (müşteri `/hesabim/siparisler/[no]`'dan talep açar → panelde
+onay/red → onaylanınca mevcut `refunds.ts` çalışır; bugün yalnız panel doğrudan
+iade işliyor, müşteri talebi yok), kupon CRUD (mevcut `Coupon` tablosu ve
+`pricing/coupons.ts` var, panel ekranı yok), stok hareketleri listesi + düşük
+stok raporu + manuel stok düzeltme (mevcut `StockMovement` tablosu var, panel
+ekranı yok).
 
-Ortam notu: QA portlarında (3994/3995/3997) eski `next start` süreçleri kalabiliyor
+Ortam notu: QA portlarında (3993/3994/3997) eski `next start` süreçleri kalabiliyor
 → `Get-NetTCPConnection -State Listen` ile bul, `Stop-Process`. Build panic
-("AssetContent::file was canceled") görürsen `rm -rf .next`.
+("AssetContent::file was canceled") görürsen `rm -rf .next`. Yeni bir admin
+smoke değişikliğinden sonra script içi tekil `secretVal` gibi isimler farklı
+fazlarda çakışabilir (esbuild "already declared") — bölüme özel önek kullan.
+
+---
+
+## F4 — TAMAMLANDI (2026-09-08)
+
+Kargo altyapısı. Commit: F4 (bkz. git log).
+
+- `src/server/shipping/provider.ts` — `ShippingProvider` arayüzü
+  (configured/createShipment/track/cancel), `ShippingProviderError`.
+- `adapters/manuel.ts` (her zaman çalışır) + `adapters/{yurtici,aras,mng,surat,ptt}.ts`
+  — **gerçek taşıyıcı API çağrısı bu sürümde YOK** (herkese açık/standart merchant
+  API'si yok; yanlış varsayım üretmektense açıkça "uygulanmadı" hatası dönüyor).
+  `configured()` panel ayarlarını yansıtır; anahtarlar yine de şifrelenip
+  saklanır ki gerçek entegrasyon eklenince panel değişmeden çalışsın.
+- `registry.ts`, `settings.ts` (taşıyıcı anahtarları AES-256-GCM + kapıda ödeme
+  kısıtları — `Setting.kargo-saglayici` ve mevcut `Setting.magaza` üzerinden),
+  `zones-admin.ts` (bölge/yöntem CRUD; okuma tarafı olan `zones.ts`'ten ayrı),
+  `shipment-tabs.ts` (saf), `admin-view.ts` (siparişten bağımsız sevkiyat listesi),
+  `tracking.ts` (`syncShipment`/`syncAllActiveShipments` — TEK senkron noktası).
+- Rotalar: `/api/admin/shipping/zones[/[id]][/[id]/methods]`,
+  `/api/admin/shipping/{zones,methods}/reorder`, `/api/admin/shipments`,
+  `/api/admin/shipments/[id]`, `/api/admin/shipments/[id]/takip`,
+  `/api/admin/shipments/toplu`, `/api/admin/settings/kargo`,
+  `/api/cron/kargo-takip` (paylaşımlı `CRON_SECRET`, proxy matcher dışında —
+  `/api/webhooks/**` gibi).
+- UI: `/admin/kargolar` (`ShipmentsList`, `ShipmentQuickDialog`), `/admin/kargolar/yazdir`
+  (`ShipmentLabelDocument` — A6 etiket, gerçek taşıyıcı barkodu değil),
+  `/admin/ayarlar/kargo` (`ZoneManager` + `CarrierSettingsForm`), nav "Kargolar".
+- `scripts/sync-shipments.mts` (`npm run kargo:sync`) — cron ucuna HTTP isteği
+  atan ops betiği; `tracking.ts` `server-only` içerdiği için tsx'ten doğrudan
+  içe aktarılamaz (bilinen kısıt, F1'den beri).
+- Doğrulama: lint/typecheck/build temiz; vitest 63; `qa:checkout` 42/42 (regresyon,
+  değişmedi); `qa:orders` 65/65 (F4 bölümleri: kargo listesi/hızlı güncelleme/
+  takip yenileme/cron yetkilendirme/etiket + bölge-tarife CRUD'un checkout
+  teklifine yansıması + taşıyıcı anahtarı şifreleme).
+- Bilinen kapsam dışı: gerçek taşıyıcı API entegrasyonu (bayi sözleşmesi/belge
+  gerektirir — kullanıcı ileride sağlarsa `adapters/*` doldurulur, geri kalan
+  panel/DB/UI değişmeden çalışır); barkod/PDF etiket (gerçek taşıyıcı formatı
+  yerine metin tabanlı A6 etiket); desi otomatik hesabı (ürün boyut verisi yok,
+  desi hâlâ sevkiyat oluştururken elle girilir).
 
 ---
 
