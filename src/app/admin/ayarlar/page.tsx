@@ -2,13 +2,35 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { Download, RotateCcw, Upload } from 'lucide-react';
+import {
+  Building2,
+  CreditCard,
+  Download,
+  FileText,
+  Image as ImageIcon,
+  Mail,
+  RotateCcw,
+  Truck,
+  Upload,
+  Users,
+} from 'lucide-react';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { TableSkeleton } from '@/components/admin/primitives';
 import { adminApi, ApiError } from '@/lib/admin/client';
 import { formatDateTime } from '@/lib/admin/format';
 import { toast } from '@/store/toast';
+import type { Permission } from '@/server/auth/rbac';
+
+const SECTIONS: { href: string; icon: typeof Building2; title: string; hint: string; permission: Permission }[] = [
+  { href: '/admin/ayarlar/magaza', icon: Building2, title: 'Mağaza bilgisi', hint: 'Fatura bilgileri, KDV, cayma hakkı, düşük stok eşiği', permission: 'ayar:oku' },
+  { href: '/admin/ayarlar/odeme', icon: CreditCard, title: 'Ödeme', hint: 'Sağlayıcılar, yöntemler, limitler, havale bilgisi', permission: 'ayar:odeme' },
+  { href: '/admin/ayarlar/kargo', icon: Truck, title: 'Kargo', hint: 'Bölgeler, tarifeler, taşıyıcı bağlantıları, kapıda ödeme', permission: 'ayar:oku' },
+  { href: '/admin/ayarlar/eposta', icon: Mail, title: 'E-posta', hint: 'SMTP / Resend gönderim ayarları, test e-postası', permission: 'ayar:oku' },
+  { href: '/admin/ayarlar/kullanicilar', icon: Users, title: 'Kullanıcılar', hint: 'Panel hesapları, roller, parola sıfırlama', permission: 'kullanici:yonet' },
+  { href: '/admin/sayfalar', icon: FileText, title: 'İçerik', hint: 'Ana sayfa metni ve SSS', permission: 'ayar:oku' },
+  { href: '/admin/gorseller', icon: ImageIcon, title: 'Görseller', hint: 'Medya kütüphanesi', permission: 'katalog:oku' },
+];
 
 export default function AdminSettingsPage() {
   const { status, can, updatedAt, products, categories, collections, reload } = useAdminData();
@@ -62,28 +84,25 @@ export default function AdminSettingsPage() {
     <div className="flex flex-col gap-4">
       <header>
         <h1 className="text-lg font-semibold text-[var(--brand-purple-deep)]">Ayarlar</h1>
-        <p className="admin-hint mt-0.5">Veri yedekleme ve geri yükleme</p>
+        <p className="admin-hint mt-0.5">Mağaza yapılandırması ve veri yedekleme</p>
       </header>
 
-      {can('ayar:odeme') && (
-        <section className="admin-card flex flex-wrap items-center justify-between gap-2" style={{ padding: 16 }}>
-          <div>
-            <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">Ödeme ayarları</h2>
-            <p className="admin-hint mt-0.5">Sağlayıcılar, yöntemler, limitler, havale bilgisi</p>
-          </div>
-          <Link href="/admin/ayarlar/odeme" className="admin-btn admin-btn-ghost">Düzenle</Link>
-        </section>
-      )}
-
-      {can('ayar:oku') && (
-        <section className="admin-card flex flex-wrap items-center justify-between gap-2" style={{ padding: 16 }}>
-          <div>
-            <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">Kargo ayarları</h2>
-            <p className="admin-hint mt-0.5">Bölgeler, tarifeler, taşıyıcı bağlantıları, kapıda ödeme</p>
-          </div>
-          <Link href="/admin/ayarlar/kargo" className="admin-btn admin-btn-ghost">Düzenle</Link>
-        </section>
-      )}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {SECTIONS.filter((s) => can(s.permission)).map((s) => {
+          const Icon = s.icon;
+          return (
+            <Link key={s.href} href={s.href} className="admin-card flex items-start gap-3 transition-colors hover:border-[var(--brand-purple)]" style={{ padding: 16 }}>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--brand-purple)]/10 text-[var(--brand-purple)]">
+                <Icon size={18} aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-[var(--brand-purple-deep)]">{s.title}</span>
+                <span className="admin-hint mt-0.5 block">{s.hint}</span>
+              </span>
+            </Link>
+          );
+        })}
+      </div>
 
       <section className="admin-card grid gap-3 sm:grid-cols-3" style={{ padding: 16 }}>
         <div className="admin-stat" style={{ padding: 0 }}>
