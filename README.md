@@ -70,13 +70,16 @@ npm start
 | `DATABASE_URL` | evet | Prisma bağlantısı. Varsayılan `file:./data/nefis.db` (yol proje köküne göre) |
 | `SESSION_SECRET` | evet | Oturum çerezini imzalar; en az 32 karakter |
 | `ENCRYPTION_KEY` | `DEMO_MODE=false` iken | Hassas ayarların AES-256-GCM anahtarı (32 bayt base64). **Kaybedilirse şifreli veriler okunamaz** |
-| `DEMO_MODE` | hayır (varsayılan `true`) | Ödeme sağlayıcılarını test moduna zorlar; e-postalar gönderilmez, `EmailLog`'a yazılır |
+| `DEMO_MODE` | hayır (varsayılan `true`) | Ödeme sağlayıcılarını test moduna zorlar; e-postalar gerçekten gönderilmez, `EmailLog`'a yazılır |
 | `NEXT_PUBLIC_SITE_URL` | hayır | Canonical, Open Graph ve sitemap için doğrulanmış alan adı |
 | `CHROME_PATH` | hayır | Yerel tarayıcı QA betikleri için Chrome/Chromium yolu |
 | `CRON_SECRET` | zamanlanmış kargo takibi için | `/api/cron/kargo-takip` ve `scripts/sync-shipments.mts`'i korur (paylaşımlı rastgele dize) |
 
-Ödeme, kargo, e-posta ve e-fatura değişkenleri `.env.example` içinde listelenir;
-ilgili faz (F3/F4/F7) uygulanana kadar boş kalabilir.
+Ödeme, kargo ve e-posta anahtarları tercihen panelden (Ayarlar) girilir ve
+şifrelenip veritabanına yazılır; `.env.example`'daki değerler yalnız panelde
+kayıt yoksa yedek olarak okunur. e-Fatura değişkenleri hiçbir kod yolu
+tarafından okunmaz — yalnız gelecekteki entegrasyon için ayrılmıştır (bkz.
+"Kapsam dışı").
 
 > **Dağıtım uyarısı:** SQLite dosyası Vercel gibi sunucusuz ortamlarda kalıcı
 > **değildir**. Canlıya çıkmadan önce `DATABASE_URL`'i Postgres'e çevirin ve
@@ -259,6 +262,46 @@ Europe/Istanbul gün sınırlarına göre kümelenir; ham sipariş satırları J
 gruplanır (SQLite/Postgres arası taşınabilirlik için veritabanına özel
 tarih fonksiyonu KULLANILMAZ). Grafik `recharts` ile çizilir.
 
+### Panel ayarları ve içerik (F7)
+
+**E-posta.** `/admin/ayarlar/eposta`: SMTP (nodemailer) veya Resend (REST API,
+ek bağımlılık gerektirmez) seçilir; anahtarlar F3/F4'teki aynı desenle
+AES-256-GCM şifrelenip `Setting` tablosuna yazılır, panelde kayıt yoksa
+`.env`'deki `SMTP_*`/`RESEND_API_KEY`/`MAIL_FROM` yedek olarak okunur. Test
+e-postası düğmesi kaydetmeden önce gerçek gönderimi dener. `DEMO_MODE=false`
+olduğunda `notifications/email.ts::queueEmail` artık gerçekten göndermeyi
+dener ve sonucu `EmailLog.status`e (`gönderildi`/`başarısız`) yazar; hata asla
+çağıran işlemi (sipariş oluşturma vb.) düşürmez.
+
+**Kullanıcılar.** `/admin/ayarlar/kullanicilar` — `npm run admin:create-user`
+CLI'sinin panel karşılığı, aynı kurallarla: parola en az 10 karakter + harf +
+rakam, parola değişince açık oturumlar kapanır, kendi hesabını düşüremez/
+pasife alamaz, son aktif `sahip` korunur.
+
+**Mağaza.** `/admin/ayarlar/magaza` — F1'den beri var olan ama panel ekranı
+olmayan `getStoreInfo`/`getStoreSettings`i düzenler (fatura bilgileri, KDV,
+cayma hakkı, rezervasyon süresi, düşük stok eşiği, kapıda ödeme).
+
+**Görseller.** `/admin/gorseller` — dosyalar `data/uploads/YYYY/MM/` altına
+yazılır (SQLite ile aynı dizin) ve `/api/medya/[...path]` üzerinden servis
+edilir; **`public/` klasörüne YAZILMAZ** çünkü `next start` (üretim) yalnızca
+`next build` anında var olan `public/` dosyalarını sunar — çalışma zamanında
+eklenenler 404 döner. Kimlik doğrulama gerektirmez (ürün/kampanya görselleri
+gibi herkese açık içeriktir), yol rastgele son ek taşıdığından uzun süre
+önbelleklenir. `ImageListEditor` (ürün formu) hâlâ elle URL girişi kullanır —
+kütüphaneden seçim entegrasyonu bu sürümde yok.
+
+**Sayfalar.** `/admin/sayfalar` — SSS ve ana sayfa kampanya bandı, mevcut
+`Setting` tablosu üzerinden (yeni model gerekmez). `/sss` ve `/` statik
+prerender edilir; kayıttan sonra `unstable_cache` + `revalidateTag` ile
+geçersiz kılınır (`catalog/queries.ts` ile aynı desen — düz bir `revalidatePath`
+çağrısı denendi, statik sayfanın Full Route Cache'ini geçersiz kılmadığı
+görüldü). Diğer vitrin metinleri (rehber konuları, yorumlar, süreç adımları,
+hakkımızda) bilinçli olarak bu kapsamın dışındadır.
+
+Gösterge paneline (`/admin`) aynı raporlama uçından beslenen bir "Bugün" kartı
+eklendi.
+
 ### Veri
 
 Vitrin bileşenleri `src/data/products.ts` ve `src/data/categories.ts`'ten okur.
@@ -341,7 +384,7 @@ ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 | `/admin/urunler` | Liste: arama, kategori/koleksiyon/durum filtresi, sıralama, sayfalama, toplu seçim (toplu aktif/pasif, durum, kategori değiştir, sil) |
 | `/admin/urunler/yeni` · `/admin/urunler/[slug]` | Ürün formu: solda içerik, sağda durum/kategori/koleksiyon/SEO yan paneli; tam genişlik varyant tablosu; yapışkan alt kaydet çubuğu |
 | `/admin/kategoriler` · `/admin/koleksiyonlar` | Ekle / düzenle / sil + sürükle-bırak sıralama |
-| `/admin/ayarlar` | Veri dışa aktar (JSON/CSV), içe aktar, demo verisine sıfırla |
+| `/admin/ayarlar` | Ayar bölümlerine köprü kartları (rol bazlı görünür) + veri dışa/içe aktar, demo verisine sıfırla |
 | `/admin/siparisler` | Sipariş listesi: durum sekmeleri (sayaçlı), arama (no/ad/e-posta/telefon/ürün/SKU/takip no), tarih/tutar/ödeme/kargo/kaynak filtreleri, sıralama, sayfalama, toplu işlemler (durum, kargoya ver, yazdır), CSV |
 | `/admin/siparisler/[id]` | WooCommerce düzeninde detay: kalemler (düzenle + yeniden hesapla), toplamlar ve KDV matrahı, müşteri kartı (sipariş sayısı, harcama), adresler (düzenlenebilir), ödemeler (maskeli), sevkiyatlar, iadeler, zaman çizelgesi, admin/müşteri notu |
 | `/admin/siparisler/yeni` | Manuel / telefon siparişi (`?kopya=<id>` ile kopyalama); vitrinle aynı `createOrder` servisi |
@@ -356,6 +399,11 @@ ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 | `/admin/kuponlar` | İndirim kodu CRUD: yüzde/tutar/ücretsiz kargo, tarih/limit/ürün-kategori kısıtları |
 | `/admin/stok` | Düşük stok raporu (+ manuel düzelt), tüm stok hareketlerinin dökümü (sipariş/iptal/iade/manuel/sayım/fire) |
 | `/admin/raporlar` | Satış özeti (ciro/net ciro/sipariş/ortalama sepet/iade oranı), tarih aralığı seçici, günlük ciro-sipariş grafiği, en çok satan ürünler, kategori kırılımı, ödeme yöntemi dağılımı, iade sebepleri, CSV dışa aktarım |
+| `/admin/ayarlar/magaza` | Fatura bilgileri (unvan, adres, vergi dairesi/no, MERSİS), KDV oranları, cayma hakkı süresi, stok rezervasyon süresi, düşük stok eşiği, kapıda ödeme bedeli/sınırı |
+| `/admin/ayarlar/eposta` | SMTP / Resend gönderim ayarları (şifreli, maskeli), test e-postası gönderme |
+| `/admin/ayarlar/kullanicilar` | Yalnız `sahip`: panel hesabı oluştur, rol/durum değiştir, parola sıfırla (oturumları kapatır); kendi hesabını düşüremez/pasife alamaz, son aktif sahip korunur |
+| `/admin/gorseller` | Medya kütüphanesi: yükle (JPG/PNG/WEBP/AVIF/SVG, azami 8 MB), ara, alt metin/etiket düzenle, sil, yol kopyala |
+| `/admin/sayfalar` | SSS ve ana sayfa kampanya bandı metni; kaydedince vitrin hemen güncellenir |
 | `/admin/giris` | Parola girişi |
 
 ### Ürün ve varyasyon modeli
@@ -531,7 +579,7 @@ npm run build && npm run qa:checkout   # gerçek HTTP + veritabanı: teklif → 
 
 `qa:checkout` test verisini sonunda temizler ve stoku geri koyar.
 
-### Panel sipariş, ödeme, kargo, iade, kupon, stok, müşteri ve rapor duman testi (F2–F6)
+### Panel sipariş, ödeme, kargo, iade, kupon, stok, müşteri, rapor ve ayar/içerik duman testi (F2–F7)
 
 ```sh
 npm run build
@@ -560,7 +608,16 @@ gerçekten yansımasını (aktif → pasif → silme kısıtı), stok manuel dü
 raporun bu oturumda oluşturulan gerçek siparişleri ciroya/en çok satan
 ürünlere/ödeme yöntemi dağılımına/iade sebep kırılımına doğru yansıttığını,
 CSV dışa aktarımı ve `rapor:oku`nun salt okunur tüm rollere açık olduğunu
-sınar (118 kontrol). Test verisini ve ayar değişikliklerini geri alır.
+sınar. F7 bölümü e-posta ayarlarının şifreleme/maskeleme ve test-gönderim
+doğrulamasını (yapılandırılmamış sahte SMTP'ye gerçekten bağlanmayı dener,
+dürüstçe başarısız olur), kullanıcı CRUD'unu (zayıf parola/yinelenen e-posta
+reddi, kendi hesabını düşürme/pasife alma engeli), mağaza ayarlarının
+kaydını, medya kütüphanesinin uçtan uca akışını (yükle → `/api/medya/…`
+üzerinden servis edilir → sil → artık servis edilmez, desteklenmeyen tür
+reddi) ve SSS/kampanya içeriğinin kaydedilince gerçekten `/sss` ve `/`
+sayfalarına yansımasını (`unstable_cache`/`revalidateTag`, isteğe bağlı
+yeniden doğrulama olduğundan birkaç deneme hakkıyla) sınar (151 kontrol).
+Test verisini ve ayar değişikliklerini geri alır.
 
 ### Kimlik doğrulama duman testi
 
@@ -593,13 +650,20 @@ Müşteri puanı/yorumu şu an yok.
 - **Gerçek taşıyıcı kargo API'si** — Yurtiçi/Aras/MNG/Sürat/PTT adaptörleri
   iskelet halinde (bkz. "Kargo altyapısı"); bayi/entegrasyon belgesi gerekir.
 - **e-Fatura / e-Arşiv** — panel yalnızca bilgi fişi/irsaliye üretir, resmî
-  fatura değildir; gerçek entegrasyon F7'de e-fatura sağlayıcısıyla eklenir.
-- **Gerçek e-posta gönderimi** — `DEMO_MODE=true` iken tüm e-postalar
-  `EmailLog`'a yazılır, gerçekten gönderilmez (bkz. F7).
+  fatura değildir. `server/einvoice/provider.ts`'te yalnızca ARAYÜZ tanımlıdır,
+  hiçbir kod yolu çağırmaz; gerçek entegrasyon GİB onaylı bir entegratörle
+  (Logo, Foriba, Paraşüt vb.) ticari sözleşme gerektirir.
 - **iyzico/PayTR/Stripe canlı doğrulaması** — kod yazıldı ama gerçek sandbox
   hesabıyla test edilmedi (bkz. "Ödeme altyapısı").
 - **KVKK anonimleştirme kapsamı** — yalnız müşteri profilini/adres defterini
   siler; geçmiş sipariş belgelerindeki adres anlık görüntüsü yasal saklama
   süresi nedeniyle korunur (bkz. "Müşteriler").
-- **İade fotoğrafı yükleme** — `ReturnRequest.photos` alanı hazır ama yükleme
-  arayüzü yok.
+- **İade fotoğrafı yükleme** — `ReturnRequest.photos` alanı hazır; F7'de genel
+  bir medya yükleme altyapısı (`/admin/gorseller`) geldi ama iade formuna
+  bağlanmadı.
+- **Yüklenen medya kalıcılığı** — `data/uploads/` diskte tutulur; Vercel gibi
+  sunucusuz ortamlarda SQLite ile aynı kalıcılık kısıtına tabidir (nesne
+  depolama entegrasyonu yok).
+- **`/admin/sayfalar` kapsamı** — yalnız SSS ve kampanya bandı; rehber
+  konuları, yorumlar, süreç adımları ve hakkımızda içeriği hâlâ
+  `src/data/content.ts`'te statiktir.

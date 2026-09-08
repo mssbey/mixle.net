@@ -44,6 +44,21 @@ async function waitForServer() {
   throw new Error('Sunucu açılmadı');
 }
 
+/**
+ * `revalidateTag` isteğe bağlı yeniden doğrulamadır: eninde sonunda tazedir
+ * ama hemen sonraki tek istekte bazen henüz devreye girmemiş olabilir. Metni
+ * bulana kadar (veya deneme hakkı bitene kadar) tekrar ister; son yanıt metni.
+ */
+async function fetchUntil(url: string, mustInclude: string, attempts = 5): Promise<string> {
+  let last = '';
+  for (let i = 0; i < attempts; i += 1) {
+    last = await (await fetch(url)).text();
+    if (last.includes(mustInclude)) return last;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return last;
+}
+
 const OWNER = { email: process.env.SMOKE_OWNER_EMAIL!, password: process.env.SMOKE_OWNER_PASSWORD! };
 if (!OWNER.email || !OWNER.password) { console.error('SMOKE_OWNER_EMAIL / SMOKE_OWNER_PASSWORD gerekli'); process.exit(1); }
 
@@ -509,6 +524,127 @@ try {
   const dashboardToday = await api<{ summary: { orderCount: number } }>('GET', `/api/admin/reports?from=${todayIso}&to=${todayIso}`, undefined, cookie);
   check('bugünkü özet (panel gösterge paneli widget’ı ile aynı uç) 200', dashboardToday.status === 200);
 
+  console.log('\n18) E-posta ayarları (F7)');
+  const emailGet = await api<{ settings: { provider: string; fromEmail: string; smtp: { host: string } }; demoMode: boolean }>('GET', '/api/admin/settings/eposta', undefined, cookie);
+  check('e-posta ayarları GET 200', emailGet.status === 200 && typeof emailGet.body.settings?.provider === 'string', `status=${emailGet.status}`);
+  const emailGetViewer = await api('GET', '/api/admin/settings/eposta', undefined, vcookie);
+  check('görüntüleyici e-posta ayarlarını okuyabilir (ayar:oku)', emailGetViewer.status === 200);
+  const prevEmailRow = await db.setting.findUnique({ where: { key: 'eposta' } });
+  const smtpSecretVal = `smtp-parola-${runId}`;
+  const emailPut = await api<{ settings: { smtp: { password: string; passwordSet: boolean }; provider: string } }>('PUT', '/api/admin/settings/eposta', {
+    ...emailGet.body.settings,
+    provider: 'smtp',
+    fromEmail: 'test@nefisaroma.test',
+    smtp: { ...emailGet.body.settings.smtp, host: 'smtp.test.invalid', port: 587, secure: false, user: 'smoke', password: smtpSecretVal },
+  }, cookie);
+  const emailRow = await db.setting.findUnique({ where: { key: 'eposta' } });
+  const storedPass = (emailRow?.value as { smtp?: { password?: string } })?.smtp?.password ?? '';
+  check('PUT 200, SMTP parolası maskeli döner, veritabanında şifreli (v1.)', emailPut.status === 200 && emailPut.body.settings.smtp.password.startsWith('••••') && emailPut.body.settings.smtp.passwordSet && storedPass.startsWith('v1.') && !storedPass.includes(smtpSecretVal), `status=${emailPut.status}`);
+  const emailPutViewer = await api('PUT', '/api/admin/settings/eposta', emailGet.body.settings, vcookie);
+  check('görüntüleyici e-posta ayarlarını kaydedemez (403)', emailPutViewer.status === 403, `status=${emailPutViewer.status}`);
+  const testMailBadAddr = await api('POST', '/api/admin/settings/eposta/test', { to: 'gecersiz' }, cookie);
+  check('geçersiz test e-posta adresi 422', testMailBadAddr.status === 422, `status=${testMailBadAddr.status}`);
+  const testMail = await api<{ ok?: boolean; message?: string }>('POST', '/api/admin/settings/eposta/test', { to: 'smoke@nefisaroma.test' }, cookie);
+  check('test e-postası: sahte SMTP sunucusuna gerçekten bağlanmayı dener ve dürüstçe başarısız olur', testMail.status === 422 && typeof testMail.body.message === 'string', `status=${testMail.status} ${testMail.body.message}`);
+  if (prevEmailRow) await db.setting.update({ where: { key: 'eposta' }, data: { value: prevEmailRow.value as never } });
+  else await db.setting.deleteMany({ where: { key: 'eposta' } });
+
+  console.log('\n19) Kullanıcı yönetimi (F7)');
+  const newUserEmail = `panel-yeni-${runId}@nefisaroma.test`;
+  const userCreate = await api<{ user: { id: string; role: string } }>('POST', '/api/admin/users', { email: newUserEmail, name: 'Yeni Kullanıcı', role: 'editör', password: 'GecerliParola123' }, cookie);
+  check('kullanıcı oluşturuldu', userCreate.status === 201 && userCreate.body.user.role === 'editör', `status=${userCreate.status}`);
+  const newUserId = userCreate.body.user.id;
+  const userCreateViewer = await api('POST', '/api/admin/users', { email: 'x@x.com', role: 'görüntüleyici', password: 'GecerliParola123' }, vcookie);
+  check('görüntüleyici kullanıcı oluşturamaz (403)', userCreateViewer.status === 403, `status=${userCreateViewer.status}`);
+  const userDupe = await api('POST', '/api/admin/users', { email: newUserEmail, role: 'görüntüleyici', password: 'GecerliParola123' }, cookie);
+  check('aynı e-posta ile ikinci kullanıcı reddedilir (409)', userDupe.status === 409, `status=${userDupe.status}`);
+  const userWeakPw = await api('POST', '/api/admin/users', { email: `zayif-${runId}@nefisaroma.test`, role: 'görüntüleyici', password: '123' }, cookie);
+  check('zayıf parola reddedilir (422)', userWeakPw.status === 422, `status=${userWeakPw.status}`);
+
+  const userList = await api<{ items: { id: string; email: string }[] }>('GET', '/api/admin/users', undefined, cookie);
+  check('yeni kullanıcı listede görünür', userList.status === 200 && userList.body.items.some((u) => u.id === newUserId));
+
+  const userUpdate = await api<{ user: { role: string; isActive: boolean } }>('PATCH', `/api/admin/users/${newUserId}`, { role: 'sipariş-sorumlusu', isActive: false }, cookie);
+  check('kullanıcı rolü/durumu güncellendi', userUpdate.status === 200 && userUpdate.body.user.role === 'sipariş-sorumlusu' && userUpdate.body.user.isActive === false, `status=${userUpdate.status}`);
+
+  const ownerId = (await db.user.findUnique({ where: { email: OWNER.email } }))!.id;
+  const selfDeactivate = await api('PATCH', `/api/admin/users/${ownerId}`, { isActive: false }, cookie);
+  check('kendi hesabını pasife alma reddedilir (409)', selfDeactivate.status === 409, `status=${selfDeactivate.status}`);
+  const selfDemote = await api('PATCH', `/api/admin/users/${ownerId}`, { role: 'editör' }, cookie);
+  check('kendi rolünü düşürme reddedilir (409)', selfDemote.status === 409, `status=${selfDemote.status}`);
+  const ownerStillOwner = await db.user.findUnique({ where: { id: ownerId } });
+  check('sahip hesabı dokunulmadan kaldı', ownerStillOwner?.role === 'sahip' && ownerStillOwner?.isActive === true);
+
+  console.log('\n20) Mağaza ayarları (F7)');
+  const storeGet = await api<{ info: { notifyEmail: string }; settings: { defaultTaxRateBps: number; codSurchargeMinor: number } }>('GET', '/api/admin/settings/magaza', undefined, cookie);
+  check('mağaza ayarları GET 200', storeGet.status === 200 && typeof storeGet.body.settings?.defaultTaxRateBps === 'number', `status=${storeGet.status}`);
+  const storePutViewer = await api('PUT', '/api/admin/settings/magaza', storeGet.body, vcookie);
+  check('görüntüleyici mağaza ayarlarını kaydedemez (403)', storePutViewer.status === 403, `status=${storePutViewer.status}`);
+  const storePut = await api<{ info: { notifyEmail: string }; settings: { defaultTaxRateBps: number } }>('PUT', '/api/admin/settings/magaza', {
+    info: { ...storeGet.body.info, notifyEmail: `siparis-${runId}@nefisaroma.test` },
+    settings: { ...storeGet.body.settings, defaultTaxRateBps: 1000 },
+  }, cookie);
+  check('mağaza ayarları kaydedildi', storePut.status === 200 && storePut.body.info.notifyEmail === `siparis-${runId}@nefisaroma.test` && storePut.body.settings.defaultTaxRateBps === 1000, `status=${storePut.status}`);
+  await api('PUT', '/api/admin/settings/magaza', storeGet.body, cookie);
+
+  console.log('\n21) Görseller / medya kütüphanesi (F7)');
+  const pngBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+  const pngFile = new File([pngBytes], 'smoke-test.png', { type: 'image/png' });
+  const uploadForm = new FormData();
+  uploadForm.set('file', pngFile);
+  const uploadRes = await fetch(`${base}/api/admin/media`, { method: 'POST', headers: { cookie, origin: base }, body: uploadForm });
+  const uploadBody = (await uploadRes.json()) as { asset: { id: string; path: string; width: number | null; height: number | null } };
+  check('görsel yüklendi, boyutu okundu', uploadRes.status === 201 && uploadBody.asset.width === 1 && uploadBody.asset.height === 1, `status=${uploadRes.status} ${JSON.stringify(uploadBody)}`);
+  const assetId = uploadBody.asset.id;
+  const servedFile = await fetch(`${base}${uploadBody.asset.path}`);
+  check('yüklenen dosya /api/medya altından servis ediliyor', servedFile.status === 200 && (servedFile.headers.get('content-type') ?? '').includes('image/png'), `status=${servedFile.status}`);
+
+  const badTypeForm = new FormData();
+  badTypeForm.set('file', new File([Buffer.from('sahte-exe')], 'kotu.exe', { type: 'application/x-msdownload' }));
+  const badTypeRes = await fetch(`${base}/api/admin/media`, { method: 'POST', headers: { cookie, origin: base }, body: badTypeForm });
+  check('desteklenmeyen dosya türü reddedilir (415)', badTypeRes.status === 415, `status=${badTypeRes.status}`);
+
+  const uploadViewerForm = new FormData();
+  uploadViewerForm.set('file', pngFile);
+  const uploadViewerRes = await fetch(`${base}/api/admin/media`, { method: 'POST', headers: { cookie: vcookie, origin: base }, body: uploadViewerForm });
+  check('görüntüleyici görsel yükleyemez (403)', uploadViewerRes.status === 403, `status=${uploadViewerRes.status}`);
+
+  const mediaUpdate = await api<{ asset: { alt: string; tags: string[] } }>('PATCH', `/api/admin/media/${assetId}`, { alt: 'Duman testi görseli', tags: ['smoke'] }, cookie);
+  check('görsel alt metni/etiketi güncellendi', mediaUpdate.status === 200 && mediaUpdate.body.asset.alt === 'Duman testi görseli', `status=${mediaUpdate.status}`);
+
+  const mediaList = await api<{ items: { id: string }[] }>('GET', `/api/admin/media?q=smoke-test`, undefined, cookie);
+  check('görsel arama listesinde bulunur', mediaList.status === 200 && mediaList.body.items.some((m) => m.id === assetId), `status=${mediaList.status}`);
+
+  const mediaDelete = await api('DELETE', `/api/admin/media/${assetId}`, undefined, cookie);
+  check('görsel silindi', mediaDelete.status === 200, `status=${mediaDelete.status}`);
+  const servedAfterDelete = await fetch(`${base}${uploadBody.asset.path}`);
+  check('silinen dosya artık servis edilmiyor', servedAfterDelete.status === 404, `status=${servedAfterDelete.status}`);
+
+  console.log('\n22) Sayfalar — SSS ve kampanya bandı (F7)');
+  const faqBefore = await api<{ groups: { heading: string; items: { q: string; a: string }[] }[] }>('GET', '/api/admin/pages/sss', undefined, cookie);
+  check('SSS içeriği GET 200', faqBefore.status === 200 && faqBefore.body.groups.length > 0, `status=${faqBefore.status}`);
+  const smokeQuestion = `Duman testi sorusu ${runId}`;
+  const faqNext = { groups: [{ heading: 'Test', items: [{ q: smokeQuestion, a: 'Duman testi cevabı.' }] }, ...faqBefore.body.groups] };
+  const faqPut = await api('PUT', '/api/admin/pages/sss', faqNext, cookie);
+  check('SSS içeriği kaydedildi', faqPut.status === 200, `status=${faqPut.status}`);
+  // revalidateTag üzerinden statik /sss'i geçersiz kılar; Next'in isteğe bağlı
+  // yeniden doğrulaması eninde sonunda tazedir ama bazen ilk istekte henüz
+  // devreye girmemiş olabilir — bu yüzden birkaç deneme.
+  const faqHtml = await fetchUntil(`${base}/sss`, smokeQuestion);
+  check('yeni SSS sorusu /sss sayfasında görünür (revalidateTag çalışıyor)', faqHtml.includes(smokeQuestion), faqHtml.includes(smokeQuestion) ? '' : 'birkaç denemeden sonra hâlâ görünmedi');
+  await api('PUT', '/api/admin/pages/sss', faqBefore.body, cookie);
+
+  const campaignBefore = await api<{ title: string; code: string; cta: { label: string; href: string }; image: string; eyebrow: string; description: string; codeNote: string }>('GET', '/api/admin/pages/kampanya', undefined, cookie);
+  check('kampanya içeriği GET 200', campaignBefore.status === 200 && Boolean(campaignBefore.body.title), `status=${campaignBefore.status}`);
+  const smokeCampaignTitle = `Duman Testi Kampanyası ${runId}`;
+  const campaignPutViewer = await api('PUT', '/api/admin/pages/kampanya', { ...campaignBefore.body, title: 'x' }, vcookie);
+  check('görüntüleyici kampanya bandını kaydedemez (403)', campaignPutViewer.status === 403, `status=${campaignPutViewer.status}`);
+  const campaignPut = await api('PUT', '/api/admin/pages/kampanya', { ...campaignBefore.body, title: smokeCampaignTitle }, cookie);
+  check('kampanya bandı kaydedildi', campaignPut.status === 200, `status=${campaignPut.status}`);
+  const homeHtml = await fetchUntil(`${base}/`, smokeCampaignTitle);
+  check('yeni kampanya başlığı ana sayfada görünür', homeHtml.includes(smokeCampaignTitle), homeHtml.includes(smokeCampaignTitle) ? '' : 'birkaç denemeden sonra hâlâ görünmedi');
+  await api('PUT', '/api/admin/pages/kampanya', campaignBefore.body, cookie);
+
 } catch (err) {
   failures.push(String(err));
   console.error(err);
@@ -527,7 +663,8 @@ try {
     }
     await db.customer.deleteMany({ where: { email: guestEmail } });
     if (custId) await db.customer.deleteMany({ where: { id: custId } });
-    await db.user.deleteMany({ where: { email: viewerEmail } });
+    await db.user.deleteMany({ where: { email: { in: [viewerEmail, `panel-yeni-${runId}@nefisaroma.test`] } } });
+    await db.mediaAsset.deleteMany({ where: { fileName: 'smoke-test.png' } });
     console.log(`\nTemizlik: ${orders.length} sipariş, müşteri ve test kullanıcısı silindi, stok geri kondu.`);
   } catch (e) { console.error('Temizlik hatası:', e); }
   await db.$disconnect();

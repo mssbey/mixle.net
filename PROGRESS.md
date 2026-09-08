@@ -3,28 +3,80 @@
 > **Devam talimatı:** Kullanıcı "devam et" dediğinde bu dosyadan devam et. Projeyi
 > baştan analiz etme. Aşağıdaki "SONRAKİ ADIM" bölümünden başla.
 
-Son güncelleme: 2026-09-08 (F6 tamamlandı ve doğrulandı — sıra F7'de)
+Son güncelleme: 2026-09-08 (F7 tamamlandı ve doğrulandı — sıra F8'de)
 
 ## SONRAKİ ADIM
 
-**F7 — Bildirim / ayar / içerik.** Plan: `PLAN-YONETIM-PANELI.md`.
-`src/server/notifications/{mailer,queue,templates/*}.ts` (gerçek e-posta
-gönderimi — şu an `DEMO_MODE=true` iken `EmailLog`'a yazılıp gönderilmiyor;
-kullanıcı "e-posta anahtarım var (Resend/SMTP)" demişti, F3 kararlar
-tablosunda), `/admin/ayarlar/**` 8 sekmeye çıkar (mağaza bilgisi zaten
-`getStoreInfo`/`getStoreSettings` var ama panel ekranı yok — F3/F4 yalnız
-ödeme/kargo alt sekmelerini ekledi), `/admin/gorseller` (medya kütüphanesi —
-şu an ürün görselleri nasıl yükleniyor kontrol et, muhtemelen URL girişi;
-gerçek dosya yükleme F7'nin parçası olabilir), `/admin/sayfalar`
-(`src/data/content.ts` içeriği DB'ye taşınır — SSS, hakkımızda vb. şu an
-statik dosyalarda), `src/server/einvoice/**` (iskelet — gerçek e-fatura
-sağlayıcı entegrasyonu kapsam dışı kalabilir, kullanıcıya sor).
+**F8 — Panel cilası.** Plan: `PLAN-YONETIM-PANELI.md`. Son rötuşlar — plan
+dosyasında F8'in ayrıntılı dosya listesi yok (diğer fazlar gibi net değil);
+muhtemelen: erişilebilirlik/klavye taraması, mobil kart görünümü tutarlılığı,
+performans (bundle boyutu — `recharts` yalnız `/admin/raporlar`da yükleniyor
+mu kontrol et), kalan bilinen eksiklerin (aşağıya bkz.) bir kısmını kapatmak,
+genel QA geçişi (tüm `qa:*` betiklerini çalıştır). Kapsamı netleştirmek için
+kullanıcıya sorulabilir; aksi halde yukarıdaki genel cilayı uygula.
 
 Ortam notu: QA portlarında (3993/3994/3997) eski `next start` süreçleri kalabiliyor
 → `Get-NetTCPConnection -State Listen` ile bul, `Stop-Process`. Build panic
 ("AssetContent::file was canceled") görürsen `rm -rf .next`. `npm run build`
-F6'dan sonra recharts nedeniyle ~7 dakikaya çıktı — `run_in_background: true`
-kullan, zaman aşımına takılma.
+~7 dakika (recharts) — `run_in_background: true` kullan.
+
+**F7'den önemli teknik not:** `revalidatePath` bu projede statik sayfalar için
+ÇALIŞMAZ (denendi, doğrulandı) — yalnız `unstable_cache` + `revalidateTag`
+(catalog/queries.ts'teki desen) güvenilir. Yeni bir statik sayfayı panelden
+düzenlenebilir yapacaksan bu deseni kullan, `revalidatePath` deneme.
+
+---
+
+## F7 — TAMAMLANDI (2026-09-08)
+
+Bildirim / ayar / içerik. Commit: F7 (bkz. git log).
+
+- `src/server/notifications/{settings,mailer}.ts` — SMTP (nodemailer, yeni
+  bağımlılık) veya Resend (REST API, bağımlılık yok) ile gerçek gönderim;
+  ayarlar F3/F4 deseniyle şifreli. `email.ts::queueEmail` artık `DEMO_MODE=false`
+  iken gerçekten göndermeyi dener, sonucu `EmailLog.status`e yazar, asla fırlatmaz.
+- `src/server/users/admin.ts` — panel kullanıcı CRUD'u (`admin:create-user`
+  CLI'sinin panel karşılığı). Güvenlik: son aktif `sahip` düşürülemez/pasife
+  alınamaz, kimse kendi hesabını düşüremez/pasife alamaz, parola değişince
+  oturumlar kapanır.
+- `src/server/media/admin.ts` + `/api/medya/[...path]/route.ts` — medya
+  kütüphanesi. **ÖNEMLİ KEŞİF:** dosyalar `public/`e YAZILAMAZ — `next start`
+  yalnız `next build` anındaki `public/` içeriğini sunar, çalışma zamanında
+  eklenenler 404 döner (elle doğrulandı). Bunun yerine `data/uploads/` (SQLite
+  ile aynı dizin) + diskten okuyan bir Route Handler kullanıldı; bu her modda
+  çalışır. `sharp` (zaten bağımlılıktı, ilk kez kullanıldı) boyut okur.
+- `src/server/content/settings.ts` — SSS + kampanya bandı, mevcut `Setting`
+  tablosu üzerinden. **ÖNEMLİ KEŞİF:** `/sss` ve `/` statik prerender edildiği
+  için düz `revalidatePath` çağrısı hiçbir şeyi geçersiz kılmadı (elle
+  doğrulandı, birkaç kez denendi) — `catalog/queries.ts`'teki `unstable_cache`
+  + `revalidateTag` desenine geçilince çalıştı. `revalidateTag` isteğe bağlı
+  yeniden doğrulamadır: kayıttan hemen sonraki TEK istek nadiren eski içeriği
+  gösterebilir, ikinci istek her zaman tazedir (smoke testte `fetchUntil` ile
+  birkaç deneme hakkı verildi; gerçek kullanımda önemsiz).
+  `CampaignBanner` bileşeni bu yüzden artık `async` (Next 16'da async Server
+  Component'i awaitlemeden JSX'te kullanmak desteklenir).
+- `src/server/einvoice/provider.ts` — YALNIZCA arayüz, hiçbir kod yolu
+  çağırmaz. GİB entegratörü gerçek entegrasyonu bu sürümde yok (kapsam dışı).
+- `/admin/ayarlar` bir "hub" sayfasına dönüştü: rol bazlı görünür kartlarla
+  Mağaza/Ödeme/Kargo/E-posta/Kullanıcılar/Sayfalar/Görseller'e yönlendirir.
+- Rotalar: `/api/admin/settings/{eposta[/test],magaza}`, `/api/admin/users[/[id]]`,
+  `/api/admin/media[/[id]]`, `/api/admin/pages/{sss,kampanya}`,
+  `/api/medya/[...path]` (kimlik doğrulama GEREKMEZ — herkese açık vitrin içeriği).
+- UI: `/admin/ayarlar/{magaza,eposta,kullanicilar}`, `/admin/gorseller`
+  (`MediaLibrary` — grid, yükle, ara, alt metin/etiket, sil), `/admin/sayfalar`
+  (`PagesEditor` — SSS grup/soru editörü + kampanya formu); nav: "Görseller".
+  Gösterge paneline (`/admin`) aynı raporlama uçundan "Bugün" kartı eklendi.
+  `src/data/content.ts`'teki artık yanlış olan bir SSS cevabı ("üyelik/ödeme
+  yok") düzeltildi.
+- Doğrulama: lint/typecheck/build temiz; vitest 67 (değişmedi); `qa:checkout`
+  42/42 (regresyon); `qa:orders` 151/151 — yeni bölümler (18-22): e-posta
+  ayarları, kullanıcı yönetimi (güvenlik kısıtları dahil), mağaza ayarları,
+  medya kütüphanesi (yükle/servis/sil/desteklenmeyen tür reddi/yol geçişi
+  koruması), sayfalar (SSS + kampanya, gerçekten vitrine yansıması dahil).
+- Bilinen kapsam dışı: `ImageListEditor` (ürün formu) medya kütüphanesinden
+  seçim yapmıyor, hâlâ elle URL girişi; iade fotoğrafı yükleme medya
+  kütüphanesine bağlanmadı; rehber/yorum/süreç/hakkımızda içeriği hâlâ statik;
+  e-fatura gerçek entegrasyonu yok (bilinçli, bkz. provider.ts başlığı).
 
 ---
 
