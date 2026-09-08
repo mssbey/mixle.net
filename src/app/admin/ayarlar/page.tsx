@@ -75,6 +75,16 @@ export default function AdminSettingsPage() {
         </section>
       )}
 
+      {can('ayar:oku') && (
+        <section className="admin-card flex flex-wrap items-center justify-between gap-2" style={{ padding: 16 }}>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">Kargo ayarları</h2>
+            <p className="admin-hint mt-0.5">Bölgeler, tarifeler, taşıyıcı bağlantıları, kapıda ödeme</p>
+          </div>
+          <Link href="/admin/ayarlar/kargo" className="admin-btn admin-btn-ghost">Düzenle</Link>
+        </section>
+      )}
+
       <section className="admin-card grid gap-3 sm:grid-cols-3" style={{ padding: 16 }}>
         <div className="admin-stat" style={{ padding: 0 }}>
           <span className="admin-stat-value">{products.length}</span>

@@ -149,7 +149,7 @@ export function ShipmentDialog({ order, open, onClose, onUpdated }: Base) {
             {CARRIERS.map((c) => <option key={c} value={c}>{carrierLabels[c]}</option>)}
           </select>
         </Field>
-        <Field label="Takip numarası" htmlFor="sh-track" hint="Firma API'si yoksa elle girin (F4'te otomatik).">
+        <Field label="Takip numarası" htmlFor="sh-track" hint="Bu sürümde tüm firmalarda elle girilir; otomatik takip Kargolar sayfasından yenilenebilir.">
           <input id="sh-track" className="admin-input" value={tracking} onChange={(e) => setTracking(e.target.value)} />
         </Field>
       </div>
