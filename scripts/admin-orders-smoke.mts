@@ -485,6 +485,30 @@ try {
   const anonAgain = await api('POST', `/api/admin/customers/${custId}/anonimlestir`, undefined, cookie);
   check('ikinci kez anonimleştirme reddedilir (409)', anonAgain.status === 409, `status=${anonAgain.status}`);
 
+  console.log('\n17) Raporlar (F6)');
+  const todayIso = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+  const yesterdayIso = new Date(Date.now() - 86_400_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+  const report = await api<{
+    summary: { revenueMinor: number; orderCount: number; returnRequestCount: number };
+    series: { date: string; revenueMinor: number; orderCount: number }[];
+    topProducts: { productId: string; name: string }[];
+    paymentMethods: { method: string; revenueMinor: number }[];
+    returnReasons: { reason: string; count: number }[];
+  }>('GET', `/api/admin/reports?from=${yesterdayIso}&to=${todayIso}`, undefined, cookie);
+  check('rapor 200, bu oturumun siparişleri ciroya yansımış', report.status === 200 && report.body.summary.orderCount >= 4 && report.body.summary.revenueMinor > 0, `status=${report.status} ${JSON.stringify(report.body.summary)}`);
+  check('en çok satan ürünlerde test ürünü var', report.body.topProducts.some((p) => p.productId === vA.productId), JSON.stringify(report.body.topProducts.map((p) => p.name)));
+  check('havale ödeme yöntemi dağılımda görünür', report.body.paymentMethods.some((m) => m.method === 'havale' && m.revenueMinor > 0));
+  check('bu oturumdaki iade talepleri sebep kırılımında görünür', report.body.returnReasons.reduce((s, r) => s + r.count, 0) >= 2, JSON.stringify(report.body.returnReasons));
+  const reportViewer = await api('GET', `/api/admin/reports?from=${yesterdayIso}&to=${todayIso}`, undefined, vcookie);
+  check('görüntüleyici raporu okuyabilir (rapor:oku salt okunur)', reportViewer.status === 200, `status=${reportViewer.status}`);
+
+  const csvRes = await fetch(`${base}/api/admin/reports?from=${yesterdayIso}&to=${todayIso}&format=csv`, { headers: { cookie } });
+  const csvText = await csvRes.text();
+  check('CSV dışa aktarım 200, tarih/sipariş/ciro başlığı var', csvRes.status === 200 && (csvRes.headers.get('content-type') ?? '').includes('text/csv') && csvText.includes('tarih;siparis_sayisi;ciro_tl'), `status=${csvRes.status}`);
+
+  const dashboardToday = await api<{ summary: { orderCount: number } }>('GET', `/api/admin/reports?from=${todayIso}&to=${todayIso}`, undefined, cookie);
+  check('bugünkü özet (panel gösterge paneli widget’ı ile aynı uç) 200', dashboardToday.status === 200);
+
 } catch (err) {
   failures.push(String(err));
   console.error(err);

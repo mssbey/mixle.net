@@ -3,24 +3,59 @@
 > **Devam talimatı:** Kullanıcı "devam et" dediğinde bu dosyadan devam et. Projeyi
 > baştan analiz etme. Aşağıdaki "SONRAKİ ADIM" bölümünden başla.
 
-Son güncelleme: 2026-09-08 (F5 tamamlandı ve doğrulandı — sıra F6'da)
+Son güncelleme: 2026-09-08 (F6 tamamlandı ve doğrulandı — sıra F7'de)
 
 ## SONRAKİ ADIM
 
-**F6 — Raporlar.** Plan: `PLAN-YONETIM-PANELI.md`. Satış/ürün/müşteri raporları
-(günlük/haftalık/aylık ciro, en çok satan ürünler, kategori kırılımı, iade
-oranı, ortalama sepet tutarı), `/admin/raporlar` (izin: `rapor:oku`, zaten
-tanımlı). Muhtemelen Chart.js veya benzeri (henüz bağımlılık yok, kullanıcıya
-sor); CSV dışa aktarım mevcut sipariş/ödeme export desenini izleyebilir.
-Veri kaynağı: mevcut `Order`, `OrderItem`, `Payment`, `Refund` tabloları —
-yeni şema muhtemelen gerekmez, yalnız agregasyon sorguları.
+**F7 — Bildirim / ayar / içerik.** Plan: `PLAN-YONETIM-PANELI.md`.
+`src/server/notifications/{mailer,queue,templates/*}.ts` (gerçek e-posta
+gönderimi — şu an `DEMO_MODE=true` iken `EmailLog`'a yazılıp gönderilmiyor;
+kullanıcı "e-posta anahtarım var (Resend/SMTP)" demişti, F3 kararlar
+tablosunda), `/admin/ayarlar/**` 8 sekmeye çıkar (mağaza bilgisi zaten
+`getStoreInfo`/`getStoreSettings` var ama panel ekranı yok — F3/F4 yalnız
+ödeme/kargo alt sekmelerini ekledi), `/admin/gorseller` (medya kütüphanesi —
+şu an ürün görselleri nasıl yükleniyor kontrol et, muhtemelen URL girişi;
+gerçek dosya yükleme F7'nin parçası olabilir), `/admin/sayfalar`
+(`src/data/content.ts` içeriği DB'ye taşınır — SSS, hakkımızda vb. şu an
+statik dosyalarda), `src/server/einvoice/**` (iskelet — gerçek e-fatura
+sağlayıcı entegrasyonu kapsam dışı kalabilir, kullanıcıya sor).
 
 Ortam notu: QA portlarında (3993/3994/3997) eski `next start` süreçleri kalabiliyor
 → `Get-NetTCPConnection -State Listen` ile bul, `Stop-Process`. Build panic
-("AssetContent::file was canceled") görürsen `rm -rf .next`. Admin smoke
-scripti artık 500+ satır — yeni bölüm eklerken değişken adı çakışmalarına
-dikkat (esbuild "already declared"); bölüme özel önek kullan (F5'te
-`kargoSecretVal`, `custId` gibi).
+("AssetContent::file was canceled") görürsen `rm -rf .next`. `npm run build`
+F6'dan sonra recharts nedeniyle ~7 dakikaya çıktı — `run_in_background: true`
+kullan, zaman aşımına takılma.
+
+---
+
+## F6 — TAMAMLANDI (2026-09-08)
+
+Raporlar. Commit: F6 (bkz. git log).
+
+- `src/server/orders/state-machine.ts` — `REVENUE_STATUSES` sabiti eklendi
+  (F5'te `customers/admin.ts` içine gömülüydü, şimdi tek kaynak; ikisi de
+  buradan import ediyor).
+- `src/server/reports/sales.ts` — `getReportsOverview({from,to})`: özet KPI'lar
+  (ciro, net ciro, sipariş sayısı, ortalama sepet, iade tutarı/oranı), günlük
+  seri (Europe/Istanbul gün kümeleme, JS'te — DB'ye özel tarih fonksiyonu yok,
+  Postgres taşınabilirliği için), en çok satan ürünler (`OrderItem.groupBy` +
+  `Product` join), kategori kırılımı (ürün çok kategoriliyse her birine tam
+  yazılır — bilinçli, dokümante), ödeme yöntemi dağılımı, iade sebep kırılımı.
+  `salesSeriesToCsv` — Excel (TR) `;`/BOM.
+- Bağımlılık: `recharts@2.15.4` eklendi (plan dosyasında F6 için belirtilmişti,
+  kullanıcıya sormaya gerek kalmadı).
+- Rota: `/api/admin/reports` (GET, `rapor:oku` — READ_ONLY, tüm roller), `?format=csv`.
+- UI: `/admin/raporlar` (`ReportsPage` — tarih aralığı + hazır aralık düğmeleri,
+  KPI kartları, `ComposedChart` [bar=ciro, line=sipariş], ürün/kategori/ödeme/
+  iade-sebebi listeleri kendi basit çubuk göstergeleriyle); `/admin/page.tsx`
+  (gösterge paneli) "Bugün" kartı eklendi, aynı API'yi kullanır; nav "Raporlar".
+- Doğrulama: lint/typecheck temiz; build ~7 dk (recharts); vitest 67
+  (değişmedi); `qa:checkout` 42/42 (regresyon); `qa:orders` 118/118 — yeni
+  bölüm: rapor gerçek test siparişlerini ciroya/ürünlere/ödeme yöntemine/iade
+  sebeplerine doğru yansıtıyor, CSV çalışıyor, görüntüleyici okuyabiliyor.
+- Bilinen kapsam dışı: haftalık/aylık ön tanımlı gruplama yok (yalnız günlük
+  seri + tarih aralığı seçici — kullanıcı istediği aralığı seçip haftalık/aylık
+  eşdeğerini görebilir); PDF rapor dışa aktarımı yok (yalnız CSV).
 
 ---
 

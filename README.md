@@ -1,17 +1,21 @@
 # Nefis Aroma
 
-Nefis Aroma için hazırlanmış Türkçe ürün vitrini, e-ticaret arayüzü ve katalog
-yönetim paneli. İki bölümden oluşur:
+Nefis Aroma için hazırlanmış Türkçe ürün vitrini, e-ticaret arayüzü ve
+WooCommerce düzeyinde bir mağaza yönetim paneli. İki bölümden oluşur:
 
-- **Vitrin (normal site)** — `/` altındaki herkese açık mağaza.
-- **Admin paneli** — `/admin` altındaki ürün ve varyasyon yönetimi.
+- **Vitrin (normal site)** — `/` altındaki herkese açık mağaza; gerçek
+  checkout, ödeme, hesap ve sipariş takibiyle.
+- **Admin paneli** — `/admin` altında ürün/sipariş/ödeme/kargo/iade/kupon/
+  stok/müşteri yönetimi, roller ve raporlar.
 
-Next.js App Router, React, TypeScript ve Tailwind CSS kullanır. Sepet/favori
-durumu Zustand ile, katalog verisi tek bir JSON dosyasıyla yönetilir.
+Next.js App Router, React, TypeScript ve Tailwind CSS kullanır; veritabanı
+Prisma + SQLite (Postgres'e taşınabilir). Sepet/favori durumu tarayıcıda
+Zustand ile tutulur; kalan her şey (ürün, sipariş, ödeme, kullanıcı) gerçek
+veritabanı kaydıdır.
 
-> Bu bir vitrin/demo uygulamasıdır. Gerçek ödeme, üyelik, sipariş takibi veya
-> çoklu kullanıcı rolü yoktur. Sipariş tamamlama ekranı gerçek sipariş oluşturmaz;
-> admin girişi gerçek bir kimlik doğrulama değildir.
+> **Ödeme test modunda çalışır** (`DEMO_MODE=true`, varsayılan): kart ödemesi
+> gerçek sağlayıcıya gitmez, e-postalar gönderilmez (kayıt altına alınır).
+> Canlıya almadan önce "Ortam değişkenleri" ve "Kapsam dışı" bölümlerini okuyun.
 
 ## Teknoloji
 
@@ -23,6 +27,7 @@ durumu Zustand ile, katalog verisi tek bir JSON dosyasıyla yönetilir.
 | Doğrulama | Zod (admin formları + Route Handler'lar) |
 | Animasyon | framer-motion (`LazyMotion`, `reducedMotion="user"`) |
 | İkon | lucide-react |
+| Grafik | recharts (yalnız panel raporlarında) |
 | Veritabanı | Prisma 7 + SQLite (`data/nefis.db`); `DATABASE_URL` ile Postgres'e taşınabilir |
 | Kimlik doğrulama | `jose` imzalı httpOnly oturum çerezi + `crypto.scrypt` parola özeti, rol tabanlı yetki |
 
@@ -238,6 +243,22 @@ siparişlerdeki adres ANLIK GÖRÜNTÜSÜ (`Order.shippingAddress` vb.) bilinçl
 olarak korunur; bunlar mali/hukuki saklama süresine tabi belgelerdir, müşteri
 profiliyle aynı şey değildir.
 
+### Raporlar (F6)
+
+`/admin/raporlar` (`rapor:oku` — tüm roller salt okunur erişebilir) ve panel
+gösterge panelindeki ("Bugün" kartı) aynı `getReportsOverview()` fonksiyonunu
+kullanır (`src/server/reports/sales.ts`). Ciro, sipariş bazında `placedAt`
+tarihine ve `REVENUE_STATUSES`e (ödemesi alınmış/teslim edilmiş durumlar —
+`taslak`/`ödeme-bekliyor`/`iptal`/`başarısız` hariç) göre hesaplanır; bu tanım
+müşteri harcaması (`customers/admin.ts`) ile aynıdır, tek yerden yönetilir
+(`orders/state-machine.ts::REVENUE_STATUSES`). "Net ciro" iadeleri düşer, ama
+iadenin kendi tarihine göre DEĞİL — basitlik için siparişin `placedAt`'ine göre
+raporlanır. Kategori kırılımında bir ürün birden fazla kategoriye aitse tutar
+HER kategoriye tam yazılır (bilinçli, arayüzde belirtilir). Günlük seri
+Europe/Istanbul gün sınırlarına göre kümelenir; ham sipariş satırları JS'te
+gruplanır (SQLite/Postgres arası taşınabilirlik için veritabanına özel
+tarih fonksiyonu KULLANILMAZ). Grafik `recharts` ile çizilir.
+
 ### Veri
 
 Vitrin bileşenleri `src/data/products.ts` ve `src/data/categories.ts`'ten okur.
@@ -334,6 +355,7 @@ ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 | `/admin/musteriler` · `/admin/musteriler/[id]` | Hesaplı müşteriler: sipariş sayısı/harcama, adres defteri, son siparişler, panel notu/etiket, KVKK anonimleştirme |
 | `/admin/kuponlar` | İndirim kodu CRUD: yüzde/tutar/ücretsiz kargo, tarih/limit/ürün-kategori kısıtları |
 | `/admin/stok` | Düşük stok raporu (+ manuel düzelt), tüm stok hareketlerinin dökümü (sipariş/iptal/iade/manuel/sayım/fire) |
+| `/admin/raporlar` | Satış özeti (ciro/net ciro/sipariş/ortalama sepet/iade oranı), tarih aralığı seçici, günlük ciro-sipariş grafiği, en çok satan ürünler, kategori kırılımı, ödeme yöntemi dağılımı, iade sebepleri, CSV dışa aktarım |
 | `/admin/giris` | Parola girişi |
 
 ### Ürün ve varyasyon modeli
@@ -509,7 +531,7 @@ npm run build && npm run qa:checkout   # gerçek HTTP + veritabanı: teklif → 
 
 `qa:checkout` test verisini sonunda temizler ve stoku geri koyar.
 
-### Panel sipariş, ödeme, kargo, iade, kupon, stok ve müşteri duman testi (F2–F5)
+### Panel sipariş, ödeme, kargo, iade, kupon, stok, müşteri ve rapor duman testi (F2–F6)
 
 ```sh
 npm run build
@@ -534,8 +556,11 @@ maskelemesini sınar. F5 bölümü uçtan uca iade akışını (müşteri hesab�
 ve red sonrası yeni talep açılabildiği), kupon CRUD'un checkout indirimine
 gerçekten yansımasını (aktif → pasif → silme kısıtı), stok manuel düzeltmesini
 (negatif stok reddi dahil) ve müşteri listesi/notu/KVKK anonimleştirmesini
-(giriş engeli, geçmiş sipariş adresinin korunduğu) doğrular (111 kontrol).
-Test verisini ve ayar değişikliklerini geri alır.
+(giriş engeli, geçmiş sipariş adresinin korunduğu) doğrular. F6 bölümü
+raporun bu oturumda oluşturulan gerçek siparişleri ciroya/en çok satan
+ürünlere/ödeme yöntemi dağılımına/iade sebep kırılımına doğru yansıttığını,
+CSV dışa aktarımı ve `rapor:oku`nun salt okunur tüm rollere açık olduğunu
+sınar (118 kontrol). Test verisini ve ayar değişikliklerini geri alır.
 
 ### Kimlik doğrulama duman testi
 
