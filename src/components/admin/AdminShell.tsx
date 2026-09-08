@@ -15,6 +15,7 @@ import {
   RotateCcw,
   Tag,
   Boxes,
+  BarChart3,
   Settings,
   Search,
   PanelLeftClose,
@@ -42,6 +43,7 @@ const NAV = [
   { href: '/admin/koleksiyonlar', label: 'Koleksiyonlar', icon: Layers, exact: false },
   { href: '/admin/kuponlar', label: 'Kuponlar', icon: Tag, exact: false },
   { href: '/admin/stok', label: 'Stok', icon: Boxes, exact: false },
+  { href: '/admin/raporlar', label: 'Raporlar', icon: BarChart3, exact: false },
   { href: '/admin/ayarlar', label: 'Ayarlar', icon: Settings, exact: false },
 ];
 
@@ -59,6 +61,7 @@ const CRUMB_LABELS: Record<string, string> = {
   koleksiyonlar: 'Koleksiyonlar',
   kuponlar: 'Kuponlar',
   stok: 'Stok',
+  raporlar: 'Raporlar',
   ayarlar: 'Ayarlar',
   yeni: 'Yeni',
 };

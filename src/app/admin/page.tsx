@@ -1,15 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { BarChart3, Plus } from 'lucide-react';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { EmptyState, StatusBadge, TableSkeleton } from '@/components/admin/primitives';
 import { outOfStockCount } from '@/lib/admin/variants';
 import { formatRelative } from '@/lib/admin/format';
+import { reportsApi, type ReportsOverview } from '@/lib/admin/reports-client';
+import { formatMinor } from '@/lib/money';
+
+const todayIstanbul = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
 
 export default function AdminDashboardPage() {
-  const { status, products, categoryName } = useAdminData();
+  const { status, can, products, categoryName } = useAdminData();
+  const canSeeReports = can('rapor:oku');
+  const [today, setToday] = useState<ReportsOverview | null>(null);
+
+  useEffect(() => {
+    if (!canSeeReports) return;
+    const day = todayIstanbul();
+    reportsApi.overview(day, day).then(setToday).catch(() => {});
+  }, [canSeeReports]);
 
   const stats = useMemo(() => {
     const byStatus = { yayında: 0, taslak: 0, arşiv: 0 };
@@ -47,6 +59,23 @@ export default function AdminDashboardPage() {
         <TableSkeleton rows={4} />
       ) : (
         <>
+          {canSeeReports && today && (
+            <section className="admin-card" style={{ padding: 16 }}>
+              <header className="mb-2 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">Bugün</h2>
+                <Link href="/admin/raporlar" className="flex items-center gap-1 text-xs font-semibold text-[var(--brand-purple)] hover:underline">
+                  <BarChart3 size={13} /> Tüm raporlar
+                </Link>
+              </header>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="admin-stat" style={{ padding: 0 }}><span className="admin-stat-value">{formatMinor(today.summary.revenueMinor)}</span><span className="admin-stat-label">Ciro</span></div>
+                <div className="admin-stat" style={{ padding: 0 }}><span className="admin-stat-value">{today.summary.orderCount}</span><span className="admin-stat-label">Sipariş</span></div>
+                <div className="admin-stat" style={{ padding: 0 }}><span className="admin-stat-value">{formatMinor(today.summary.avgOrderValueMinor)}</span><span className="admin-stat-label">Ortalama sepet</span></div>
+                <div className="admin-stat" style={{ padding: 0 }}><span className="admin-stat-value">{today.summary.returnRequestCount}</span><span className="admin-stat-label">Yeni iade talebi</span></div>
+              </div>
+            </section>
+          )}
+
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <div className="admin-card admin-stat">
               <span className="admin-stat-value">{stats.total}</span>
