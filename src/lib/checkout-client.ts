@@ -217,4 +217,10 @@ export const accountApi = {
     request<{ ok: true; order: PublicOrder }>(`/api/hesap/siparisler/${encodeURIComponent(no)}/iptal`, {
       method: 'POST',
     }),
+
+  requestReturn: (no: string, body: { items: { orderItemId: string; quantity: number }[]; reason: string; description?: string }) =>
+    request<{ ok: true; order: PublicOrder }>(`/api/hesap/siparisler/${encodeURIComponent(no)}/iade`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };

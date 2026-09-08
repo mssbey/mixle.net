@@ -21,6 +21,8 @@ export type EmailTemplateKey =
   | 'teslim-edildi'
   | 'iptal'
   | 'iade-onayi'
+  | 'iade-talebi-onaylandi'
+  | 'iade-talebi-reddedildi'
   | 'iade-tamamlandi'
   | 'parola-sifirla'
   | 'yeni-siparis-yonetici'
@@ -100,6 +102,30 @@ Nefis Aroma`,
     body: `Merhaba {{musteriAdi}},
 
 {{siparisNo}} numaralı siparişiniz için iade talebiniz alındı. İnceleme sonucunu e-posta ile bildireceğiz.
+
+Nefis Aroma`,
+  },
+  'iade-talebi-onaylandi': {
+    subject: 'İade talebiniz onaylandı — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişiniz için iade talebiniz onaylandı.
+
+{{iadeTalimati}}
+
+Ürün elimize ulaştığında iade işleminizi tamamlayıp size bilgi vereceğiz.
+
+Nefis Aroma`,
+  },
+  'iade-talebi-reddedildi': {
+    subject: 'İade talebiniz hakkında — {{siparisNo}}',
+    body: `Merhaba {{musteriAdi}},
+
+{{siparisNo}} numaralı siparişiniz için açtığınız iade talebini inceledik.
+
+Sonuç: {{redSebebi}}
+
+Sorularınız için bize ulaşabilirsiniz.
 
 Nefis Aroma`,
   },

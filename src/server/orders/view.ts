@@ -74,6 +74,14 @@ export interface PublicOrder {
   consents: { distanceSales?: { version: number }; preInfo?: { version: number } };
   /** Mock ödeme sayfası için (yalnız kart + ödeme bekliyor). */
   canRetryPayment: boolean;
+  /** En son (varsa açık, yoksa son sonuçlanan) iade talebi. */
+  returnRequest: {
+    id: string;
+    status: string;
+    requestedAt: string;
+    resolutionNote: string | null;
+    returnCode: string | null;
+  } | null;
 }
 
 type OrderRow = {
@@ -129,6 +137,7 @@ type OrderRow = {
     toStatus: string | null;
     message: string;
   }[];
+  returns: { id: string; status: string; requestedAt: Date; resolutionNote: string | null; returnCode: string | null }[];
 };
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
@@ -195,6 +204,15 @@ export function publicOrderView(o: OrderRow): PublicOrder {
     consents: (o.consents ?? {}) as PublicOrder['consents'],
     canRetryPayment:
       o.paymentMethod === 'kart' && (o.status === 'ödeme-bekliyor' || o.status === 'başarısız'),
+    returnRequest: o.returns[0]
+      ? {
+          id: o.returns[0].id,
+          status: o.returns[0].status,
+          requestedAt: o.returns[0].requestedAt.toISOString(),
+          resolutionNote: o.returns[0].resolutionNote,
+          returnCode: o.returns[0].returnCode,
+        }
+      : null,
   };
 }
 
@@ -203,6 +221,7 @@ export const publicOrderInclude = {
   items: true,
   shipments: { orderBy: { createdAt: 'desc' } },
   events: { where: { visibleToCustomer: true }, orderBy: { createdAt: 'asc' } },
+  returns: { orderBy: { requestedAt: 'desc' }, take: 1 },
 } as const;
 
 export { jsonArray };

@@ -51,6 +51,7 @@ export async function POST(request: Request) {
         shipments: { orderBy: { createdAt: 'desc' } },
         events: { where: { visibleToCustomer: true }, orderBy: { createdAt: 'asc' } },
         payments: { orderBy: { createdAt: 'desc' }, take: 1 },
+        returns: { orderBy: { requestedAt: 'desc' }, take: 1 },
       },
     });
 
