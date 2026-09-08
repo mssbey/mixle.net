@@ -102,6 +102,23 @@ export const SHIPPED_STATUSES: readonly OrderStatus[] = [
 /** Sonlanmış durumlar — başka geçiş yok. */
 export const TERMINAL_STATUSES: readonly OrderStatus[] = ['iptal', 'iade-edildi'];
 
+/**
+ * Ciro/harcama hesaplarına dahil edilen durumlar — ödemesi alınmış (veya
+ * kapıda alınacak, teslim edilmiş) siparişler. `taslak`, `ödeme-bekliyor`,
+ * `iptal`, `başarısız` hariçtir. Müşteri harcaması (`customers/admin.ts`) ve
+ * satış raporları (`reports/*.ts`) aynı tanımı kullanır — tutarlılık için
+ * TEK yerden.
+ */
+export const REVENUE_STATUSES: readonly OrderStatus[] = [
+  'ödendi',
+  'hazırlanıyor',
+  'kargolandı',
+  'teslim-edildi',
+  'tamamlandı',
+  'iade-talebi',
+  'iade-edildi',
+];
+
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from].includes(to);
 }

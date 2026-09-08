@@ -12,6 +12,7 @@ import { db } from '../db';
 import { auditChange } from '../audit';
 import type { AdminUser } from '../auth/current-user';
 import { jsonArray } from '../catalog/mapping';
+import { REVENUE_STATUSES } from '../orders/state-machine';
 
 export class CustomerAdminError extends Error {
   constructor(
@@ -37,8 +38,6 @@ export interface AdminCustomerRow {
   createdAt: string;
   anonymizedAt: string | null;
 }
-
-const REVENUE_STATUSES = ['ödendi', 'hazırlanıyor', 'kargolandı', 'teslim-edildi', 'tamamlandı', 'iade-talebi', 'iade-edildi'];
 
 export interface CustomerListParams {
   q?: string;
@@ -74,7 +73,7 @@ export async function listAdminCustomers(params: CustomerListParams) {
   const filtered = params.tag ? rows.filter((r) => jsonArray<string>(r.tags).includes(params.tag!)) : rows;
   const ids = filtered.map((r) => r.id);
   const spend = ids.length
-    ? await db.order.groupBy({ by: ['customerId'], where: { customerId: { in: ids }, status: { in: REVENUE_STATUSES } }, _sum: { grandTotalMinor: true } })
+    ? await db.order.groupBy({ by: ['customerId'], where: { customerId: { in: ids }, status: { in: [...REVENUE_STATUSES] } }, _sum: { grandTotalMinor: true } })
     : [];
   const spendById = new Map(spend.map((s) => [s.customerId, s._sum.grandTotalMinor ?? 0]));
 
@@ -120,7 +119,7 @@ export async function getAdminCustomer(id: string): Promise<AdminCustomerDetail 
   });
   if (!row) return null;
 
-  const spend = await db.order.aggregate({ where: { customerId: id, status: { in: REVENUE_STATUSES } }, _sum: { grandTotalMinor: true } });
+  const spend = await db.order.aggregate({ where: { customerId: id, status: { in: [...REVENUE_STATUSES] } }, _sum: { grandTotalMinor: true } });
 
   return {
     id: row.id,
