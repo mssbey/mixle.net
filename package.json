@@ -26,7 +26,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "qa:checkout": "tsx scripts/checkout-smoke.mts",
-    "qa:orders": "tsx scripts/admin-orders-smoke.mts"
+    "qa:orders": "tsx scripts/admin-orders-smoke.mts",
+    "kargo:sync": "tsx scripts/sync-shipments.mts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.0",

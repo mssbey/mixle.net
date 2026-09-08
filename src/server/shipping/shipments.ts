@@ -1,8 +1,10 @@
 // Sevkiyat — kısmi gönderim, manuel takip numarası, durum güncellemesi.
 //
-// Bu sürümde tek adaptör "manuel"dir: takip numarası elle girilir. F4'te
-// `ShippingProvider` arayüzü (createShipment/getLabel/track/cancel) ve Yurtiçi/
-// Aras/MNG/Sürat/PTT adaptörleri bu dosyanın yanına gelir; buradaki akış aynı kalır.
+// Oluşturma burada hâlâ tamamen manueldir: takip numarası panelden elle
+// girilir. `provider.ts` + `adapters/*` (F4) taşıyıcı API'lerine bağlanmak
+// içindir, ama gerçek uç nokta entegrasyonu henüz yazılmadı (bkz. o dosyaların
+// başındaki not) — bu yüzden bu akış hiçbir sağlayıcıyı otomatik çağırmaz.
+// Sağlayıcıdan durum çekme tek noktası `tracking.ts`'tir (panel + sync betiği).
 //
 // Sipariş durumu yan etkileri:
 //   - tüm kalemler sevk edildi → sipariş `kargolandı` (fulfillment: gönderildi)
