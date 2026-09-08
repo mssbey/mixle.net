@@ -50,6 +50,8 @@ if (!OWNER.email || !OWNER.password) { console.error('SMOKE_OWNER_EMAIL / SMOKE_
 const runId = Date.now().toString(36);
 const guestEmail = `panel-duman-${runId}@nefisaroma.test`;
 const viewerEmail = `panel-goruntuleyici-${runId}@nefisaroma.test`;
+/** F5: iade/müşteri testinde oluşturulan hesap — anonimleştirme e-postayı değiştirdiği için id'den temizlenir. */
+let custId: string | null = null;
 
 const server = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['next', 'start', '-p', String(port)], { stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' });
 let log = ''; server.stdout.on('data', (d) => (log += d)); server.stderr.on('data', (d) => (log += d));
@@ -312,6 +314,177 @@ try {
   const storeRow = await db.setting.findUnique({ where: { key: 'magaza' } });
   await db.setting.update({ where: { key: 'magaza' }, data: { value: { ...(storeRow?.value as object), codSurchargeMinor: kargoSettingsGet.body.cod.codSurchargeMinor } as never } });
 
+  console.log('\n13) İadeler (F5)');
+  const custEmail = `iade-${runId}@nefisaroma.test`;
+  const custPassword = 'IadeTest1234';
+  const reg = await api<{ ok: true }>('POST', '/api/hesap/kayit', {
+    email: custEmail, password: custPassword, firstName: 'İade', lastName: 'Test', kvkkAccepted: true, marketingOptIn: false,
+  });
+  const custCookie = reg.cookie.find((c) => c.startsWith('na_musteri='))?.split(';')[0] ?? '';
+  check('müşteri hesabı oluştu', reg.status === 201 && Boolean(custCookie), `status=${reg.status}`);
+
+  const retOrder = await api<{ orderId: string; orderNumber: string; status: string }>('POST', '/api/checkout/siparis', {
+    lines: [{ variantId: vA.id, quantity: 2 }],
+    email: custEmail,
+    shippingAddress: { firstName: 'İade', lastName: 'Test', phone: '0532 000 00 03', country: 'TR', city: 'Ankara', district: 'Çankaya', neighborhood: '', addressLine: 'Test Sok. No: 3 Daire: 3 Çankaya', postalCode: '', isCorporate: false, identityNumber: '' },
+    billingSameAsShipping: true, shippingMethodId: std.methodId, paymentMethod: 'havale',
+    consents: { distanceSales: true, preInfo: true, kvkk: true, marketing: false },
+  }, custCookie, { 'idempotency-key': randomUUID() });
+  const retId = retOrder.body.orderId;
+  const retTotals = (await api<{ order: AdminOrder }>('GET', `/api/admin/orders/${retId}`, undefined, cookie)).body.order.totals;
+  await api('POST', `/api/admin/orders/${retId}/odeme`, { amountMinor: retTotals.grandTotalMinor, method: 'havale', reference: 'DEKONT-IADE' }, cookie);
+  const retItem = (await api<{ order: AdminOrder }>('GET', `/api/admin/orders/${retId}`, undefined, cookie)).body.order.items[0];
+  const retShip = await api<{ order: AdminOrder }>('POST', `/api/admin/orders/${retId}/kargo`, { carrier: 'yurtici', trackingNumber: 'RET1', markShipped: true }, cookie);
+  for (const s of retShip.body.order.shipments) await api('PATCH', `/api/admin/orders/${retId}/kargo/${s.id}`, { status: 'teslim-edildi' }, cookie);
+  const afterDeliverRet = (await api<{ order: AdminOrder }>('GET', `/api/admin/orders/${retId}`, undefined, cookie)).body.order;
+  check('F5 test siparişi teslim edilip otomatik tamamlandı', afterDeliverRet.status === 'tamamlandı', afterDeliverRet.status);
+
+  const badReturn = await api('POST', `/api/hesap/siparisler/${retOrder.body.orderNumber}/iade`, { items: [{ orderItemId: retItem.id, quantity: 99 }], reason: 'diğer' }, custCookie);
+  check('fazla adet iade talebi reddedilir (422)', badReturn.status === 422, `status=${badReturn.status}`);
+
+  const createReq = await api<{ ok: true; order: { returnRequest: { id: string; status: string } | null } }>('POST', `/api/hesap/siparisler/${retOrder.body.orderNumber}/iade`, {
+    items: [{ orderItemId: retItem.id, quantity: 1 }], reason: 'hasarlı-geldi', description: 'Kutu ezik gelmiş',
+  }, custCookie);
+  check('iade talebi oluşturuldu, sipariş iade-talebine geçti', createReq.status === 201 && createReq.body.order.returnRequest?.status === 'talep', `status=${createReq.status}`);
+  const returnId = createReq.body.order.returnRequest!.id;
+  const orderAfterReq = await db.order.findUnique({ where: { id: retId } });
+  check('sipariş durumu iade-talebi', orderAfterReq?.status === 'iade-talebi');
+  const returnMail = await db.emailLog.count({ where: { orderId: retId, template: 'iade-onayi' } });
+  check('"talebiniz alındı" e-postası kuyruğa düştü', returnMail === 1);
+
+  const dupReturn = await api('POST', `/api/hesap/siparisler/${retOrder.body.orderNumber}/iade`, { items: [{ orderItemId: retItem.id, quantity: 1 }], reason: 'diğer' }, custCookie);
+  check('açık talep varken ikinci talep reddedilir (409)', dupReturn.status === 409, `status=${dupReturn.status}`);
+
+  const listReturns = await api<{ items: { id: string; orderNumber: string }[] }>('GET', `/api/admin/returns?status=talep&q=${encodeURIComponent(retOrder.body.orderNumber)}`, undefined, cookie);
+  check('panel iade listesinde görünür', listReturns.status === 200 && listReturns.body.items.some((r) => r.id === returnId));
+  const listReturnsViewer = await api('GET', '/api/admin/returns', undefined, vcookie);
+  check('görüntüleyici iade listesini okuyabilir', listReturnsViewer.status === 200);
+  const approveViewer = await api('POST', `/api/admin/returns/${returnId}/onayla`, { note: 'x', returnCode: '' }, vcookie);
+  check('görüntüleyici onaylayamaz (403)', approveViewer.status === 403, `status=${approveViewer.status}`);
+
+  const approve = await api<{ item: { status: string; returnCode: string | null } }>('POST', `/api/admin/returns/${returnId}/onayla`, { note: 'Ürünü kargoyla iade edin.', returnCode: 'IAD-1' }, cookie);
+  check('talep onaylandı', approve.status === 200 && approve.body.item.status === 'onaylandı' && approve.body.item.returnCode === 'IAD-1', `status=${approve.status}`);
+  const approveMail = await db.emailLog.count({ where: { orderId: retId, template: 'iade-talebi-onaylandi' } });
+  check('onay e-postası kuyruğa düştü', approveMail === 1);
+
+  const tooEarlyComplete = await api('POST', `/api/admin/returns/${returnId}/tamamla`, { restock: true, includeShipping: false }, cookie);
+  check('ürün alınmadan tamamlama reddedilir (409)', tooEarlyComplete.status === 409, `status=${tooEarlyComplete.status}`);
+
+  const received = await api<{ item: { status: string } }>('POST', `/api/admin/returns/${returnId}/urun-alindi`, undefined, cookie);
+  check('ürün alındı işaretlendi', received.status === 200 && received.body.item.status === 'ürün-alındı');
+
+  const stockBeforeReturn = (await db.variant.findUnique({ where: { id: vA.id } }))!.stock;
+  const complete = await api<{ item: { status: string } }>('POST', `/api/admin/returns/${returnId}/tamamla`, { restock: true, includeShipping: false }, cookie);
+  check('iade tamamlandı (kısmi iade işlendi)', complete.status === 200 && complete.body.item.status === 'tamamlandı', `status=${complete.status}`);
+  const orderAfterComplete = await db.order.findUnique({ where: { id: retId } });
+  check('kısmi iade sonrası sipariş tamamlandıya geri döner (iade-talebide takılı kalmaz)', orderAfterComplete?.status === 'tamamlandı', orderAfterComplete?.status);
+  check('iade sonrası stok arttı (+1)', (await db.variant.findUnique({ where: { id: vA.id } }))?.stock === stockBeforeReturn + 1);
+  const completeMail = await db.emailLog.count({ where: { orderId: retId, template: 'iade-tamamlandi' } });
+  check('iade tamamlandı e-postası kuyruğa düştü', completeMail === 1);
+
+  // Reddetme akışı — ikinci bir sipariş üzerinde.
+  const rejOrder = await api<{ orderId: string; orderNumber: string }>('POST', '/api/checkout/siparis', {
+    lines: [{ variantId: vA.id, quantity: 1 }],
+    email: custEmail,
+    shippingAddress: { firstName: 'İade', lastName: 'Test', phone: '0532 000 00 04', country: 'TR', city: 'Ankara', district: 'Çankaya', neighborhood: '', addressLine: 'Test Sok. No: 4 Çankaya', postalCode: '', isCorporate: false, identityNumber: '' },
+    billingSameAsShipping: true, shippingMethodId: std.methodId, paymentMethod: 'havale',
+    consents: { distanceSales: true, preInfo: true, kvkk: true, marketing: false },
+  }, custCookie, { 'idempotency-key': randomUUID() });
+  const rejTotals = (await api<{ order: AdminOrder }>('GET', `/api/admin/orders/${rejOrder.body.orderId}`, undefined, cookie)).body.order.totals;
+  await api('POST', `/api/admin/orders/${rejOrder.body.orderId}/odeme`, { amountMinor: rejTotals.grandTotalMinor, method: 'havale', reference: 'DEKONT-RED' }, cookie);
+  const rejItem = (await api<{ order: AdminOrder }>('GET', `/api/admin/orders/${rejOrder.body.orderId}`, undefined, cookie)).body.order.items[0];
+  const rejShip = await api<{ order: AdminOrder }>('POST', `/api/admin/orders/${rejOrder.body.orderId}/kargo`, { carrier: 'yurtici', trackingNumber: 'RET2', markShipped: true }, cookie);
+  for (const s of rejShip.body.order.shipments) await api('PATCH', `/api/admin/orders/${rejOrder.body.orderId}/kargo/${s.id}`, { status: 'teslim-edildi' }, cookie);
+  const rejReq = await api<{ order: { returnRequest: { id: string } | null } }>('POST', `/api/hesap/siparisler/${rejOrder.body.orderNumber}/iade`, { items: [{ orderItemId: rejItem.id, quantity: 1 }], reason: 'diğer' }, custCookie);
+  const rejReturnId = rejReq.body.order.returnRequest!.id;
+  const rejectMissingNote = await api('POST', `/api/admin/returns/${rejReturnId}/reddet`, { note: '' }, cookie);
+  check('gerekçesiz red reddedilir (422)', rejectMissingNote.status === 422, `status=${rejectMissingNote.status}`);
+  const reject = await api<{ item: { status: string } }>('POST', `/api/admin/returns/${rejReturnId}/reddet`, { note: 'Kullanım izi tespit edildi, iade kabul edilmiyor.' }, cookie);
+  check('talep reddedildi', reject.status === 200 && reject.body.item.status === 'reddedildi', `status=${reject.status}`);
+  const orderAfterReject = await db.order.findUnique({ where: { id: rejOrder.body.orderId } });
+  check('red sonrası sipariş tamamlandıya geri döner', orderAfterReject?.status === 'tamamlandı', orderAfterReject?.status);
+  const rejectMail = await db.emailLog.count({ where: { orderId: rejOrder.body.orderId, template: 'iade-talebi-reddedildi' } });
+  check('red e-postası kuyruğa düştü', rejectMail === 1);
+  const reReturn = await api('POST', `/api/hesap/siparisler/${rejOrder.body.orderNumber}/iade`, { items: [{ orderItemId: rejItem.id, quantity: 1 }], reason: 'diğer' }, custCookie);
+  check('red sonrası yeni talep açılabilir (kilitlenmez)', reReturn.status === 201, `status=${reReturn.status}`);
+
+  console.log('\n14) Kuponlar (F5)');
+  const couponCode = `SMOKE${runId.toUpperCase()}`;
+  const couponCreate = await api<{ coupon: { id: string; code: string } }>('POST', '/api/admin/coupons', {
+    code: couponCode, type: 'yüzde', value: 1000, minCartTotalMinor: null, maxDiscountMinor: null, startsAt: null, endsAt: null,
+    usageLimit: null, usageLimitPerCustomer: null, includeProductIds: [], excludeProductIds: [], includeCategoryIds: [],
+    firstOrderOnly: false, isActive: true, stackable: false,
+  }, cookie);
+  check('kupon oluşturuldu', couponCreate.status === 201 && couponCreate.body.coupon.code === couponCode, `status=${couponCreate.status}`);
+  const couponId = couponCreate.body.coupon.id;
+  const couponDupe = await api('POST', '/api/admin/coupons', { code: couponCode, type: 'tutar', value: 100, includeProductIds: [], excludeProductIds: [], includeCategoryIds: [] }, cookie);
+  check('aynı kodla ikinci kupon reddedilir (409)', couponDupe.status === 409, `status=${couponDupe.status}`);
+  const couponViewer = await api('POST', '/api/admin/coupons', { code: 'XX', type: 'tutar', value: 100 }, vcookie);
+  check('görüntüleyici kupon oluşturamaz (403)', couponViewer.status === 403, `status=${couponViewer.status}`);
+
+  const quoteWithCoupon = await api<{ totals: { discountTotalMinor: number }; coupon: { ok: boolean } | null }>('POST', '/api/checkout/quote', {
+    lines: [{ variantId: vA.id, quantity: 1 }], city: 'Ankara', email: guestEmail, couponCode,
+  });
+  check('%10 kupon sepete indirim uyguluyor', quoteWithCoupon.body.totals.discountTotalMinor > 0, JSON.stringify(quoteWithCoupon.body.totals));
+
+  const couponDeactivate = await api<{ coupon: { isActive: boolean } }>('PATCH', `/api/admin/coupons/${couponId}`, {
+    code: couponCode, type: 'yüzde', value: 1000, isActive: false, includeProductIds: [], excludeProductIds: [], includeCategoryIds: [],
+  }, cookie);
+  check('kupon pasife alındı', couponDeactivate.status === 200 && couponDeactivate.body.coupon.isActive === false);
+  const quoteAfterDeactivate = await api<{ totals: { discountTotalMinor: number } }>('POST', '/api/checkout/quote', { lines: [{ variantId: vA.id, quantity: 1 }], city: 'Ankara', email: guestEmail, couponCode });
+  check('pasif kupon artık indirim uygulamıyor', quoteAfterDeactivate.body.totals.discountTotalMinor === 0);
+
+  await db.coupon.update({ where: { id: couponId }, data: { usedCount: 1 } });
+  const deleteUsed = await api('DELETE', `/api/admin/coupons/${couponId}`, undefined, cookie);
+  check('kullanılmış kupon silinemez (409)', deleteUsed.status === 409, `status=${deleteUsed.status}`);
+  await db.coupon.update({ where: { id: couponId }, data: { usedCount: 0 } });
+  const deleteUnused = await api('DELETE', `/api/admin/coupons/${couponId}`, undefined, cookie);
+  check('kullanılmamış kupon silinebilir', deleteUnused.status === 200, `status=${deleteUnused.status}`);
+
+  console.log('\n15) Stok (F5)');
+  const lowStockBefore = await api<{ threshold: number; items: { variantId: string }[] }>('GET', '/api/admin/stock/dusuk', undefined, cookie);
+  check('düşük stok raporu 200', lowStockBefore.status === 200 && typeof lowStockBefore.body.threshold === 'number', `status=${lowStockBefore.status}`);
+
+  const stockBeforeAdj = (await db.variant.findUnique({ where: { id: vB.id } }))!.stock;
+  const adjust = await api<{ movement: { stockAfter: number; reason: string } }>('POST', `/api/admin/stock/duzelt/${vB.id}`, { delta: 5, reason: 'sayım', note: 'Fiziksel sayım smoke testi' }, cookie);
+  check('manuel stok düzeltmesi (+5) çalışır', adjust.status === 201 && adjust.body.movement.stockAfter === stockBeforeAdj + 5, `status=${adjust.status}`);
+  const negAdjust = await api('POST', `/api/admin/stock/duzelt/${vB.id}`, { delta: -(stockBeforeAdj + 999), reason: 'manuel' }, cookie);
+  check('stoku negatife düşüren düzeltme reddedilir (422)', negAdjust.status === 422, `status=${negAdjust.status}`);
+  const adjustViewer = await api('POST', `/api/admin/stock/duzelt/${vB.id}`, { delta: 1, reason: 'manuel' }, vcookie);
+  check('görüntüleyici stok düzeltemez (403)', adjustViewer.status === 403, `status=${adjustViewer.status}`);
+  await api('POST', `/api/admin/stock/duzelt/${vB.id}`, { delta: -5, reason: 'sayım', note: 'smoke testi geri al' }, cookie);
+
+  const movements = await api<{ items: { variantId: string; delta: number }[] }>('GET', `/api/admin/stock/hareketler?q=${encodeURIComponent(vB.sku ?? '')}`, undefined, cookie);
+  check('stok hareketleri listesinde manuel düzeltme görünür', movements.status === 200 && movements.body.items.some((m) => m.variantId === vB.id && m.delta === 5), `status=${movements.status}`);
+
+  console.log('\n16) Müşteriler (F5)');
+  const custList = await api<{ items: { id: string; email: string }[] }>('GET', `/api/admin/customers?q=${encodeURIComponent(custEmail)}`, undefined, cookie);
+  const custRow = custList.body.items.find((c) => c.email === custEmail);
+  check('müşteri listede bulunur', custList.status === 200 && Boolean(custRow), `status=${custList.status}`);
+  custId = custRow!.id;
+
+  const custDetail = await api<{ item: { orderCount: number; totalSpentMinor: number } }>('GET', `/api/admin/customers/${custId}`, undefined, cookie);
+  check('müşteri detayında sipariş sayısı ve harcama doğru', custDetail.status === 200 && custDetail.body.item.orderCount >= 2 && custDetail.body.item.totalSpentMinor > 0, JSON.stringify(custDetail.body.item));
+
+  const metaViewer = await api('PATCH', `/api/admin/customers/${custId}`, { note: 'x', tags: [] }, vcookie);
+  check('görüntüleyici müşteri notunu değiştiremez (403)', metaViewer.status === 403, `status=${metaViewer.status}`);
+  const metaSave = await api<{ item: { note: string; tags: string[] } }>('PATCH', `/api/admin/customers/${custId}`, { note: 'Smoke testinden not', tags: ['smoke', 'test'] }, cookie);
+  check('müşteri notu/etiketleri kaydedildi', metaSave.status === 200 && metaSave.body.item.note === 'Smoke testinden not' && metaSave.body.item.tags.length === 2, `status=${metaSave.status}`);
+
+  const anonViewer = await api('POST', `/api/admin/customers/${custId}/anonimlestir`, undefined, vcookie);
+  check('görüntüleyici anonimleştiremez (403)', anonViewer.status === 403, `status=${anonViewer.status}`);
+  const anon = await api('POST', `/api/admin/customers/${custId}/anonimlestir`, undefined, cookie);
+  check('müşteri anonimleştirildi', anon.status === 200, `status=${anon.status}`);
+  const custRowAfter = await db.customer.findUnique({ where: { id: custId } });
+  check('e-posta/ad/telefon silindi, anonymizedAt dolu', custRowAfter?.email !== custEmail && custRowAfter?.firstName === 'Silinmiş' && custRowAfter?.phone === null && custRowAfter?.anonymizedAt != null, JSON.stringify({ email: custRowAfter?.email, firstName: custRowAfter?.firstName }));
+  const orderSnapshotAfterAnon = await db.order.findUnique({ where: { id: retId } });
+  const snapAddr = orderSnapshotAfterAnon?.shippingAddress as { firstName?: string };
+  check('geçmiş sipariş adres anlık görüntüsü korundu (KVKK: yalnız profil silinir)', snapAddr?.firstName === 'İade');
+  const loginAfterAnon = await api('POST', '/api/hesap/giris', { email: custEmail, password: custPassword });
+  check('anonimleştirilmiş müşteri artık giriş yapamaz', loginAfterAnon.status === 401, `status=${loginAfterAnon.status}`);
+  const anonAgain = await api('POST', `/api/admin/customers/${custId}/anonimlestir`, undefined, cookie);
+  check('ikinci kez anonimleştirme reddedilir (409)', anonAgain.status === 409, `status=${anonAgain.status}`);
+
 } catch (err) {
   failures.push(String(err));
   console.error(err);
@@ -320,12 +493,16 @@ try {
 } finally {
   server.kill();
   try {
-    const orders = await db.order.findMany({ where: { OR: [{ guestEmail }, { customer: { email: guestEmail } }] }, include: { items: true } });
+    const orders = await db.order.findMany({
+      where: { OR: [{ guestEmail }, { customer: { email: guestEmail } }, ...(custId ? [{ customerId: custId }] : [])] },
+      include: { items: true },
+    });
     for (const o of orders) {
       if (o.status !== 'iptal') for (const i of o.items) if (i.variantId) await db.variant.update({ where: { id: i.variantId }, data: { stock: { increment: i.quantity - i.refundedQuantity } } });
-      await db.order.delete({ where: { id: o.id } });
+      await db.order.delete({ where: { id: o.id } }); // ReturnRequest cascade ile silinir.
     }
     await db.customer.deleteMany({ where: { email: guestEmail } });
+    if (custId) await db.customer.deleteMany({ where: { id: custId } });
     await db.user.deleteMany({ where: { email: viewerEmail } });
     console.log(`\nTemizlik: ${orders.length} sipariş, müşteri ve test kullanıcısı silindi, stok geri kondu.`);
   } catch (e) { console.error('Temizlik hatası:', e); }

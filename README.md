@@ -121,7 +121,7 @@ stok ve varyasyonlar temsilidir.
 | `/siparis/tamamlandi?no=…&t=…` | Gerçek sipariş özeti; `t` imzalı erişim jetonu, yoksa yalnız "alındı" mesajı |
 | `/siparis-takibi` | Misafir sorgulama: sipariş no + e-posta (IP başına dakikada 10 deneme) |
 | `/giris` · `/kayit` | Müşteri hesabı; misafir siparişleri aynı e-postayla kayıt olunca hesaba bağlanır |
-| `/hesabim/siparisler` · `/hesabim/siparisler/[no]` | Siparişlerim, detay, kargolanmamış siparişi iptal, ödemeyi tamamla |
+| `/hesabim/siparisler` · `/hesabim/siparisler/[no]` | Siparişlerim, detay, kargolanmamış siparişi iptal, ödemeyi tamamla, teslim edilmiş siparişte iade talebi aç |
 | `/hesabim/adresler` · `/hesabim/bilgilerim` | Adres defteri (TCKN şifreli, maskeli), profil ve parola |
 
 Ödeme yöntemleri: kart (`DEMO_MODE=true` iken mock; taksit seçenekleri teklifte
@@ -204,6 +204,39 @@ Ayarlar → Ödeme → Kapıda ödeme limitleri de uygulanır (iki ayrı kısıt
 
 Etiket: `/admin/kargolar/yazdir?ids=…` gerçek bir taşıyıcı barkodu DEĞİLDİR —
 adres, takip no ve içerik özetini taşıyan A6 paket etiketi (tarayıcıdan PDF).
+
+### Müşteri hizmetleri (F5)
+
+**İadeler.** Sipariş durum makinesindeki `teslim-edildi`/`tamamlandı` → `iade-talebi`
+geçişi bu fazda ilk kez kullanılır. Müşteri `/hesabim/siparisler/[no]`'dan kalem
+seçip talep açar (cayma hakkı süresi `withdrawalDays` ile sınırlı, aynı anda tek
+açık talep); sipariş otomatik `iade-talebi`ne geçer ve "talebiniz alındı" e-postası
+gider. Panelde (`/admin/iadeler`) akış: **onayla** (talimat + iade kodu, e-posta
+gider) → müşteri kargoyla gönderir → **ürün alındı** → **tamamla** (mevcut
+`orders/refunds.ts::createRefund` çağrılır — sağlayıcı iadesi, stok geri, e-posta).
+Tam iade + teslim edilmiş sipariş otomatik `iade-edildi`ye geçer; kısmi iadede
+sipariş `tamamlandı`/`teslim-edildi`ye geri döner (iade-talebinde takılı kalmaz).
+**Reddet** her aşamada mümkündür (gerekçe zorunlu, e-posta gider, sipariş eski
+durumuna döner) — reddedilen talep sonrası yeni talep açılabilir.
+
+**Kuponlar.** `/admin/kuponlar` mevcut `Coupon` tablosunu ve `pricing/coupons.ts`
+değerlendirme mantığını (F1'den beri checkout'ta kullanılıyor) panelden yönetir.
+Kullanılmış kupon (`usedCount > 0`) silinemez — geçmiş kullanım kaydı
+(`CouponRedemption`) korunsun diye pasife alınır.
+
+**Stok.** `/admin/stok` düşük stok raporu (`lowStockThreshold` ayarı, yayındaki
+ürünler) ve tüm `StockMovement` geçmişinin dökümünü gösterir. Manuel düzeltme
+(sayım farkı, fire) negatif stoku engeller ve denetim kaydına yazılır; sipariş/
+iptal/iade hareketleri zaten F1'den beri otomatik yazılıyordu, burası yalnız
+görünürlük ve manuel müdahale ekler.
+
+**Müşteriler.** `/admin/musteriler` sipariş sayısı ve toplam harcamayı (iptal/
+başarısız hariç durumlar üzerinden) hesaplar, panel notu ve etiket düzenlemeye
+izin verir. **KVKK anonimleştirme** geri alınamaz: e-posta/ad/telefon/adres
+defteri silinir, oturumlar kapatılır, giriş engellenir — ama geçmiş
+siparişlerdeki adres ANLIK GÖRÜNTÜSÜ (`Order.shippingAddress` vb.) bilinçli
+olarak korunur; bunlar mali/hukuki saklama süresine tabi belgelerdir, müşteri
+profiliyle aynı şey değildir.
 
 ### Veri
 
@@ -297,6 +330,10 @@ ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 | `/admin/kargolar` | Tüm siparişlerdeki sevkiyatlar: durum sekmeleri, firma/arama filtresi, hızlı durum güncelleme, toplu takip yenileme, toplu etiket yazdırma |
 | `/admin/kargolar/yazdir?ids=…` | Yazdırılabilir kargo etiketi (A6), her sevkiyat ayrı sayfada |
 | `/admin/ayarlar/kargo` | Bölge/tarife yönetimi (il eşleşmesi, sabit/desi/tutara-göre/ücretsiz/kapıda kademeler), taşıyıcı bağlantıları (şifreli, maskeli), kapıda ödeme hizmet bedeli ve üst tutar sınırı |
+| `/admin/iadeler` | Müşteri iade talepleri: durum sekmeleri (talep/onaylandı/ürün-alındı/tamamlandı/reddedildi), onay/red (e-posta gider), ürün alındı, tamamla (gerçek iade işler, stok geri) |
+| `/admin/musteriler` · `/admin/musteriler/[id]` | Hesaplı müşteriler: sipariş sayısı/harcama, adres defteri, son siparişler, panel notu/etiket, KVKK anonimleştirme |
+| `/admin/kuponlar` | İndirim kodu CRUD: yüzde/tutar/ücretsiz kargo, tarih/limit/ürün-kategori kısıtları |
+| `/admin/stok` | Düşük stok raporu (+ manuel düzelt), tüm stok hareketlerinin dökümü (sipariş/iptal/iade/manuel/sayım/fire) |
 | `/admin/giris` | Parola girişi |
 
 ### Ürün ve varyasyon modeli
@@ -472,7 +509,7 @@ npm run build && npm run qa:checkout   # gerçek HTTP + veritabanı: teklif → 
 
 `qa:checkout` test verisini sonunda temizler ve stoku geri koyar.
 
-### Panel sipariş, ödeme ve kargo yönetimi duman testi (F2–F4)
+### Panel sipariş, ödeme, kargo, iade, kupon, stok ve müşteri duman testi (F2–F5)
 
 ```sh
 npm run build
@@ -492,7 +529,13 @@ kargo listesi/hızlı güncelleme, takip yenileme (bağlı sağlayıcı yokken d
 401, doğru anahtarla oturumsuz 200), kargo etiketi sayfası, bölge/tarife CRUD'un
 checkout teklifine gerçekten yansıması (yeni bölge → ücret görünür → ücretsize
 çevrilince 0 → silinince varsayılana döner) ve taşıyıcı anahtarı şifreleme/
-maskelemesini sınar (65 kontrol). Test verisini ve ayar değişikliklerini geri alır.
+maskelemesini sınar. F5 bölümü uçtan uca iade akışını (müşteri hesabı → sipariş
+→ teslim → talep → onay/ürün alındı/tamamla ile gerçek iade, ayrıca red akışı
+ve red sonrası yeni talep açılabildiği), kupon CRUD'un checkout indirimine
+gerçekten yansımasını (aktif → pasif → silme kısıtı), stok manuel düzeltmesini
+(negatif stok reddi dahil) ve müşteri listesi/notu/KVKK anonimleştirmesini
+(giriş engeli, geçmiş sipariş adresinin korunduğu) doğrular (111 kontrol).
+Test verisini ve ayar değişikliklerini geri alır.
 
 ### Kimlik doğrulama duman testi
 
@@ -516,10 +559,22 @@ proje köküne kendi ajan bloğunu yeniden ekler (Next 16 davranışı).
 
 Sıcak krem ve marka moru üzerine kurulu ortak tasarım sistemi. Görsel kaynakları
 ve üretim promptları [GENERATED_ASSETS.md](GENERATED_ASSETS.md) dosyasındadır.
-Görseller temsilidir; fiyat, varyasyon ve stoklar demo katalog verileridir.
-Gerçek müşteri puanı, doğrulanmış yorum veya ödeme altyapısı sunulmaz.
+Ürün görselleri temsilidir; fiyat/varyasyon/stok verileri gerçek veritabanı
+kayıtlarıdır (demo içerikle tohumlanmıştır — bkz. "Demo verisine sıfırla").
+Müşteri puanı/yorumu şu an yok.
 
-## Kapsam dışı
+## Kapsam dışı (bilinçli, bu sürümde yok)
 
-Gerçek ödeme, üyelik, sipariş yönetimi, çoklu kullanıcı rolleri, harici
-veritabanı.
+- **Gerçek taşıyıcı kargo API'si** — Yurtiçi/Aras/MNG/Sürat/PTT adaptörleri
+  iskelet halinde (bkz. "Kargo altyapısı"); bayi/entegrasyon belgesi gerekir.
+- **e-Fatura / e-Arşiv** — panel yalnızca bilgi fişi/irsaliye üretir, resmî
+  fatura değildir; gerçek entegrasyon F7'de e-fatura sağlayıcısıyla eklenir.
+- **Gerçek e-posta gönderimi** — `DEMO_MODE=true` iken tüm e-postalar
+  `EmailLog`'a yazılır, gerçekten gönderilmez (bkz. F7).
+- **iyzico/PayTR/Stripe canlı doğrulaması** — kod yazıldı ama gerçek sandbox
+  hesabıyla test edilmedi (bkz. "Ödeme altyapısı").
+- **KVKK anonimleştirme kapsamı** — yalnız müşteri profilini/adres defterini
+  siler; geçmiş sipariş belgelerindeki adres anlık görüntüsü yasal saklama
+  süresi nedeniyle korunur (bkz. "Müşteriler").
+- **İade fotoğrafı yükleme** — `ReturnRequest.photos` alanı hazır ama yükleme
+  arayüzü yok.

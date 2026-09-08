@@ -3,25 +3,70 @@
 > **Devam talimatı:** Kullanıcı "devam et" dediğinde bu dosyadan devam et. Projeyi
 > baştan analiz etme. Aşağıdaki "SONRAKİ ADIM" bölümünden başla.
 
-Son güncelleme: 2026-09-08 (F4 tamamlandı ve doğrulandı — sıra F5'te)
+Son güncelleme: 2026-09-08 (F5 tamamlandı ve doğrulandı — sıra F6'da)
 
 ## SONRAKİ ADIM
 
-**F5 — Müşteri / iade / kupon / stok.** Plan: `PLAN-YONETIM-PANELI.md`.
-`src/app/admin/{musteriler,iadeler,kuponlar,stok}/**`, `src/server/{returns,coupons,inventory,kvkk}/**`.
-Müşteri listesi (sipariş sayısı/harcama, adres defteri, KVKK anonimleştirme),
-iade TALEBİ akışı (müşteri `/hesabim/siparisler/[no]`'dan talep açar → panelde
-onay/red → onaylanınca mevcut `refunds.ts` çalışır; bugün yalnız panel doğrudan
-iade işliyor, müşteri talebi yok), kupon CRUD (mevcut `Coupon` tablosu ve
-`pricing/coupons.ts` var, panel ekranı yok), stok hareketleri listesi + düşük
-stok raporu + manuel stok düzeltme (mevcut `StockMovement` tablosu var, panel
-ekranı yok).
+**F6 — Raporlar.** Plan: `PLAN-YONETIM-PANELI.md`. Satış/ürün/müşteri raporları
+(günlük/haftalık/aylık ciro, en çok satan ürünler, kategori kırılımı, iade
+oranı, ortalama sepet tutarı), `/admin/raporlar` (izin: `rapor:oku`, zaten
+tanımlı). Muhtemelen Chart.js veya benzeri (henüz bağımlılık yok, kullanıcıya
+sor); CSV dışa aktarım mevcut sipariş/ödeme export desenini izleyebilir.
+Veri kaynağı: mevcut `Order`, `OrderItem`, `Payment`, `Refund` tabloları —
+yeni şema muhtemelen gerekmez, yalnız agregasyon sorguları.
 
 Ortam notu: QA portlarında (3993/3994/3997) eski `next start` süreçleri kalabiliyor
 → `Get-NetTCPConnection -State Listen` ile bul, `Stop-Process`. Build panic
-("AssetContent::file was canceled") görürsen `rm -rf .next`. Yeni bir admin
-smoke değişikliğinden sonra script içi tekil `secretVal` gibi isimler farklı
-fazlarda çakışabilir (esbuild "already declared") — bölüme özel önek kullan.
+("AssetContent::file was canceled") görürsen `rm -rf .next`. Admin smoke
+scripti artık 500+ satır — yeni bölüm eklerken değişken adı çakışmalarına
+dikkat (esbuild "already declared"); bölüme özel önek kullan (F5'te
+`kargoSecretVal`, `custId` gibi).
+
+---
+
+## F5 — TAMAMLANDI (2026-09-08)
+
+Müşteri / iade / kupon / stok. Commit: F5 (bkz. git log).
+
+- `src/server/returns/{schema,requests,admin}.ts` — durum makinesindeki
+  `iade-talebi` geçişi ilk kez kullanılıyor (F0'dan beri tanımlıydı, boştu).
+  Müşteri talep açar (cayma hakkı `withdrawalDays`, tek açık talep kısıtı) →
+  panelde onayla/reddet/ürün-alındı/tamamla (tamamla = mevcut
+  `orders/refunds.ts::createRefund`, sonra gerekirse siparişi eski duruma
+  geri taşır — kısmi iadede `createRefund` kendisi order.status'u değiştirmez).
+  İki yeni e-posta şablonu: `iade-talebi-onaylandi`, `iade-talebi-reddedildi`.
+- `src/server/coupons/{schema,admin}.ts` — mevcut `Coupon` tablosu + F1'den beri
+  çalışan `pricing/coupons.ts` değerlendirmesi üzerine CRUD. Kullanılmış kupon
+  silinemez (pasife alınır, `CouponRedemption` geçmişi korunur).
+  `admin.ts`'ten ayrı `schema.ts`: `couponInputSchema` `server-only` içermez,
+  vitest doğrudan çalıştırır (bkz. F1'den beri bilinen kısıt).
+- `src/server/inventory/admin.ts` — `listStockMovements`, `lowStockReport`
+  (`lowStockThreshold` ayarı), `manualAdjust` (negatif stok reddi, `StockMovement`
+  yazar, `revalidateCatalog`). Sipariş/iptal/iade hareketleri zaten F1'den beri
+  otomatikti; bu yalnız görünürlük + manuel müdahale ekliyor.
+- `src/server/customers/admin.ts` — liste (sipariş sayısı + harcama toplu
+  sorgu), detay (adresler/siparişler/iadeler), not/etiket, **KVKK
+  anonimleştirme** (e-posta/ad/telefon/adres defteri silinir, oturumlar
+  kapatılır, giriş engellenir; geçmiş sipariş adres ANLIK GÖRÜNTÜSÜ bilinçli
+  korunur — mali/hukuki saklama, ayrı konu).
+- Rotalar: `/api/admin/returns/**`, `/api/admin/coupons[/[id]]`,
+  `/api/admin/stock/{hareketler,dusuk,duzelt/[variantId]}`,
+  `/api/admin/customers[/[id][/anonimlestir]]`, `/api/hesap/siparisler/[no]/iade`.
+- UI: `/admin/iadeler` (`ReturnsList` + `ReturnDetailDialog`, durum bazlı aksiyon
+  paneli), `/admin/kuponlar` (`CouponsList` + `CouponEditor`), `/admin/stok`
+  (`StockPanel` — düşük stok / hareketler sekmeleri), `/admin/musteriler[/[id]]`
+  (`CustomersList` + `CustomerDetail`); vitrin: `OrderActions`'taki "yakında"
+  yer tutucusu gerçek `ReturnRequestForm`'a bağlandı, durum banner'ı eklendi.
+  Nav: "İadeler", "Müşteriler", "Kuponlar", "Stok".
+- `PublicOrder.returnRequest` eklendi (`view.ts`, `Order.returns` ilişkisi
+  üzerinden — dikkat: Prisma alan adı `returnRequests` DEĞİL `returns`).
+- Doğrulama: lint/typecheck/build temiz; vitest 67 (+4 kupon şeması); `qa:checkout`
+  42/42 (regresyon); `qa:orders` 111/111 — yeni bölümler: iade tam yaşam döngüsü
+  (talep→onay→ürün-alındı→tamamla, ayrıca red akışı), kupon CRUD'un checkout
+  indirimine yansıması, stok manuel düzeltme, müşteri listesi/KVKK.
+- Bilinen kapsam dışı: iade fotoğrafı yükleme yok (`ReturnRequest.photos` alanı
+  hazır, UI yok — projede hiç dosya yükleme altyapısı yok); "ücretsiz kargo"
+  tipi kupon checkout'ta test edilmedi (yüzde/tutar tipleri smoke'ta var).
 
 ---
 
@@ -191,7 +236,6 @@ Vitrin regresyonu: 26/26 aynı. lint/typecheck temiz.
 - `qa:responsive`: ana sayfa 1920px'de 8px yatay taşma (F1 öncesinden geliyor, vitrin
   çıktısı baseline ile birebir; ayrı ele alınacak).
 - Havale IBAN bilgisi ayarlardan gelmiyor (F7 mağaza ayarları).
-- İade talebi düğmesi placeholder (F5).
 - Parola sıfırlama (müşteri + admin) yazılmadı.
 - Süresi dolan rezervasyonları düzenli temizleyen cron betiği yok (sipariş
   oluşturma ucunda tetikleniyor).
