@@ -307,8 +307,8 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
 
   const inputCls = (bad?: boolean) =>
     cn(
-      'w-full rounded-lg border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-purple-300',
-      bad ? 'border-rose-400' : 'border-purple-200 focus:border-purple-400',
+      'w-full rounded-lg border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-200',
+      bad ? 'border-brand-400' : 'border-line focus:border-line',
     );
 
   return (
@@ -329,9 +329,9 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
                   aria-current={current ? 'step' : undefined}
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-                    current && 'border-purple-600 bg-purple-600 text-cream',
-                    done && 'border-purple-200 bg-white text-purple-700 hover:bg-purple-50',
-                    !current && !done && 'border-purple-100 bg-purple-50/50 text-ink-soft',
+                    current && 'border-brand-500 bg-brand-500 text-white',
+                    done && 'border-line bg-white text-ink hover:bg-mist',
+                    !current && !done && 'border-line bg-mist/50 text-ink-soft',
                   )}
                 >
                   {done ? <Check size={14} /> : <Icon size={14} />}
@@ -342,7 +342,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
           })}
         </ol>
 
-        <div className="mt-6 rounded-2xl border border-purple-100 bg-white p-5 sm:p-7">
+        <div className="mt-6 rounded-lg border border-line bg-white p-5 sm:p-7">
           <h1 ref={headingRef} tabIndex={-1} className="text-display-sm outline-none">
             {STEPS[step - 1].label}
           </h1>
@@ -351,23 +351,23 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
           {step === 1 && (
             <div className="mt-5 space-y-4">
               {customer ? (
-                <p className="rounded-xl bg-purple-50 p-3 text-sm">
+                <p className="rounded-md bg-mist p-3 text-sm">
                   <strong>{customer.firstName} {customer.lastName}</strong> olarak giriş yaptınız ({customer.email}).
                 </p>
               ) : (
                 <p className="text-sm text-ink-soft">
                   Üye olmadan devam edebilirsiniz. Hesabınız varsa{' '}
-                  <Link href="/giris?next=/odeme" className="link-underline font-semibold text-purple-700">giriş yapın</Link>;
+                  <Link href="/giris?next=/odeme" className="link-underline font-semibold text-ink">giriş yapın</Link>;
                   adresleriniz ve sipariş geçmişiniz hazır gelsin.
                 </p>
               )}
               <div>
-                <label htmlFor="co-email" className="mb-1.5 block text-xs font-semibold text-purple-800">E-posta</label>
+                <label htmlFor="co-email" className="mb-1.5 block text-xs font-semibold text-ink">E-posta</label>
                 <input id="co-email" type="email" autoComplete="email" className={inputCls(Boolean(emailError))} value={email}
                   disabled={Boolean(customer)} onChange={(e) => { setEmail(e.target.value); setEmailError(null); }}
                   aria-invalid={emailError ? true : undefined} aria-describedby={emailError ? 'co-email-err' : 'co-email-hint'} />
                 {emailError ? (
-                  <p id="co-email-err" className="mt-1 text-xs text-rose-500">{emailError}</p>
+                  <p id="co-email-err" className="mt-1 text-xs text-brand-600">{emailError}</p>
                 ) : (
                   <p id="co-email-hint" className="mt-1 text-xs text-ink-soft">Sipariş onayı ve kargo bildirimleri bu adrese gelir.</p>
                 )}
@@ -379,11 +379,11 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
           {step === 2 && (
             <div className="mt-5 space-y-6">
               <section aria-labelledby="co-ship-h">
-                <h2 id="co-ship-h" className="text-sm font-semibold text-purple-900">Teslimat adresi</h2>
+                <h2 id="co-ship-h" className="text-sm font-semibold text-ink">Teslimat adresi</h2>
                 {shippingBook.length > 0 && (
                   <div className="mt-3 grid gap-2">
                     {shippingBook.map((a) => (
-                      <label key={a.id} className={cn('flex cursor-pointer gap-3 rounded-xl border p-3 text-sm', shippingSel === a.id ? 'border-purple-500 bg-purple-50/50' : 'border-purple-100')}>
+                      <label key={a.id} className={cn('flex cursor-pointer gap-3 rounded-md border p-3 text-sm', shippingSel === a.id ? 'border-brand-500 bg-mist/50' : 'border-line')}>
                         <input type="radio" name="co-ship" className="mt-1" checked={shippingSel === a.id} onChange={() => setShippingSel(a.id)} />
                         <span>
                           <strong>{a.title}</strong> — {a.firstName} {a.lastName}<br />
@@ -391,7 +391,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
                         </span>
                       </label>
                     ))}
-                    <label className={cn('flex cursor-pointer gap-3 rounded-xl border p-3 text-sm', shippingSel === 'yeni' ? 'border-purple-500 bg-purple-50/50' : 'border-purple-100')}>
+                    <label className={cn('flex cursor-pointer gap-3 rounded-md border p-3 text-sm', shippingSel === 'yeni' ? 'border-brand-500 bg-mist/50' : 'border-line')}>
                       <input type="radio" name="co-ship" checked={shippingSel === 'yeni'} onChange={() => setShippingSel('yeni')} />
                       Yeni adres gir
                     </label>
@@ -406,7 +406,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
               </section>
 
               <section aria-labelledby="co-bill-h">
-                <h2 id="co-bill-h" className="text-sm font-semibold text-purple-900">Fatura adresi</h2>
+                <h2 id="co-bill-h" className="text-sm font-semibold text-ink">Fatura adresi</h2>
                 <label className="mt-2 inline-flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={billingSame} onChange={(e) => setBillingSame(e.target.checked)} />
                   Teslimat adresiyle aynı
@@ -416,12 +416,12 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
                     {billingBook.length > 0 && (
                       <div className="grid gap-2">
                         {billingBook.map((a) => (
-                          <label key={a.id} className={cn('flex cursor-pointer gap-3 rounded-xl border p-3 text-sm', billingSel === a.id ? 'border-purple-500 bg-purple-50/50' : 'border-purple-100')}>
+                          <label key={a.id} className={cn('flex cursor-pointer gap-3 rounded-md border p-3 text-sm', billingSel === a.id ? 'border-brand-500 bg-mist/50' : 'border-line')}>
                             <input type="radio" name="co-bill" className="mt-1" checked={billingSel === a.id} onChange={() => setBillingSel(a.id)} />
                             <span><strong>{a.title}</strong> — {a.isCorporate ? a.companyName : `${a.firstName} ${a.lastName}`}<br /><span className="text-ink-soft">{a.addressLine}, {a.district} / {a.city}</span></span>
                           </label>
                         ))}
-                        <label className={cn('flex cursor-pointer gap-3 rounded-xl border p-3 text-sm', billingSel === 'yeni' ? 'border-purple-500 bg-purple-50/50' : 'border-purple-100')}>
+                        <label className={cn('flex cursor-pointer gap-3 rounded-md border p-3 text-sm', billingSel === 'yeni' ? 'border-brand-500 bg-mist/50' : 'border-line')}>
                           <input type="radio" name="co-bill" checked={billingSel === 'yeni'} onChange={() => setBillingSel('yeni')} />
                           Yeni fatura adresi gir
                         </label>
@@ -444,14 +444,14 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
               ) : (
                 <div className="grid gap-2" role="radiogroup" aria-label="Kargo yöntemi">
                   {quote.shippingOptions.map((s) => (
-                    <label key={s.methodId} className={cn('flex cursor-pointer items-center gap-3 rounded-xl border p-4 text-sm', shippingMethodId === s.methodId ? 'border-purple-500 bg-purple-50/50' : 'border-purple-100')}>
+                    <label key={s.methodId} className={cn('flex cursor-pointer items-center gap-3 rounded-md border p-4 text-sm', shippingMethodId === s.methodId ? 'border-brand-500 bg-mist/50' : 'border-line')}>
                       <input type="radio" name="co-shipping" checked={shippingMethodId === s.methodId} onChange={() => { setShippingMethodId(s.methodId); setSubmitError(null); if (s.type !== 'kapıda' && paymentMethod === 'kapida') setPaymentMethod(''); }} />
                       <span className="flex-1">
                         <strong>{s.name}</strong>
                         {s.estimatedDays && <span className="block text-xs text-ink-soft">Tahmini {s.estimatedDays}</span>}
                       </span>
                       <span className="font-semibold">
-                        {s.priceMinor === 0 ? <span className="text-emerald-600">Ücretsiz</span> : formatMinor(s.priceMinor)}
+                        {s.priceMinor === 0 ? <span className="text-success">Ücretsiz</span> : formatMinor(s.priceMinor)}
                         {s.freeReason === 'eşik' && <span className="block text-[11px] font-normal text-ink-soft">tutar eşiği</span>}
                       </span>
                     </label>
@@ -465,23 +465,23 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
           {step === 4 && (
             <div className="mt-5 grid gap-2" role="radiogroup" aria-label="Ödeme yöntemi">
               {quote?.paymentOptions.map((p) => (
-                <label key={p.id} className={cn('flex gap-3 rounded-xl border p-4 text-sm', p.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-60', paymentMethod === p.id ? 'border-purple-500 bg-purple-50/50' : 'border-purple-100')}>
+                <label key={p.id} className={cn('flex gap-3 rounded-md border p-4 text-sm', p.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-60', paymentMethod === p.id ? 'border-brand-500 bg-mist/50' : 'border-line')}>
                   <input type="radio" name="co-payment" className="mt-1" disabled={!p.available} checked={paymentMethod === p.id} onChange={() => { setPaymentMethod(p.id); setSubmitError(null); }} />
                   <span className="flex-1">
                     <strong>{p.label}</strong>
                     {p.testMode && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Test modu</span>}
                     <span className="block text-xs text-ink-soft">{p.description}</span>
-                    {!p.available && p.reason && <span className="block text-xs text-rose-500">{p.reason}</span>}
+                    {!p.available && p.reason && <span className="block text-xs text-brand-600">{p.reason}</span>}
                   </span>
                   {p.surchargeMinor > 0 && <span className="text-xs font-semibold">+{formatMinor(p.surchargeMinor)}</span>}
                 </label>
               ))}
               {paymentMethod === 'kart' && installmentChoices.length > 1 && (
-                <fieldset className="mt-1 rounded-xl border border-purple-100 p-3">
-                  <legend className="px-1 text-xs font-semibold text-purple-800">Taksit</legend>
+                <fieldset className="mt-1 rounded-md border border-line p-3">
+                  <legend className="px-1 text-xs font-semibold text-ink">Taksit</legend>
                   <div className="grid gap-1.5 sm:grid-cols-2">
                     {installmentChoices.map((o) => (
-                      <label key={o.count} className={cn('flex cursor-pointer items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm', installment === o.count ? 'border-purple-500 bg-purple-50/50' : 'border-purple-100')}>
+                      <label key={o.count} className={cn('flex cursor-pointer items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm', installment === o.count ? 'border-brand-500 bg-mist/50' : 'border-line')}>
                         <span className="flex items-center gap-2">
                           <input type="radio" name="co-installment" checked={installment === o.count} onChange={() => setInstallment(o.count)} />
                           {o.count === 1 ? 'Tek çekim' : `${o.count} taksit`}
@@ -502,20 +502,20 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
           {step === 5 && (
             <div className="mt-5 space-y-5">
               <div className="grid gap-3 text-sm sm:grid-cols-2">
-                <div className="rounded-xl bg-purple-50/60 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gold-500">Teslimat</p>
+                <div className="rounded-md bg-mist/60 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Teslimat</p>
                   <p className="mt-1"><strong>{activeShipping.firstName} {activeShipping.lastName}</strong><br />{activeShipping.addressLine}<br />{activeShipping.district} / {activeShipping.city}</p>
-                  <button type="button" className="mt-1 text-xs font-semibold text-purple-700 link-underline" onClick={() => goTo(2)}>Değiştir</button>
+                  <button type="button" className="mt-1 text-xs font-semibold text-ink link-underline" onClick={() => goTo(2)}>Değiştir</button>
                 </div>
-                <div className="rounded-xl bg-purple-50/60 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gold-500">Kargo ve ödeme</p>
+                <div className="rounded-md bg-mist/60 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Kargo ve ödeme</p>
                   <p className="mt-1">{legalVars.kargoYontemi}<br />{legalVars.odemeYontemi}</p>
-                  <button type="button" className="mt-1 text-xs font-semibold text-purple-700 link-underline" onClick={() => goTo(3)}>Değiştir</button>
+                  <button type="button" className="mt-1 text-xs font-semibold text-ink link-underline" onClick={() => goTo(3)}>Değiştir</button>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="co-note" className="mb-1.5 block text-xs font-semibold text-purple-800">Sipariş notu <span className="font-normal text-ink-soft">(isteğe bağlı)</span></label>
+                <label htmlFor="co-note" className="mb-1.5 block text-xs font-semibold text-ink">Sipariş notu <span className="font-normal text-ink-soft">(isteğe bağlı)</span></label>
                 <textarea id="co-note" rows={2} maxLength={500} className={inputCls()} value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
               </div>
 
@@ -525,17 +525,17 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
 
               <fieldset className="space-y-2 text-sm" aria-describedby={consentError ? 'co-consent-err' : undefined}>
                 <legend className="sr-only">Onaylar</legend>
-                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.preInfo} onChange={(e) => setConsents({ ...consents, preInfo: e.target.checked })} /><span>Ön Bilgilendirme Formu&apos;nu okudum, onaylıyorum. <span className="text-rose-500">*</span></span></label>
-                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.distanceSales} onChange={(e) => setConsents({ ...consents, distanceSales: e.target.checked })} /><span>Mesafeli Satış Sözleşmesi&apos;ni okudum, onaylıyorum. <span className="text-rose-500">*</span></span></label>
-                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.kvkk} onChange={(e) => setConsents({ ...consents, kvkk: e.target.checked })} /><span>KVKK Aydınlatma Metni&apos;ni okudum. <span className="text-rose-500">*</span></span></label>
+                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.preInfo} onChange={(e) => setConsents({ ...consents, preInfo: e.target.checked })} /><span>Ön Bilgilendirme Formu&apos;nu okudum, onaylıyorum. <span className="text-brand-600">*</span></span></label>
+                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.distanceSales} onChange={(e) => setConsents({ ...consents, distanceSales: e.target.checked })} /><span>Mesafeli Satış Sözleşmesi&apos;ni okudum, onaylıyorum. <span className="text-brand-600">*</span></span></label>
+                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.kvkk} onChange={(e) => setConsents({ ...consents, kvkk: e.target.checked })} /><span>KVKK Aydınlatma Metni&apos;ni okudum. <span className="text-brand-600">*</span></span></label>
                 <label className="flex gap-2 text-ink-soft"><input type="checkbox" className="mt-0.5" checked={consents.marketing} onChange={(e) => setConsents({ ...consents, marketing: e.target.checked })} /><span>Kampanya ve yeniliklerden e-posta ile haberdar olmak istiyorum. <span className="text-[11px]">(isteğe bağlı — satın alma şartı değildir)</span></span></label>
-                {consentError && <p id="co-consent-err" className="text-xs text-rose-500" role="alert">{consentError}</p>}
+                {consentError && <p id="co-consent-err" className="text-xs text-brand-600" role="alert">{consentError}</p>}
               </fieldset>
             </div>
           )}
 
           {/* Hata + gezinme */}
-          <p className="mt-4 min-h-5 text-sm text-rose-600" role="alert" aria-live="polite">{submitError ?? ''}</p>
+          <p className="mt-4 min-h-5 text-sm text-brand-600" role="alert" aria-live="polite">{submitError ?? ''}</p>
           {quote?.problems.length ? (
             <ul className="mt-1 space-y-1 text-xs text-amber-700" aria-live="polite">
               {quote.problems.map((p, i) => <li key={i}>• {p}</li>)}
@@ -575,9 +575,9 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
 
 function LegalAccordion({ title, body }: { title: string; body: string }) {
   return (
-    <details className="rounded-xl border border-purple-100">
-      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-purple-900">{title}</summary>
-      <pre className="max-h-72 overflow-auto whitespace-pre-wrap border-t border-purple-50 px-4 py-3 font-sans text-xs leading-5 text-ink-soft">{body}</pre>
+    <details className="rounded-md border border-line">
+      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink">{title}</summary>
+      <pre className="max-h-72 overflow-auto whitespace-pre-wrap border-t border-line px-4 py-3 font-sans text-xs leading-5 text-ink-soft">{body}</pre>
     </details>
   );
 }

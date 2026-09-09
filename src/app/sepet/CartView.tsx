@@ -47,7 +47,7 @@ export function CartView() {
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
       <div>
-        <ul className="divide-y divide-purple-100 rounded-2xl border border-purple-100 bg-white">
+        <ul className="divide-y divide-line rounded-lg border border-line bg-white">
           {detailed.map((line) => (
             <li key={line.key} className="flex gap-4 p-4 sm:p-5">
               <Link href={`/urun/${line.product.slug}`} className="shrink-0">
@@ -56,14 +56,14 @@ export function CartView() {
                   alt={line.product.name}
                   width={96}
                   height={96}
-                  className="h-24 w-24 rounded-xl object-cover"
+                  className="h-24 w-24 rounded-md border border-line object-cover"
                 />
               </Link>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gold-500">{line.product.series}</p>
-                    <Link href={`/urun/${line.product.slug}`} className="font-semibold text-purple-900 hover:text-purple-600">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">{line.product.series}</p>
+                    <Link href={`/urun/${line.product.slug}`} className="font-semibold text-ink hover:text-brand-500">
                       {line.product.name}
                     </Link>
                   </div>
@@ -71,7 +71,7 @@ export function CartView() {
                     type="button"
                     onClick={() => remove(line.key)}
                     aria-label="Ürünü sepetten çıkar"
-                    className="rounded p-1.5 text-purple-300 hover:text-rose-500"
+                    className="rounded p-1.5 text-ink-soft hover:text-brand-500"
                   >
                     <Trash2 size={17} />
                   </button>
@@ -81,7 +81,7 @@ export function CartView() {
                   value={line.variantId}
                   onChange={(e) => changeVariant(line.key, e.target.value)}
                   aria-label="Varyasyon seç"
-                  className="mt-2 rounded-lg border border-purple-200 bg-white px-2.5 py-1.5 text-xs text-ink-soft"
+                  className="mt-2 w-full max-w-full truncate rounded-md border border-line bg-white px-2.5 py-1.5 text-xs text-ink-soft sm:w-auto"
                 >
                   {line.product.variants.map((v) => (
                     <option key={v.id} value={v.id} disabled={v.stock === 'out-of-stock'}>
@@ -102,7 +102,7 @@ export function CartView() {
                     {line.lineOldTotal > line.lineTotal && (
                       <p className="text-xs text-ink-soft line-through">{currency(line.lineOldTotal)}</p>
                     )}
-                    <p className="font-display text-lg font-semibold text-purple-900">{currency(line.lineTotal)}</p>
+                    <p className="text-lg font-bold text-ink">{currency(line.lineTotal)}</p>
                   </div>
                 </div>
               </div>
@@ -114,18 +114,18 @@ export function CartView() {
           <ButtonLink href="/urunler" variant="link">
             ← Alışverişe devam et
           </ButtonLink>
-          <button type="button" onClick={clear} className="text-xs font-medium text-rose-500 hover:text-rose-600">
+          <button type="button" onClick={clear} className="text-xs font-medium text-brand-500 hover:text-brand-600">
             Sepeti temizle
           </button>
         </div>
       </div>
 
-      <aside className="h-fit rounded-2xl border border-purple-100 bg-white p-5 lg:sticky lg:top-[calc(var(--header-h)+16px)]">
-        <h2 className="font-display text-lg font-semibold text-purple-900">Sipariş Özeti</h2>
+      <aside className="h-fit rounded-lg border border-line bg-white p-5 lg:sticky lg:top-[calc(var(--header-h-scrolled)+16px)]">
+        <h2 className="text-lg font-bold text-ink">Sipariş Özeti</h2>
 
         <div className="mt-4">
           {promo ? (
-            <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+            <div className="flex items-center justify-between rounded-md bg-success/10 px-3 py-2 text-xs font-semibold text-success">
               <span className="flex items-center gap-1.5">
                 <Tag size={13} /> {promo} uygulandı
               </span>
@@ -149,7 +149,7 @@ export function CartView() {
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="İndirim kodu"
                 aria-label="İndirim kodu"
-                className="min-w-0 flex-1 rounded-lg border border-purple-200 px-3 py-2 text-sm outline-none focus:border-purple-400"
+                className="min-w-0 flex-1 rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-brand-400"
               />
               <button type="submit" className="btn-ghost px-4 text-xs">
                 Uygula
@@ -159,43 +159,43 @@ export function CartView() {
           <p className="mt-1.5 text-[11px] text-ink-soft">Örnek kodlar: NEFIS10, ILKAROMA, GOLDENDROP</p>
         </div>
 
-        <div className="mt-4 space-y-2 border-t border-purple-100 pt-4 text-sm">
+        <div className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
           <div className="flex justify-between">
             <span className="text-ink-soft">Ara toplam</span>
-            <span className="font-medium text-purple-900">{currency(summary.subtotal)}</span>
+            <span className="font-semibold text-ink">{currency(summary.subtotal)}</span>
           </div>
           {summary.productSavings > 0 && (
-            <div className="flex justify-between text-emerald-600">
+            <div className="flex justify-between text-success">
               <span>Ürün indirimi</span>
               <span>−{currency(summary.productSavings)}</span>
             </div>
           )}
           {summary.promoDiscount > 0 && (
-            <div className="flex justify-between text-emerald-600">
+            <div className="flex justify-between text-success">
               <span>Kod indirimi</span>
               <span>−{currency(summary.promoDiscount)}</span>
             </div>
           )}
           <div className="flex justify-between">
             <span className="text-ink-soft">Kargo</span>
-            <span className="font-medium text-purple-900">{summary.shipping === 0 ? 'Ücretsiz' : currency(summary.shipping)}</span>
+            <span className="font-semibold text-ink">{summary.shipping === 0 ? 'Ücretsiz' : currency(summary.shipping)}</span>
           </div>
         </div>
 
         {summary.freeShippingRemaining > 0 && (
           <div className="mt-3">
             <p className="text-[11px] text-ink-soft">
-              Ücretsiz kargoya <strong className="text-purple-800">{currency(summary.freeShippingRemaining)}</strong> kaldı
+              Ücretsiz kargoya <strong className="text-ink">{currency(summary.freeShippingRemaining)}</strong> kaldı
             </p>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-purple-100">
-              <div className="h-full rounded-full bg-gold-400 transition-all" style={{ width: `${progress}%` }} />
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
+              <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${progress}%` }} />
             </div>
           </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between border-t border-purple-100 pt-4">
-          <span className="font-semibold text-purple-900">Toplam</span>
-          <span className="font-display text-xl font-bold text-purple-900">{currency(summary.total)}</span>
+        <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
+          <span className="font-semibold text-ink">Toplam</span>
+          <span className="text-xl font-bold text-brand-600">{currency(summary.total)}</span>
         </div>
 
         <button

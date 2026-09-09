@@ -11,10 +11,10 @@ import { cn } from '@/lib/utils';
 
 const inputCls = (bad?: boolean) =>
   cn(
-    'w-full rounded-lg border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-purple-300',
-    bad ? 'border-rose-400' : 'border-purple-200 focus:border-purple-400',
+    'w-full rounded-lg border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-200',
+    bad ? 'border-brand-400' : 'border-line focus:border-brand-400',
   );
-const labelCls = 'mb-1.5 block text-xs font-semibold text-purple-800';
+const labelCls = 'mb-1.5 block text-xs font-semibold text-ink';
 
 /** `next` yalnız site içi yol olabilir; açık yönlendirme engellenir. */
 function safeNext(next: string | null | undefined, fallback: string): string {
@@ -43,7 +43,7 @@ export function LoginForm({ next }: { next?: string }) {
   };
 
   return (
-    <form onSubmit={submit} noValidate className="rounded-2xl border border-purple-100 bg-white p-6 sm:p-8">
+    <form onSubmit={submit} noValidate className="rounded-lg border border-line bg-white p-6 sm:p-8">
       <div className="space-y-4">
         <div>
           <label htmlFor="login-email" className={labelCls}>E-posta</label>
@@ -54,13 +54,13 @@ export function LoginForm({ next }: { next?: string }) {
           <input id="login-password" type="password" autoComplete="current-password" className={inputCls(Boolean(error))} value={password} onChange={(e) => setPassword(e.target.value)} required />
         </div>
       </div>
-      <p className="mt-3 min-h-5 text-sm text-rose-600" role="alert" aria-live="polite">{error ?? ''}</p>
+      <p className="mt-3 min-h-5 text-sm text-brand-600" role="alert" aria-live="polite">{error ?? ''}</p>
       <button type="submit" className="btn-primary mt-2 w-full justify-center" disabled={busy || !email || !password}>
         <LogIn size={16} /> {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}
       </button>
       <p className="mt-4 text-center text-sm text-ink-soft">
         Hesabınız yok mu?{' '}
-        <Link href={`/kayit${next ? `?next=${encodeURIComponent(next)}` : ''}`} className="link-underline font-semibold text-purple-700">Kayıt olun</Link>
+        <Link href={`/kayit${next ? `?next=${encodeURIComponent(next)}` : ''}`} className="link-underline font-semibold text-brand-500">Kayıt olun</Link>
       </p>
     </form>
   );
@@ -106,10 +106,10 @@ export function RegisterForm({ next, initialEmail }: { next?: string; initialEma
     }
   };
 
-  const err = (k: string) => (errors[k] ? <p className="mt-1 text-xs text-rose-500">{errors[k]}</p> : null);
+  const err = (k: string) => (errors[k] ? <p className="mt-1 text-xs text-brand-600">{errors[k]}</p> : null);
 
   return (
-    <form onSubmit={submit} noValidate className="rounded-2xl border border-purple-100 bg-white p-6 sm:p-8">
+    <form onSubmit={submit} noValidate className="rounded-lg border border-line bg-white p-6 sm:p-8">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="reg-first" className={labelCls}>Ad</label>
@@ -137,7 +137,7 @@ export function RegisterForm({ next, initialEmail }: { next?: string; initialEma
         <label className="flex gap-2">
           <input type="checkbox" className="mt-0.5" checked={form.kvkkAccepted} onChange={(e) => set('kvkkAccepted', e.target.checked)} />
           <span>
-            <Link href="/gizlilik-politikasi#kvkk" className="link-underline font-semibold text-purple-700" target="_blank">KVKK Aydınlatma Metni</Link>&apos;ni okudum. <span className="text-rose-500">*</span>
+            <Link href="/gizlilik-politikasi#kvkk" className="link-underline font-semibold text-brand-500" target="_blank">KVKK Aydınlatma Metni</Link>&apos;ni okudum. <span className="text-brand-500">*</span>
           </span>
         </label>
         {err('kvkkAccepted')}
@@ -147,13 +147,13 @@ export function RegisterForm({ next, initialEmail }: { next?: string; initialEma
         </label>
       </div>
 
-      <p className="mt-3 min-h-5 text-sm text-rose-600" role="alert" aria-live="polite">{error ?? ''}</p>
+      <p className="mt-3 min-h-5 text-sm text-brand-600" role="alert" aria-live="polite">{error ?? ''}</p>
       <button type="submit" className="btn-primary mt-2 w-full justify-center" disabled={busy}>
         <UserPlus size={16} /> {busy ? 'Hesap oluşturuluyor…' : 'Hesap oluştur'}
       </button>
       <p className="mt-4 text-center text-sm text-ink-soft">
         Zaten hesabınız var mı?{' '}
-        <Link href={`/giris${next ? `?next=${encodeURIComponent(next)}` : ''}`} className="link-underline font-semibold text-purple-700">Giriş yapın</Link>
+        <Link href={`/giris${next ? `?next=${encodeURIComponent(next)}` : ''}`} className="link-underline font-semibold text-brand-500">Giriş yapın</Link>
       </p>
     </form>
   );

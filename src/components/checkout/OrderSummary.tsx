@@ -25,23 +25,23 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
   const t = quote?.totals;
 
   return (
-    <aside className={cn('rounded-2xl border border-purple-100 bg-white p-5 shadow-soft', className)} aria-label="Sipariş özeti">
-      <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-gold-500">Sipariş özeti</h2>
+    <aside className={cn('rounded-lg border border-line bg-white p-5 shadow-soft', className)} aria-label="Sipariş özeti">
+      <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-ink-soft">Sipariş özeti</h2>
 
-      <ul className="mt-4 divide-y divide-purple-50">
+      <ul className="mt-4 divide-y divide-line">
         {quote?.lines.map((l) => (
           <li key={l.variantId} className="flex gap-3 py-3">
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-purple-50">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-mist">
               {l.imageUrl && <Image src={l.imageUrl} alt="" fill sizes="56px" className="object-cover" />}
-              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-purple-700 px-1 text-[10px] font-bold text-cream">
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-ink px-1 text-[10px] font-bold text-white">
                 {l.quantity}
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-purple-900">{l.name}</p>
+              <p className="truncate text-sm font-semibold text-ink">{l.name}</p>
               {l.variantLabel && <p className="text-xs text-ink-soft">{l.variantLabel}</p>}
               {l.discountMinor > 0 && (
-                <p className="text-xs text-emerald-600">−{formatMinor(l.discountMinor)} indirim</p>
+                <p className="text-xs text-success">−{formatMinor(l.discountMinor)} indirim</p>
               )}
             </div>
             <p className="text-sm font-semibold">{formatMinor(l.netLineMinor)}</p>
@@ -58,13 +58,13 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
           onCouponChange(draft.trim());
         }}
       >
-        <label htmlFor="checkout-coupon" className="mb-1.5 block text-xs font-semibold text-purple-800">
+        <label htmlFor="checkout-coupon" className="mb-1.5 block text-xs font-semibold text-ink">
           Kupon kodu
         </label>
         <div className="flex gap-2">
           <input
             id="checkout-coupon"
-            className="w-full rounded-lg border border-purple-200 px-3 py-2 text-sm uppercase outline-none focus:border-purple-400 focus-visible:ring-2 focus-visible:ring-purple-300 disabled:bg-purple-50/50"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm uppercase outline-none focus:border-line focus-visible:ring-2 focus-visible:ring-brand-200 disabled:bg-mist/50"
             value={draft}
             disabled={!couponEnabled}
             placeholder={couponEnabled ? 'NEFIS10' : 'Önce adres girin'}
@@ -82,7 +82,7 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
           )}
         </div>
         {quote?.coupon && (
-          <p className={cn('mt-1.5 text-xs', quote.coupon.ok ? 'text-emerald-600' : 'text-rose-500')} role="status">
+          <p className={cn('mt-1.5 text-xs', quote.coupon.ok ? 'text-success' : 'text-brand-600')} role="status">
             {quote.coupon.ok
               ? quote.coupon.freeShipping
                 ? `${quote.coupon.code}: ücretsiz kargo uygulandı`
@@ -93,10 +93,10 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
       </form>
 
       {/* Toplamlar */}
-      <dl className="mt-5 space-y-1.5 border-t border-purple-100 pt-4 text-sm">
+      <dl className="mt-5 space-y-1.5 border-t border-line pt-4 text-sm">
         <Row label="Ara toplam" value={t ? formatMinor(t.itemsSubtotalMinor) : '—'} />
         {t && t.discountTotalMinor > 0 && (
-          <Row label="İndirim" value={`−${formatMinor(t.discountTotalMinor)}`} className="text-emerald-600" />
+          <Row label="İndirim" value={`−${formatMinor(t.discountTotalMinor)}`} className="text-success" />
         )}
         <Row
           label="Kargo"
@@ -120,9 +120,9 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
           </div>
         )}
         {t && !quote?.pricesIncludeTax && <Row label="KDV" value={formatMinor(t.taxTotalMinor)} />}
-        <div className="flex items-baseline justify-between border-t border-purple-100 pt-3">
-          <dt className="text-base font-semibold text-purple-900">Toplam</dt>
-          <dd className="text-xl font-bold text-purple-900" aria-live="polite">
+        <div className="flex items-baseline justify-between border-t border-line pt-3">
+          <dt className="text-base font-semibold text-ink">Toplam</dt>
+          <dd className="text-xl font-bold text-ink" aria-live="polite">
             {t ? formatMinor(t.grandTotalMinor) : '—'}
           </dd>
         </div>

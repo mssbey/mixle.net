@@ -116,13 +116,13 @@ export function AddressForm({
   const input = (key: keyof AddressFormValues) =>
     cn(
       'w-full rounded-lg border bg-white px-3 py-2.5 text-sm outline-none transition-colors',
-      'focus-visible:ring-2 focus-visible:ring-purple-300 disabled:bg-purple-50/50',
-      errors[key] ? 'border-rose-400' : 'border-purple-200 focus:border-purple-400',
+      'focus-visible:ring-2 focus-visible:ring-brand-200 disabled:bg-mist/50',
+      errors[key] ? 'border-brand-400' : 'border-line focus:border-line',
     );
-  const label = 'mb-1.5 block text-xs font-semibold text-purple-800';
+  const label = 'mb-1.5 block text-xs font-semibold text-ink';
   const err = (key: keyof AddressFormValues) =>
     errors[key] ? (
-      <p id={`${p}-${key}-err`} className="mt-1 text-xs text-rose-500">
+      <p id={`${p}-${key}-err`} className="mt-1 text-xs text-brand-600">
         {errors[key]}
       </p>
     ) : null;
@@ -162,7 +162,7 @@ export function AddressForm({
       <div>
         <label htmlFor={`${p}-phone`} className={label}>Cep telefonu</label>
         <div className="flex">
-          <span className="inline-flex items-center rounded-l-lg border border-r-0 border-purple-200 bg-purple-50 px-3 text-sm text-ink-soft">
+          <span className="inline-flex items-center rounded-l-lg border border-r-0 border-line bg-mist px-3 text-sm text-ink-soft">
             +90
           </span>
           <input id={`${p}-phone`} className={cn(input('phone'), 'rounded-l-none')} inputMode="tel" autoComplete="tel-national"
@@ -235,8 +235,8 @@ export function AddressForm({
       </div>
 
       {showInvoiceFields && (
-        <fieldset className="rounded-xl border border-purple-100 bg-purple-50/40 p-4">
-          <legend className="px-1 text-xs font-semibold text-purple-800">Fatura tipi</legend>
+        <fieldset className="rounded-md border border-line bg-mist/40 p-4">
+          <legend className="px-1 text-xs font-semibold text-ink">Fatura tipi</legend>
           <div className="flex flex-wrap gap-4 text-sm">
             <label className="inline-flex items-center gap-2">
               <input type="radio" name={`${p}-invoice-type`} checked={!values.isCorporate} disabled={disabled}
