@@ -34,7 +34,7 @@ export function AdminToaster() {
                   ? 'mt-0.5 shrink-0 text-emerald-600'
                   : t.variant === 'error'
                     ? 'mt-0.5 shrink-0 text-rose-600'
-                    : 'mt-0.5 shrink-0 text-purple-600'
+                    : 'mt-0.5 shrink-0 text-brand-500'
               }
             />
             <div className="min-w-0 flex-1">
@@ -47,7 +47,7 @@ export function AdminToaster() {
               type="button"
               onClick={() => dismiss(t.id)}
               aria-label="Bildirimi kapat"
-              className="shrink-0 rounded p-0.5 text-purple-300 transition-colors hover:text-purple-600"
+              className="shrink-0 rounded p-0.5 text-purple-400 transition-colors hover:text-ink"
             >
               <X size={14} />
             </button>

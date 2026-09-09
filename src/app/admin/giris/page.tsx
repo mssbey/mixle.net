@@ -34,7 +34,7 @@ function LoginForm() {
     <div className="grid min-h-dvh place-items-center p-4">
       <div className="admin-card w-full max-w-sm" style={{ padding: 24 }}>
         <div className="mb-4 flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--brand-purple)] text-cream">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-500 text-white">
             <KeyRound size={18} aria-hidden="true" />
           </span>
           <div>

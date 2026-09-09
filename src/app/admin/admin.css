@@ -1,14 +1,14 @@
-/* Admin paneli — vitrinden ayrışır ama aynı token ailesini kullanır.
-   Yeni renk yok; tüm değerler globals.css / tailwind.config.ts token'larından. */
+/* Admin paneli — beyaz/kırmızı/lacivert yönetim arayüzü.
+   Vitrinle aynı token ailesi; aktif menü ve birincil aksiyon kırmızı. */
 
 .admin-scope {
-  --admin-bg: #f4f1ec;
+  --admin-bg: #f5f6f8;
   --admin-panel: #ffffff;
-  --admin-line: #e7dfe6;
-  --admin-line-strong: #d9cdd8;
+  --admin-line: #e5e7eb;
+  --admin-line-strong: #d6dbe2;
   --admin-ink: var(--ink);
-  --admin-ink-soft: #6b5f70;
-  --admin-accent: var(--brand-purple);
+  --admin-ink-soft: #64748b;
+  --admin-accent: var(--brand-red);
   --admin-sidebar-w: 248px;
   --admin-sidebar-w-collapsed: 68px;
   --admin-topbar-h: 60px;
@@ -25,7 +25,8 @@
 .admin-scope h3,
 .admin-scope h4 {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  color: var(--brand-purple-deep);
+  color: var(--ink);
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
@@ -52,10 +53,10 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   padding: 16px 12px;
-  background: #241329;
-  color: #efe6f3;
+  background: #0f1729;
+  color: #e2e8f0;
   overflow-y: auto;
 }
 @media (max-width: 900px) {
@@ -66,7 +67,7 @@
     width: min(84vw, 300px);
     transform: translateX(-100%);
     transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 24px 60px -20px rgba(20, 11, 25, 0.5);
+    box-shadow: 0 24px 60px -20px rgba(15, 23, 41, 0.5);
   }
   .admin-sidebar[data-mobile-open='true'] {
     transform: translateX(0);
@@ -77,7 +78,7 @@
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(20, 11, 25, 0.45);
+  background: rgba(15, 23, 41, 0.45);
   backdrop-filter: blur(2px);
 }
 @media (min-width: 901px) {
@@ -87,24 +88,35 @@
 }
 
 .admin-nav-link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 13.5px;
   font-weight: 500;
-  color: #cbb8d6;
+  color: #94a3b8;
   transition: background 0.15s ease, color 0.15s ease;
   white-space: nowrap;
 }
 .admin-nav-link:hover {
-  background: rgba(239, 230, 243, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
 }
 .admin-nav-link[aria-current='page'] {
-  background: rgba(210, 148, 11, 0.16);
-  color: #f7e7c2;
+  background: rgba(227, 27, 35, 0.16);
+  color: #fff;
+}
+.admin-nav-link[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--brand-red);
 }
 .admin-nav-link svg {
   flex-shrink: 0;
@@ -129,7 +141,7 @@
   gap: 12px;
   min-height: var(--admin-topbar-h);
   padding: 8px 16px;
-  background: rgba(244, 241, 236, 0.86);
+  background: rgba(245, 246, 248, 0.88);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--admin-line);
 }
@@ -152,8 +164,8 @@
 .admin-card {
   background: var(--admin-panel);
   border: 1px solid var(--admin-line);
-  border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(20, 11, 25, 0.04), 0 12px 32px -24px rgba(20, 11, 25, 0.16);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 41, 0.05);
 }
 
 .admin-stat {
@@ -165,7 +177,7 @@
 .admin-stat-value {
   font-size: 26px;
   font-weight: 700;
-  color: var(--brand-purple-deep);
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 .admin-stat-label {
@@ -177,7 +189,7 @@
 .admin-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--admin-line);
-  border-radius: 14px;
+  border-radius: 10px;
   background: var(--admin-panel);
 }
 .admin-table {
@@ -186,7 +198,7 @@
   font-size: 13px;
 }
 .admin-table thead th {
-  background: #f7f4ef;
+  background: #f7f8fa;
   text-align: left;
   font-weight: 600;
   color: var(--admin-ink-soft);
@@ -194,9 +206,6 @@
   border-bottom: 1px solid var(--admin-line-strong);
   white-space: nowrap;
 }
-/* Yoğun veri tabloları için yapışkan başlık (opt-in).
-   overflow-x kaldırılır; aksi halde sticky thead sayfa yerine wrapper'a
-   göre yapışır ve çalışmaz. Bu tablonun sütun sayısı masaüstünde sığar. */
 .admin-table-wrap--sticky {
   overflow: visible;
 }
@@ -214,10 +223,10 @@
   border-bottom: 0;
 }
 .admin-table tbody tr:hover td {
-  background: #faf7f2;
+  background: #f7f8fa;
 }
 .admin-table tbody tr[data-selected='true'] td {
-  background: #f4edf7;
+  background: #fff1f1;
 }
 
 /* Form alanları ------------------------------------------------------- */
@@ -238,14 +247,14 @@
 .admin-error {
   font-size: 11.5px;
   font-weight: 500;
-  color: #b4232f;
+  color: #c9151c;
 }
 .admin-input,
 .admin-textarea,
 .admin-select {
   width: 100%;
   border: 1px solid var(--admin-line-strong);
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   padding: 8px 10px;
   font-size: 13px;
@@ -256,13 +265,13 @@
 .admin-textarea:focus,
 .admin-select:focus {
   outline: none;
-  border-color: var(--brand-purple);
-  box-shadow: 0 0 0 3px rgba(103, 39, 121, 0.14);
+  border-color: var(--brand-red);
+  box-shadow: 0 0 0 3px rgba(227, 27, 35, 0.14);
 }
 .admin-input[aria-invalid='true'],
 .admin-textarea[aria-invalid='true'] {
-  border-color: #b4232f;
-  box-shadow: 0 0 0 3px rgba(180, 35, 47, 0.12);
+  border-color: #c9151c;
+  box-shadow: 0 0 0 3px rgba(201, 21, 28, 0.12);
 }
 .admin-textarea {
   min-height: 84px;
@@ -276,7 +285,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 600;
@@ -290,11 +299,11 @@
   cursor: not-allowed;
 }
 .admin-btn-primary {
-  background: var(--brand-purple);
+  background: var(--brand-red);
   color: #fff;
 }
 .admin-btn-primary:hover:not(:disabled) {
-  background: #571f66;
+  background: #c9151c;
 }
 .admin-btn-ghost {
   background: #fff;
@@ -302,21 +311,21 @@
   color: var(--admin-ink);
 }
 .admin-btn-ghost:hover:not(:disabled) {
-  border-color: var(--brand-purple);
-  color: var(--brand-purple);
+  border-color: var(--brand-red);
+  color: var(--brand-red);
 }
 .admin-btn-danger {
   background: #fff;
-  border-color: #e6b8bd;
-  color: #b4232f;
+  border-color: #f3c3c6;
+  color: #c9151c;
 }
 .admin-btn-danger:hover:not(:disabled) {
-  background: #fbeff0;
+  background: #fff1f1;
 }
 .admin-btn-sm {
   padding: 5px 9px;
   font-size: 12px;
-  border-radius: 8px;
+  border-radius: 7px;
 }
 
 /* Rozetler -------------------------------------------------------- */
@@ -340,19 +349,19 @@
 }
 .admin-badge-yayında {
   background: #e8f5ee;
-  color: #1f7a48;
+  color: #16794a;
 }
 .admin-badge-taslak {
-  background: #f3eef7;
-  color: #6b4e86;
+  background: #eef0f3;
+  color: #475569;
 }
 .admin-badge-arşiv {
-  background: #efe9e4;
+  background: #f1eae4;
   color: #7a6a5c;
 }
 .admin-badge-stok {
-  background: #fdeceb;
-  color: #b4232f;
+  background: #fff1f1;
+  color: #c9151c;
 }
 
 /* Yapışkan alt kaydet çubuğu ------------------------------------- */
@@ -367,7 +376,7 @@
   gap: 12px;
   min-height: var(--admin-savebar-h);
   padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--admin-line-strong);
   transition: left 0.2s ease;
@@ -391,7 +400,7 @@
 .admin-skeleton-row {
   height: 44px;
   border-radius: 8px;
-  background: linear-gradient(90deg, #eee7ec 25%, #f6f1f4 37%, #eee7ec 63%);
+  background: linear-gradient(90deg, #eef0f3 25%, #f7f8fa 37%, #eef0f3 63%);
   background-size: 400% 100%;
   animation: admin-shimmer 1.4s ease infinite;
 }
@@ -416,7 +425,6 @@
   gap: 10px;
 }
 
-/* Duyarlı görünüm anahtarı — Tailwind md: yerine (specifiklik çakışmasını önler) */
 .admin-view-desktop {
   display: none;
 }
@@ -434,7 +442,7 @@
 .admin-row-card {
   background: var(--admin-panel);
   border: 1px solid var(--admin-line);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 12px;
 }
 
@@ -446,14 +454,14 @@
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(20, 11, 25, 0.44);
+  background: rgba(15, 23, 41, 0.44);
 }
 .admin-dialog {
   width: min(440px, 100%);
   background: #fff;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 30px 80px -24px rgba(20, 11, 25, 0.5);
+  box-shadow: 0 30px 80px -24px rgba(15, 23, 41, 0.5);
 }
 .admin-drawer {
   position: fixed;
@@ -461,7 +469,7 @@
   z-index: 90;
   width: min(560px, 100%);
   background: #fff;
-  box-shadow: -24px 0 60px -24px rgba(20, 11, 25, 0.4);
+  box-shadow: -24px 0 60px -24px rgba(15, 23, 41, 0.4);
   display: flex;
   flex-direction: column;
 }
@@ -479,7 +487,7 @@
 }
 
 .admin-focusable:focus-visible {
-  outline: 2px solid var(--brand-gold);
+  outline: 2px solid var(--brand-red);
   outline-offset: 2px;
 }
 

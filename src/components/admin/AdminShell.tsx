@@ -149,7 +149,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <aside className="admin-sidebar" data-mobile-open={mobileOpen} aria-label="Panel gezinme">
         <div className="mb-3 flex items-center gap-2 px-2 py-1">
           <span
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--brand-gold)] text-[13px] font-bold text-[var(--brand-purple-deep)]"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-brand-500 text-[13px] font-bold text-white"
             aria-hidden="true"
           >
             NA
@@ -176,7 +176,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="admin-sidebar-foot mt-auto flex flex-col gap-1 pt-3 text-[11px] text-[#a992b8]">
+        <div className="admin-sidebar-foot mt-auto flex flex-col gap-1 pt-3 text-[11px] text-[#94a3b8]">
           <Link href="/" className="admin-nav-link admin-focusable" title="Vitrine dön">
             <Store size={16} aria-hidden="true" />
             <span className="admin-nav-label">Vitrini aç</span>
@@ -228,7 +228,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   {i === crumbs.length - 1 ? (
                     <span className="font-semibold text-[var(--brand-purple-deep)]">{c.label}</span>
                   ) : (
-                    <Link href={c.href} className="admin-focusable hover:text-[var(--brand-purple)]">
+                    <Link href={c.href} className="admin-focusable hover:text-[var(--brand-red)]">
                       {c.label}
                     </Link>
                   )}
