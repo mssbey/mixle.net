@@ -980,6 +980,45 @@ model Page {
   updatedAt DateTime @updatedAt
 }
 
+// ========================================================== PAZARLAMA ======
+
+/// Footer / kampanya e-posta bülteni kaydı. Tekrar kayıt aktife çeker;
+/// panelde "Bülten Kayıtları" ekranından listelenir.
+model NewsletterSubscriber {
+  id     String @id @default(cuid())
+  email  String @unique
+  /// aktif | çıkış
+  status String @default("aktif")
+  /// footer | checkout | popup | panel
+  source String @default("footer")
+
+  ip        String?
+  userAgent String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  unsubscribedAt DateTime?
+
+  @@index([status, createdAt])
+}
+
+/// Footer SMS / bilgilendirme kaydı (KVKK: açık rıza ile).
+model SmsSubscriber {
+  id     String @id @default(cuid())
+  phone  String @unique
+  status String @default("aktif")
+  source String @default("footer")
+
+  ip        String?
+  userAgent String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  unsubscribedAt DateTime?
+
+  @@index([status, createdAt])
+}
+
 /// Yasal metinler SÜRÜMLENİR: metin değişince yeni sürüm oluşur, eski
 /// siparişler kabul ettikleri sürümü göstermeye devam eder.
 model LegalDocument {

@@ -1,43 +1,70 @@
 import type { Config } from 'tailwindcss';
 import typography from '@tailwindcss/typography';
 
+/**
+ * Nefis Aroma tasarım token'ları.
+ *
+ * Referans e-ticaret dili: beyaz zemin, kırmızı CTA, koyu lacivert metin,
+ * ince gri borderlar, hafif gölgeler. Token *adları* geriye dönük uyumluluk
+ * için korunur (`purple` = lacivert/mürekkep rampası, `gold` = kehribar aksan),
+ * değerleri yeni sisteme göre yeniden eşlendi. Yeni kırmızı CTA rampası
+ * `brand` altındadır.
+ */
 const config: Config = {
   content: ['./src/**/*.{ts,tsx,mdx}'],
   theme: {
     container: {
       center: true,
-      padding: { DEFAULT: '1rem', sm: '1.5rem', lg: '2rem', xl: '2.5rem' },
-      screens: { '2xl': '1360px' },
+      padding: { DEFAULT: '1rem', sm: '1.5rem', lg: '2rem' },
+      screens: { '2xl': '1280px' },
     },
     extend: {
       colors: {
-        // Brand purple ramp (anchored on logo ink #632573 / brief #672779)
+        // Kırmızı CTA / badge / aktif durum rampası
+        brand: {
+          50: '#FFF1F1',
+          100: '#FFDFDF',
+          200: '#FFC2C4',
+          300: '#FF9599',
+          400: '#F5484F',
+          500: '#E31B23', // ana kırmızı
+          600: '#C9151C', // hover
+          700: '#A5111A',
+          800: '#7F0E15',
+          900: '#5C0B10',
+        },
+        // "purple" adı korunur ama artık lacivert/mürekkep nötr rampasıdır
         purple: {
-          50: '#F4EDF7',
-          100: '#EFE6F3', // yumuşak lavanta
-          200: '#DDC6E5',
-          300: '#C29BD1',
-          400: '#9C63B2',
-          500: '#7B3A90',
-          600: '#672779', // ana mor
-          700: '#4E2160',
-          800: '#2B1035', // koyu mor
-          900: '#241329',
-          950: '#180c1d', // gece moru
+          50: '#F5F7FA',
+          100: '#E5E7EB', // border (global `*` border-color)
+          200: '#D6DBE2', // input / chip border
+          300: '#AEB7C2',
+          400: '#8A94A3', // sönük ikon
+          500: '#5C6675',
+          600: '#3A4557',
+          700: '#28303F',
+          800: '#1B2130', // başlık / nav metni
+          900: '#0F1729', // ana metin
+          950: '#080D18', // koyu yüzey
         },
+        // "gold" adı korunur ama artık kehribar (puan / yıldız / uyarı) rampasıdır
         gold: {
-          50: '#FBF3E1',
-          100: '#F7E7C2',
-          200: '#F2C45E', // açık altın
-          300: '#E4AC34',
-          400: '#D2940B', // ana altın
-          500: '#7B5209',
-          600: '#7B5209',
-          700: '#5F4106',
+          50: '#FFF8EC',
+          100: '#FDECC8',
+          200: '#F8D488',
+          300: '#F0B44E',
+          400: '#E1922A', // yıldız dolgusu / aksan
+          500: '#B26C09',
+          600: '#8A5207',
+          700: '#6B3F05',
         },
-        cream: '#FAF7F2',
-        ink: '#211923',
-        'ink-soft': '#5A4E60',
+        cream: '#FFFFFF',
+        mist: '#F7F8FA', // açık bölüm arka planı
+        line: '#E5E7EB', // standart border
+        'line-soft': '#EEF0F3',
+        ink: '#0F1729',
+        'ink-soft': '#64748B',
+        success: '#16A34A',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -45,19 +72,20 @@ const config: Config = {
         script: ['var(--font-script)', 'cursive'],
       },
       fontSize: {
-        'display-sm': ['clamp(2rem, 4vw, 2.75rem)', { lineHeight: '1.08', letterSpacing: '-0.02em' }],
-        'display-md': ['clamp(2.5rem, 6vw, 4rem)', { lineHeight: '1.04', letterSpacing: '-0.025em' }],
-        'display-lg': ['clamp(3rem, 8vw, 5.5rem)', { lineHeight: '1.0', letterSpacing: '-0.03em' }],
+        'display-sm': ['clamp(1.75rem, 3vw, 2.25rem)', { lineHeight: '1.12', letterSpacing: '-0.02em' }],
+        'display-md': ['clamp(2rem, 4vw, 3rem)', { lineHeight: '1.08', letterSpacing: '-0.025em' }],
+        'display-lg': ['clamp(2.5rem, 6vw, 4rem)', { lineHeight: '1.04', letterSpacing: '-0.03em' }],
       },
       borderRadius: {
-        xl: '0.875rem',
-        '2xl': '1.25rem',
-        '3xl': '1.75rem',
+        xl: '0.625rem',
+        '2xl': '0.875rem',
+        '3xl': '1.25rem',
       },
       boxShadow: {
-        soft: '0 1px 2px rgba(20,11,25,0.04), 0 8px 24px -12px rgba(20,11,25,0.12)',
-        lift: '0 12px 40px -16px rgba(43,16,53,0.28)',
-        glow: '0 0 0 1px rgba(210,148,11,0.25), 0 20px 60px -24px rgba(210,148,11,0.35)',
+        card: '0 1px 2px rgba(15,23,41,0.05)',
+        soft: '0 1px 2px rgba(15,23,41,0.04), 0 1px 3px rgba(15,23,41,0.07)',
+        lift: '0 8px 28px -10px rgba(15,23,41,0.18)',
+        glow: '0 0 0 1px rgba(227,27,35,0.22)',
       },
       backgroundImage: {
         'radial-fade': 'radial-gradient(ellipse at top, var(--tw-gradient-stops))',

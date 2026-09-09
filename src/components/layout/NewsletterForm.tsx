@@ -2,70 +2,117 @@
 
 import { useState } from 'react';
 import { z } from 'zod';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/utils';
 
-const schema = z.string().email('Geçerli bir e-posta adresi girin.');
+const emailSchema = z.string().email('Geçerli bir e-posta adresi girin.');
+const phoneSchema = z
+  .string()
+  .transform((v) => v.replace(/[\s()-]/g, ''))
+  .refine((v) => /^(\+90|0)?5\d{9}$/.test(v), 'Geçerli bir cep telefonu girin (5xx xxx xx xx).');
 
-export function NewsletterForm({ variant = 'dark', className }: { variant?: 'dark' | 'light'; className?: string }) {
-  const [email, setEmail] = useState('');
+/**
+ * Footer / ana sayfa bülten ve SMS kayıt formu. Gerçek `/api/abonelik` ucuna
+ * gönderir; kayıtlar panelde "Bülten / SMS Kayıtları" ekranından görülür.
+ */
+export function NewsletterForm({
+  variant = 'dark',
+  kind = 'eposta',
+  className,
+}: {
+  variant?: 'dark' | 'light';
+  kind?: 'eposta' | 'sms';
+  className?: string;
+}) {
+  const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const dark = variant === 'dark';
+  const isSms = kind === 'sms';
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = schema.safeParse(email.trim());
+    if (state === 'loading') return;
+    const parsed = (isSms ? phoneSchema : emailSchema).safeParse(value.trim());
     if (!parsed.success) {
       setError(parsed.error.issues[0].message);
       return;
     }
     setError(null);
-    setDone(true);
-    // Not: gerçek bir sunucuya gönderilmez — yalnızca frontend geri bildirimi.
-    toast.success('Demo tamamlandı', 'Abonelik oluşturulmadı; e-posta adresiniz sunucuya gönderilmedi.');
-    setEmail('');
-    setTimeout(() => setDone(false), 3500);
+    setState('loading');
+    try {
+      const res = await fetch('/api/abonelik', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          isSms ? { kind: 'sms', phone: parsed.data } : { kind: 'eposta', email: parsed.data },
+        ),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+      if (!res.ok || !data.ok) {
+        setState('idle');
+        setError(data.message ?? 'Kayıt tamamlanamadı. Lütfen tekrar deneyin.');
+        return;
+      }
+      setState('done');
+      toast.success('Kaydınız alındı', data.message);
+      setValue('');
+      setTimeout(() => setState('idle'), 3500);
+    } catch {
+      setState('idle');
+      setError('Bağlantı hatası. Lütfen tekrar deneyin.');
+    }
   };
-
-  const dark = variant === 'dark';
 
   return (
     <form onSubmit={submit} className={cn('w-full', className)} noValidate>
       <div
         className={cn(
-          'flex items-center gap-2 rounded-full border p-1.5 pl-4 transition-colors',
+          'flex items-center gap-2 rounded-md border p-1 pl-3 transition-colors',
           dark
-            ? 'border-cream/20 bg-cream/5 focus-within:border-gold-200'
-            : 'border-purple-200 bg-white focus-within:border-purple-400',
+            ? 'border-white/20 bg-white/5 focus-within:border-brand-300'
+            : 'border-line bg-white focus-within:border-brand-400',
         )}
       >
+        {isSms && (
+          <span className={cn('shrink-0 text-sm font-medium', dark ? 'text-white/70' : 'text-ink-soft')}>
+            +90
+          </span>
+        )}
         <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="E-posta adresiniz"
-          aria-label="E-posta adresiniz"
+          type={isSms ? 'tel' : 'email'}
+          inputMode={isSms ? 'tel' : 'email'}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={isSms ? '5xx xxx xx xx' : 'E-posta adresiniz'}
+          aria-label={isSms ? 'Cep telefonu numaranız' : 'E-posta adresiniz'}
           aria-invalid={!!error}
           className={cn(
-            'min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-current/50',
-            dark ? 'text-cream' : 'text-ink',
+            'min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-current/50',
+            dark ? 'text-white' : 'text-ink',
           )}
         />
         <button
           type="submit"
+          disabled={state === 'loading'}
           className={cn(
-            'grid h-10 w-10 shrink-0 place-items-center rounded-full transition-transform hover:scale-105',
-            done ? 'bg-emerald-500 text-white' : 'bg-gold-400 text-purple-900',
+            'grid h-9 w-9 shrink-0 place-items-center rounded transition-colors disabled:opacity-70',
+            state === 'done' ? 'bg-success text-white' : 'bg-brand-500 text-white hover:bg-brand-600',
           )}
-          aria-label="Bültene kaydol"
+          aria-label={isSms ? 'SMS bilgilendirmeye kaydol' : 'Bültene kaydol'}
         >
-          {done ? <Check size={17} /> : <ArrowRight size={17} />}
+          {state === 'loading' ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : state === 'done' ? (
+            <Check size={16} />
+          ) : (
+            <ArrowRight size={16} />
+          )}
         </button>
       </div>
-      <p className={cn("mt-2 text-xs leading-5", dark ? "text-cream/80" : "text-ink-soft")}>Demo form: abonelik oluşturulmaz, e-posta gönderilmez.</p>
       {error && (
-        <p className={cn('mt-2 pl-4 text-xs', dark ? 'text-gold-200' : 'text-rose-600')}>{error}</p>
+        <p className={cn('mt-2 pl-1 text-xs', dark ? 'text-brand-200' : 'text-brand-600')}>{error}</p>
       )}
     </form>
   );

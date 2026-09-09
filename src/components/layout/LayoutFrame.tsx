@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import type { Category, Collection } from '@/types';
+import type { StorefrontContact } from '@/lib/storefront';
 import { CatalogProvider } from '@/components/catalog/CatalogProvider';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -19,10 +20,12 @@ import { WhatsAppFab } from '@/components/layout/WhatsAppFab';
 export function LayoutFrame({
   categories,
   collections,
+  contact,
   children,
 }: {
   categories: Category[];
   collections: Collection[];
+  contact: StorefrontContact;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -36,15 +39,15 @@ export function LayoutFrame({
     <CatalogProvider categories={categories} collections={collections}>
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-full focus:bg-purple-800 focus:px-4 focus:py-2 focus:text-sm focus:text-cream"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:text-white"
       >
         İçeriğe geç
       </a>
-      <Header />
-      <main id="main" className="pb-20 lg:pb-0">
+      <Header contact={contact} />
+      <main id="main" className="pb-16 lg:pb-0">
         {children}
       </main>
-      <Footer />
+      <Footer contact={contact} />
       <MobileTabBar />
       <CartDrawer />
       <SearchOverlay />

@@ -9,7 +9,8 @@ export const site = {
   description:
     'Özenle geliştirilen aroma profilleri, DIY kitleri ve baz ürünleri. Her damlasında yeni bir deneyim.',
   locale: 'tr_TR',
-  // İletişim — PLACEHOLDER. Gerçek bilgilerle değiştirin.
+  // İletişim — PLACEHOLDER. Gerçek bilgiler panel → Ayarlar → Mağaza'dan girilir
+  // ve `getStoreInfo()` ile bu değerlerin yerine geçer.
   contact: {
     whatsapp: '+90 000 000 00 00',
     whatsappUrl: 'https://wa.me/900000000000',
@@ -18,7 +19,13 @@ export const site = {
     email: 'destek@nefisaroma.example',
     addressLines: ['Örnek Mah. Aroma Sok. No: 0', 'Kadıköy / İstanbul (örnek adres)'],
     mapNote: 'Harita entegrasyonu için ayrılmış alan — gerçek konum eklenecek.',
-    workingHours: 'Hafta içi 09:00 – 18:00',
+    workingHours: 'Hafta içi 09:00 – 19:00 · Cumartesi 10:00 – 13:00',
+  },
+  // Alt bilgide gösterilen ödeme yöntemi rozetleri (metinsel; panelden
+  // yüklenen gerçek ikonlar Vitrin Yönetimi fazında bağlanacak).
+  payments: ['Visa', 'Mastercard', 'Troy', 'Axess', 'Bonus', 'Maximum', 'Paraf', 'World'],
+  legal: {
+    sslNote: 'Kredi kartı bilgileriniz 256bit SSL sertifikası ile korunmaktadır.',
   },
   // Kargo / kampanya — örnek değerler
   commerce: {

@@ -6,18 +6,18 @@ import { m, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Phone, MessageCircle } from 'lucide-react';
 import { Drawer } from '@/components/ui/Drawer';
 import { useTaxonomy } from '@/components/catalog/CatalogProvider';
-import { site } from '@/lib/site';
+import { mobileMenuLinks } from '@/data/nav';
+import type { StorefrontContact } from '@/lib/storefront';
 
-const flat = [
-  { label: 'Yeni Gelenler', href: '/yeni-gelenler' },
-  { label: 'Çok Satanlar', href: '/cok-satanlar' },
-  { label: 'Kampanyalar', href: '/kampanyalar' },
-  { label: 'Aroma Rehberi', href: '/aroma-rehberi' },
-  { label: 'Hakkımızda', href: '/hakkimizda' },
-  { label: 'İletişim', href: '/iletisim' },
-];
-
-export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function MobileMenu({
+  open,
+  onClose,
+  contact,
+}: {
+  open: boolean;
+  onClose: () => void;
+  contact: StorefrontContact;
+}) {
   const { categories, collections } = useTaxonomy();
   const [catOpen, setCatOpen] = useState(true);
 
@@ -27,9 +27,9 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
         <Link
           href="/urunler"
           onClick={onClose}
-          className="block rounded-xl bg-purple-50 px-3 py-3 text-sm font-semibold text-purple-800"
+          className="block rounded-md bg-brand-500 px-3 py-3 text-sm font-bold uppercase tracking-wide text-white"
         >
-          Tüm Aromalar
+          Tüm Kategoriler
         </Link>
 
         <div className="mt-2">
@@ -37,10 +37,13 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
             type="button"
             onClick={() => setCatOpen((v) => !v)}
             aria-expanded={catOpen}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-purple-800"
+            className="flex w-full items-center justify-between rounded-md px-3 py-3 text-sm font-semibold text-ink"
           >
             Kategoriler
-            <ChevronDown size={16} className={catOpen ? 'rotate-180 text-gold-400 transition-transform' : 'text-gold-400 transition-transform'} />
+            <ChevronDown
+              size={16}
+              className={catOpen ? 'rotate-180 text-brand-500 transition-transform' : 'text-brand-500 transition-transform'}
+            />
           </button>
           <AnimatePresence initial={false}>
             {catOpen && (
@@ -56,7 +59,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
                     <Link
                       href={`/kategori/${c.slug}`}
                       onClick={onClose}
-                      className="block rounded-lg px-3 py-2.5 text-sm text-ink-soft hover:bg-purple-50 hover:text-purple-700"
+                      className="block rounded-md px-3 py-2.5 text-sm text-ink-soft hover:bg-mist hover:text-brand-500"
                     >
                       {c.name}
                     </Link>
@@ -67,14 +70,14 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
           </AnimatePresence>
         </div>
 
-        <div className="my-2 border-t border-purple-100" />
+        <div className="my-2 border-t border-line" />
         <ul>
-          {flat.map((l) => (
-            <li key={l.href}>
+          {mobileMenuLinks.map((l) => (
+            <li key={l.href + l.label}>
               <Link
                 href={l.href}
                 onClick={onClose}
-                className="block rounded-xl px-3 py-3 text-sm font-semibold text-purple-800 hover:bg-purple-50"
+                className="block rounded-md px-3 py-3 text-sm font-semibold text-ink hover:bg-mist hover:text-brand-500"
               >
                 {l.label}
               </Link>
@@ -82,30 +85,44 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
           ))}
         </ul>
 
-        <div className="my-2 border-t border-purple-100" />
-        <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-gold-500">Koleksiyonlar</p>
-        <ul>
-          {collections.map((c) => (
-            <li key={c.slug}>
-              <Link
-                href={`/koleksiyon/${c.slug}`}
-                onClick={onClose}
-                className="block rounded-xl px-3 py-2.5 text-sm text-ink-soft hover:bg-purple-50"
-              >
-                {c.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {collections.length > 0 && (
+          <>
+            <div className="my-2 border-t border-line" />
+            <p className="px-3 pt-2 text-[11px] font-bold uppercase tracking-wide text-ink-soft">
+              Koleksiyonlar
+            </p>
+            <ul>
+              {collections.map((c) => (
+                <li key={c.slug}>
+                  <Link
+                    href={`/koleksiyon/${c.slug}`}
+                    onClick={onClose}
+                    className="block rounded-md px-3 py-2.5 text-sm text-ink-soft hover:bg-mist"
+                  >
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </nav>
 
-      <div className="grid grid-cols-2 gap-2 border-t border-purple-100 p-3">
-        <a href={site.contact.phoneUrl} className="btn-ghost text-xs">
-          <Phone size={14} /> Ara
-        </a>
-        <a href={site.contact.whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost text-xs">
-          <MessageCircle size={14} /> WhatsApp
-        </a>
+      <div className="border-t border-line p-3">
+        <div className="grid grid-cols-2 gap-2">
+          <a href={contact.phoneUrl} className="btn-ghost text-xs">
+            <Phone size={14} /> Ara
+          </a>
+          <a
+            href={contact.whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-ghost text-xs"
+          >
+            <MessageCircle size={14} /> WhatsApp
+          </a>
+        </div>
+        <p className="mt-2 text-center text-[11px] text-ink-soft">{contact.workingHours}</p>
       </div>
     </Drawer>
   );
