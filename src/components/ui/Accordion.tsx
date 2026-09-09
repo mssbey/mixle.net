@@ -34,7 +34,7 @@ export function Accordion({
     );
 
   return (
-    <div className={cn('divide-y divide-purple-100 border-y border-purple-100', className)}>
+    <div className={cn('divide-y divide-line border-y border-line', className)}>
       {items.map((item, i) => {
         const isOpen = open.includes(i);
         return (
@@ -46,12 +46,12 @@ export function Accordion({
                 aria-expanded={isOpen}
                 aria-controls={`${baseId}-panel-${i}`}
                 id={`${baseId}-trigger-${i}`}
-                className="flex w-full items-center justify-between gap-4 py-4 text-left text-[15px] font-semibold text-purple-800 transition-colors hover:text-purple-600"
+                className="flex w-full items-center justify-between gap-4 py-4 text-left text-[15px] font-semibold text-ink transition-colors hover:text-brand-500"
               >
                 {item.title}
                 <ChevronDown
                   size={18}
-                  className={cn('shrink-0 text-gold-400 transition-transform duration-300', isOpen && 'rotate-180')}
+                  className={cn('shrink-0 text-ink-soft transition-transform duration-300', isOpen && 'rotate-180')}
                 />
               </button>
             </h3>

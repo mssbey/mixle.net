@@ -47,8 +47,8 @@ export function Gallery({
               aria-label={`Görsel ${i + 1}`}
               aria-current={active === i}
               className={cn(
-                'relative aspect-square overflow-hidden rounded-lg border-2 transition-colors',
-                active === i ? 'border-purple-600' : 'border-transparent hover:border-purple-200',
+                'relative aspect-square overflow-hidden rounded-md border-2 transition-colors',
+                active === i ? 'border-brand-500' : 'border-line hover:border-ink/30',
               )}
             >
               <Image src={img.src} alt="" fill sizes="64px" className="object-cover" />
@@ -57,7 +57,7 @@ export function Gallery({
         </div>
 
         <div
-          className="group relative flex-1 overflow-hidden rounded-2xl border border-purple-100 bg-purple-50"
+          className="group relative flex-1 overflow-hidden rounded-lg border border-line bg-mist"
           onMouseMove={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             setZoom({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100, on: true });
@@ -83,7 +83,7 @@ export function Gallery({
             type="button"
             onClick={() => setFullscreen(true)}
             aria-label="Tam ekran galeri"
-            className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-purple-700 opacity-100 shadow-soft transition-opacity group-hover:opacity-100"
+            className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full border border-line bg-white/95 text-ink shadow-card"
           >
             <Expand size={17} />
           </button>
@@ -92,10 +92,10 @@ export function Gallery({
 
       {/* Mobil: swipe galeri */}
       <div className="sm:hidden">
-        <div className="overflow-hidden rounded-2xl border border-purple-100" ref={emblaRef}>
+        <div className="overflow-hidden rounded-lg border border-line" ref={emblaRef}>
           <div className="flex">
             {images.map((img, i) => (
-              <div key={img.src} className="relative aspect-square min-w-0 shrink-0 grow-0 basis-full bg-purple-50">
+              <div key={img.src} className="relative aspect-square min-w-0 shrink-0 grow-0 basis-full bg-mist">
                 <Image src={img.src} alt={img.alt || productName} fill loading={i === 0 ? "eager" : "lazy"} sizes="100vw" className="object-cover" />
               </div>
             ))}
@@ -103,7 +103,7 @@ export function Gallery({
         </div>
         <div className="mt-3 flex justify-center gap-1.5">
           {images.map((_, i) => (
-            <button type="button" onClick={() => setActive(i)} aria-label={"Görsel " + (i + 1)} aria-current={active === i} key={i} className={cn('h-3 rounded-full transition-all', active === i ? 'w-5 bg-purple-600' : 'w-1.5 bg-purple-200')} />
+            <button type="button" onClick={() => setActive(i)} aria-label={"Görsel " + (i + 1)} aria-current={active === i} key={i} className={cn('h-2 rounded-full transition-all', active === i ? 'w-5 bg-brand-500' : 'w-2 bg-line')} />
           ))}
         </div>
       </div>
@@ -111,7 +111,7 @@ export function Gallery({
       <button
         type="button"
         onClick={() => setFullscreen(true)}
-        className="mt-3 flex items-center gap-1.5 text-xs font-medium text-purple-500 sm:hidden"
+        className="mt-3 flex items-center gap-1.5 text-xs font-medium text-ink-soft sm:hidden"
       >
         <Expand size={13} /> Tam ekran görüntüle
       </button>
@@ -166,7 +166,7 @@ function FullscreenGallery({
     <AnimatePresence>
       {open && (
         <m.div
-          className="fixed inset-0 z-[140] flex items-center justify-center bg-purple-950/95 p-4"
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-ink/95 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

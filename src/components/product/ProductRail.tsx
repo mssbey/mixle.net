@@ -47,7 +47,7 @@ export function ProductRail({ products, className }: { products: Product[]; clas
           onClick={() => embla?.scrollPrev()}
           disabled={!prev}
           aria-label="Önceki"
-          className="grid h-10 w-10 place-items-center rounded-full border border-purple-200 text-purple-700 transition-colors hover:bg-purple-50 disabled:opacity-30"
+          className="grid h-10 w-10 place-items-center rounded-full border border-line text-ink transition-colors hover:bg-mist disabled:opacity-30"
         >
           <ChevronLeft size={18} />
         </button>
@@ -56,7 +56,7 @@ export function ProductRail({ products, className }: { products: Product[]; clas
           onClick={() => embla?.scrollNext()}
           disabled={!next}
           aria-label="Sonraki"
-          className="grid h-10 w-10 place-items-center rounded-full border border-purple-200 text-purple-700 transition-colors hover:bg-purple-50 disabled:opacity-30"
+          className="grid h-10 w-10 place-items-center rounded-full border border-line text-ink transition-colors hover:bg-mist disabled:opacity-30"
         >
           <ChevronRight size={18} />
         </button>

@@ -13,13 +13,13 @@ interface Props {
 }
 
 export function QuantityStepper({ value, onChange, min = 1, max = 99, size = 'md', className }: Props) {
-  const dim = size === 'sm' ? 'h-8 w-8' : 'h-11 w-11';
+  const dim = size === 'sm' ? 'h-8 w-8' : 'h-10 w-10';
   const btn =
-    'grid place-items-center rounded-full text-purple-700 transition-colors hover:bg-purple-50 disabled:opacity-30 disabled:hover:bg-transparent';
+    'grid place-items-center rounded text-ink transition-colors hover:bg-mist disabled:opacity-30 disabled:hover:bg-transparent';
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-purple-200 bg-white p-1',
+        'inline-flex items-center gap-1 rounded-md border border-line bg-white p-1',
         className,
       )}
     >
@@ -43,7 +43,7 @@ export function QuantityStepper({ value, onChange, min = 1, max = 99, size = 'md
         }}
         aria-label="Adet"
         className={cn(
-          'w-8 bg-transparent text-center text-sm font-semibold text-purple-900 outline-none',
+          'w-8 bg-transparent text-center text-sm font-semibold text-ink outline-none',
           size === 'md' && 'w-10',
         )}
       />

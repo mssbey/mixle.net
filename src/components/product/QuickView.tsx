@@ -37,18 +37,18 @@ function QuickViewContent({ product, onClose }: { product: Product | null; onClo
     <Modal open={open} onClose={onClose} label="Hızlı ürün önizleme" className="max-w-3xl">
       {product && variant && (
         <div className="grid gap-0 sm:grid-cols-2">
-          <div className="relative aspect-square bg-purple-50 sm:rounded-l-2xl">
+          <div className="relative aspect-square bg-mist sm:rounded-l-lg">
             <Image
               src={variant.image || product.images[0].src}
               alt={product.name}
               fill
               sizes="(max-width:640px) 100vw, 384px"
-              className="object-cover sm:rounded-l-2xl"
+              className="object-cover sm:rounded-l-lg"
             />
           </div>
           <div className="flex flex-col p-5 sm:p-6">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-gold-500">{product.series}</p>
-            <h2 className="mt-1 font-display text-xl font-semibold text-purple-900">{product.name}</h2>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">{product.series}</p>
+            <h2 className="mt-1 text-xl font-bold text-ink">{product.name}</h2>
             <div className="mt-2">
               <Rating value={product.rating} count={product.reviewCount} size={14} />
             </div>
@@ -70,10 +70,10 @@ function QuickViewContent({ product, onClose }: { product: Product | null; onClo
                       type="button"
                       onClick={() => setVolume(v)}
                       className={cn(
-                        'rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
+                        'rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors',
                         v === (volume ?? options.volumes[0])
-                          ? 'border-purple-600 bg-purple-600 text-cream'
-                          : 'border-purple-200 text-purple-700 hover:border-purple-400',
+                          ? 'border-brand-500 bg-brand-500 text-white'
+                          : 'border-line text-ink hover:border-ink/30',
                       )}
                     >
                       {v}
@@ -91,10 +91,10 @@ function QuickViewContent({ product, onClose }: { product: Product | null; onClo
                         type="button"
                         onClick={() => setIntensity(it)}
                         className={cn(
-                          'rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
+                          'rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors',
                           it === (intensity ?? options.intensities[0])
-                            ? 'border-purple-600 bg-purple-600 text-cream'
-                            : 'border-purple-200 text-purple-700 hover:border-purple-400',
+                            ? 'border-brand-500 bg-brand-500 text-white'
+                            : 'border-line text-ink hover:border-ink/30',
                         )}
                       >
                         {it}
@@ -132,7 +132,7 @@ function QuickViewContent({ product, onClose }: { product: Product | null; onClo
             <Link
               href={`/urun/${product.slug}`}
               onClick={onClose}
-              className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-purple-700 link-underline"
+              className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-500 link-underline"
             >
               Ürün detayına git <ArrowRight size={14} />
             </Link>

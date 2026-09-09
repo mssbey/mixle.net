@@ -19,7 +19,7 @@ export function Tabs({ items, className }: { items: TabItem[]; className?: strin
       <div
         role="tablist"
         aria-label="Ürün bilgileri"
-        className="hide-scrollbar -mx-4 flex gap-1 overflow-x-auto border-b border-purple-100 px-4"
+        className="hide-scrollbar -mx-4 flex gap-1 overflow-x-auto border-b border-line px-4"
       >
         {items.map((t) => {
           const selected = t.id === active;
@@ -34,14 +34,14 @@ export function Tabs({ items, className }: { items: TabItem[]; className?: strin
               onClick={() => setActive(t.id)}
               className={cn(
                 'relative shrink-0 whitespace-nowrap px-4 py-3 text-sm font-semibold transition-colors',
-                selected ? 'text-purple-800' : 'text-ink-soft hover:text-purple-700',
+                selected ? 'text-ink' : 'text-ink-soft hover:text-ink',
               )}
             >
               {t.label}
               {selected && (
                 <m.span
                   layoutId={`${baseId}-underline`}
-                  className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-gold-400"
+                  className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-brand-500"
                 />
               )}
             </button>

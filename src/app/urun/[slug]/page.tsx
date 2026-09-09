@@ -70,7 +70,7 @@ export default async function ProductPage({ params }: { params: Params }) {
         <ProductDetailClient product={product} />
       </div>
 
-      <div className="mt-16 border-t border-purple-100 pt-12">
+      <div className="mt-14 border-t border-line pt-10">
         <ProductInfoTabs product={product} />
       </div>
 

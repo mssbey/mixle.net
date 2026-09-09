@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, ShieldCheck, Truck, RotateCcw, Minus } from 'lucide-react';
+import { MessageCircle, ShieldCheck, Truck, RotateCcw, PackageCheck } from 'lucide-react';
 import type { Product, ProductVariant, VariantIntensity, VariantVolume } from '@/types';
 import { Price } from '@/components/ui/Price';
 import { Rating } from '@/components/ui/Rating';
@@ -27,15 +27,26 @@ interface Props {
   onQty: (n: number) => void;
 }
 
+const optionBtn = (selected: boolean, available: boolean) =>
+  cn(
+    'rounded-md border px-4 py-2 text-sm font-semibold transition-colors',
+    selected
+      ? 'border-brand-500 bg-brand-500 text-white'
+      : available
+        ? 'border-line text-ink hover:border-ink/30'
+        : 'cursor-not-allowed border-line text-purple-300 line-through',
+  );
+
 export function PurchasePanel({ product, variant, volume, intensity, qty, onVolume, onIntensity, onQty }: Props) {
   const router = useRouter();
   const add = useCart((s) => s.add);
   const openCart = useUI((s) => s.openCart);
   const { volumes, intensities } = uniqueOptions(product);
   const categories = useCategories();
-  const catName = categories.find((c) => c.slug === product.category)?.name;
+  const category = categories.find((c) => c.slug === product.category);
   const sel = { volume, intensity };
   const soldOut = variant.stock === 'out-of-stock';
+  const stock = stockLabel[product.stockStatus];
 
   const handleAdd = () => {
     add(product.id, variant.id, qty);
@@ -45,28 +56,33 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
 
   const handleBuyNow = () => {
     add(product.id, variant.id, qty);
-    router.push('/sepet');
+    router.push('/odeme');
   };
 
   return (
-    <div className="rounded-3xl border border-purple-100 bg-white p-5 sm:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-500">
-        {catName} · {product.series}
+    <div className="rounded-lg border border-line bg-white p-5 sm:p-7">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">
+        {category ? (
+          <Link href={`/kategori/${category.slug}`} className="hover:text-brand-500">
+            {category.name}
+          </Link>
+        ) : null}
+        {product.series ? ` · ${product.series}` : ''}
       </p>
-      <h1 className="mt-1.5 font-display text-2xl font-semibold text-purple-900 sm:text-4xl">{product.name}</h1>
+      <h1 className="mt-1.5 text-2xl font-bold text-ink sm:text-3xl">{product.name}</h1>
       <p className="mt-2 text-sm text-ink-soft">{product.shortDescription}</p>
 
-      <div className="mt-3 flex items-center gap-3">
-        <Rating value={product.rating} count={product.reviewCount} />
-        <span className={cn('text-xs font-semibold', stockLabel[product.stockStatus].className)}>
-          {stockLabel[product.stockStatus].text}
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+        {product.rating > 0 && <Rating value={product.rating} count={product.reviewCount} />}
+        <span className={cn('inline-flex items-center gap-1.5 text-xs font-semibold', stock.className)}>
+          <PackageCheck size={14} /> {stock.text}
         </span>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-3 rounded-2xl bg-purple-50/60 p-4">
+      <div className="mt-5 flex flex-wrap items-end justify-between gap-3 rounded-lg border border-line bg-mist p-4">
         <Price price={variant.price} oldPrice={variant.oldPrice} size="lg" />
-        <p className="max-w-[11rem] text-right text-[11px] leading-snug text-ink-soft">
-          Demo fiyat ve varyasyonlar. Gerçek ödeme alınmaz.
+        <p className="max-w-[12rem] text-right text-[11px] leading-snug text-ink-soft">
+          Fiyata KDV dahildir. Demo katalog — gerçek ödeme alınmaz.
         </p>
       </div>
 
@@ -83,14 +99,7 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
                   aria-pressed={v === volume}
                   disabled={!available}
                   onClick={() => onVolume(v as VariantVolume)}
-                  className={cn(
-                    'rounded-xl border px-4 py-2 text-sm font-semibold transition-colors',
-                    v === volume
-                      ? 'border-purple-600 bg-purple-600 text-cream'
-                      : available
-                        ? 'border-purple-200 text-purple-700 hover:border-purple-400'
-                        : 'cursor-not-allowed border-purple-100 text-purple-200 line-through',
-                  )}
+                  className={optionBtn(v === volume, available)}
                 >
                   {v}
                 </button>
@@ -101,9 +110,7 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
 
         {intensities.length > 1 && (
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-              Yoğunluk
-            </p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Yoğunluk</p>
             <div className="flex flex-wrap gap-2">
               {intensities.map((it) => {
                 const available = isOptionAvailable(product, 'intensity', it, sel);
@@ -114,14 +121,7 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
                     aria-pressed={it === intensity}
                     disabled={!available}
                     onClick={() => onIntensity(it as VariantIntensity)}
-                    className={cn(
-                      'rounded-xl border px-4 py-2 text-sm font-semibold transition-colors',
-                      it === intensity
-                        ? 'border-purple-600 bg-purple-600 text-cream'
-                        : available
-                          ? 'border-purple-200 text-purple-700 hover:border-purple-400'
-                          : 'cursor-not-allowed border-purple-100 text-purple-200 line-through',
-                    )}
+                    className={optionBtn(it === intensity, available)}
                   >
                     {it}
                   </button>
@@ -131,60 +131,67 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
           </div>
         )}
 
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Ürün tipi</p>
-          <p className="inline-flex items-center gap-2 rounded-xl border border-purple-100 bg-white px-4 py-2 text-sm font-medium text-purple-800">
-            {variant.type}
-          </p>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-ink-soft">
+          <span>
+            Ürün tipi: <span className="font-semibold text-ink">{variant.type}</span>
+          </span>
+          <span>
+            SKU: <span className="font-mono text-ink">{variant.sku}</span>
+          </span>
         </div>
-
-        <p className="text-xs text-ink-soft">
-          SKU: <span className="font-mono">{variant.sku}</span>
-
-        </p>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <QuantityStepper value={qty} onChange={onQty} max={Math.max(1, variant.stockCount || 99)} />
-        <button type="button" onClick={handleAdd} disabled={soldOut} className="btn-primary flex-1">
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={soldOut}
+          className="btn-primary h-12 flex-1 disabled:opacity-40"
+        >
           {soldOut ? 'Stokta Yok' : `Sepete Ekle · ${currency(variant.price * qty)}`}
         </button>
         <FavoriteButton
           productId={product.id}
           productName={product.name}
           size={19}
-          className="h-12 w-12 shrink-0 border border-purple-200 bg-white"
+          className="h-12 w-12 shrink-0 border border-line bg-white"
         />
       </div>
       <button
         type="button"
         onClick={handleBuyNow}
         disabled={soldOut}
-        className="btn-gold mt-3 w-full disabled:opacity-40"
+        className="btn-dark mt-3 h-12 w-full disabled:opacity-40"
       >
-        Sepette İncele
+        Hemen Al
       </button>
 
-      <Link href="/iletisim" className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-purple-700"><MessageCircle size={16} /> ürün hakkında bilgi</Link>
+      <Link
+        href="/iletisim?konu=urun"
+        className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-brand-500 hover:text-brand-600"
+      >
+        <MessageCircle size={16} /> Ürün hakkında soru sor
+      </Link>
 
-      <div className="mt-6 grid gap-3 border-t border-purple-100 pt-5 text-sm text-ink-soft sm:grid-cols-2">
+      <div className="mt-6 grid gap-3 border-t border-line pt-5 text-sm text-ink-soft sm:grid-cols-2">
         <div className="flex items-start gap-2.5">
-          <Truck size={17} className="mt-0.5 shrink-0 text-purple-500" />
-          <span>{site.commerce.estimatedDelivery} (örnek koşul)</span>
+          <Truck size={17} className="mt-0.5 shrink-0 text-ink-soft" />
+          <span>{site.commerce.estimatedDelivery}</span>
         </div>
         <div className="flex items-start gap-2.5">
-          <ShieldCheck size={17} className="mt-0.5 shrink-0 text-purple-500" />
-          <span>{site.commerce.securePackaging} (örnek)</span>
+          <ShieldCheck size={17} className="mt-0.5 shrink-0 text-ink-soft" />
+          <span>256bit SSL ile güvenli ödeme</span>
         </div>
         <div className="flex items-start gap-2.5">
-          <RotateCcw size={17} className="mt-0.5 shrink-0 text-purple-500" />
+          <RotateCcw size={17} className="mt-0.5 shrink-0 text-ink-soft" />
           <Link href="/iade-ve-teslimat" className="link-underline">
-            İade ve teslimat koşulları
+            {site.commerce.freeShippingThreshold} ₺ üzeri ücretsiz kargo · kolay iade
           </Link>
         </div>
         <div className="flex items-start gap-2.5">
-          <Minus size={17} className="mt-0.5 shrink-0 rotate-90 text-purple-500" />
-          <span>{site.commerce.freeShippingThreshold} ₺ üzeri kargo ücretsiz (örnek)</span>
+          <PackageCheck size={17} className="mt-0.5 shrink-0 text-ink-soft" />
+          <span>{site.commerce.securePackaging}</span>
         </div>
       </div>
     </div>

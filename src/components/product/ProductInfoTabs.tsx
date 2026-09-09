@@ -47,8 +47,8 @@ export function ProductInfoTabs({ product }: { product: Product }) {
                 ['Ürün formu', formLabel(product.form)],
                 ['Saklama', product.storage],
               ].map(([k, v]) => (
-                <div key={k} className="rounded-xl border border-purple-100 p-4">
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-gold-500">{k}</dt>
+                <div key={k} className="rounded-md border border-line bg-white p-4">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{k}</dt>
                   <dd className="mt-1 text-sm text-ink">{v}</dd>
                 </div>
               ))}
@@ -66,8 +66,8 @@ export function ProductInfoTabs({ product }: { product: Product }) {
                 ['Uyarılar', product.warnings],
                 ['Kategori / Alt kategori', `${product.subcategory}`],
               ].map(([k, v]) => (
-                <div key={k} className="rounded-xl border border-purple-100 p-4">
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-gold-500">{k}</dt>
+                <div key={k} className="rounded-md border border-line bg-white p-4">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{k}</dt>
                   <dd className="mt-1 text-sm text-ink">{v}</dd>
                 </div>
               ))}
@@ -85,7 +85,7 @@ export function ProductInfoTabs({ product }: { product: Product }) {
               </p>
               <p>
                 Ambalajı açılmamış ürünler için iade koşulları{' '}
-                <a href="/iade-ve-teslimat" className="font-semibold text-purple-700 link-underline">
+                <a href="/iade-ve-teslimat" className="font-semibold text-brand-500 link-underline">
                   İade ve Teslimat Koşulları
                 </a>{' '}
                 sayfasında yer alır.
@@ -99,7 +99,7 @@ export function ProductInfoTabs({ product }: { product: Product }) {
           content: (
             <Accordion
               items={product.faq.map((f) => ({ title: f.question, content: f.answer }))}
-              className="max-w-2xl border-purple-100"
+              className="max-w-2xl border-line"
             />
           ),
         },

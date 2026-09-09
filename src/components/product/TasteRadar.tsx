@@ -86,11 +86,11 @@ export function TasteBars({ taste }: { taste: TasteRadarType }) {
         <div key={a.key}>
           <div className="flex items-center justify-between text-xs font-medium">
             <dt className="text-ink-soft">{a.label}</dt>
-            <dd className="font-semibold text-purple-800">{taste[a.key]}/10</dd>
+            <dd className="font-semibold text-ink">{taste[a.key]}/10</dd>
           </div>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-purple-100">
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-purple-500 to-gold-400"
+              className="h-full rounded-full bg-brand-500"
               style={{ width: `${taste[a.key] * 10}%` }}
             />
           </div>

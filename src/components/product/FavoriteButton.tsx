@@ -37,12 +37,13 @@ export function FavoriteButton({
       aria-pressed={active}
       aria-label={active ? 'Favorilerden çıkar' : 'Favorilere ekle'}
       className={cn(
-        'grid place-items-center rounded-full bg-white/90 text-purple-700 shadow-soft backdrop-blur transition-colors hover:text-rose-500',
+        'grid place-items-center rounded-full border border-line bg-white/95 text-ink shadow-card backdrop-blur transition-colors hover:text-brand-500',
+        active && 'text-brand-500',
         className,
       )}
     >
       <m.span key={String(active)} initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
-        <Heart size={size} fill={active ? 'currentColor' : 'none'} className={active ? 'text-rose-500' : ''} />
+        <Heart size={size} fill={active ? 'currentColor' : 'none'} />
       </m.span>
     </button>
   );
