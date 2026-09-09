@@ -6,7 +6,7 @@ import { ContactForm } from './ContactForm';
 
 export const metadata: Metadata = {
   title: 'İletişim',
-  description: 'Nefis Aroma ile iletişime geçin — WhatsApp, telefon, e-posta veya form aracılığıyla.',
+  description: 'Mixle ile iletişime geçin — WhatsApp, telefon, e-posta veya form aracılığıyla.',
   alternates: { canonical: '/iletisim' },
 };
 

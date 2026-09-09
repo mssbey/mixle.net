@@ -72,7 +72,7 @@ export function QASection({ productId, initial }: { productId: string; initial: 
             </p>
             {q.answer ? (
               <p className="mt-2 rounded-md bg-mist p-3 pl-6 text-sm text-ink">
-                <span className="font-semibold text-brand-500">Nefis Aroma: </span>
+                <span className="font-semibold text-brand-500">Mixle: </span>
                 {q.answer}
               </p>
             ) : (

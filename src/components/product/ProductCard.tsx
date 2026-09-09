@@ -70,21 +70,20 @@ export function ProductCard({
     >
       <div className="relative aspect-square overflow-hidden bg-mist">
         <Link href={`/urun/${product.slug}`} aria-label={product.name} className="absolute inset-0">
-          {/* Not: gerçek beyaz zeminli paket görselleri yüklenince object-contain'e geçin. */}
           <Image
             src={product.images[0].src}
-            alt={product.name}
+            alt={`${product.name} — temsili görsel`}
             fill
             sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, (max-width:1536px) 25vw, 20vw"
             preload={priority}
-            className="object-cover transition-opacity duration-500 group-hover:opacity-0"
+            className="object-contain bg-white p-3 transition-opacity duration-500 group-hover:opacity-0"
           />
           <Image
             src={img2}
             alt=""
             fill
             sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, (max-width:1536px) 25vw, 20vw"
-            className="scale-105 object-cover opacity-0 transition-all duration-500 group-hover:scale-100 group-hover:opacity-100"
+            className="object-contain bg-white p-3 opacity-0 transition-all duration-500 group-hover:opacity-100"
           />
         </Link>
 
@@ -129,8 +128,9 @@ export function ProductCard({
       </div>
 
       <div className="flex flex-1 flex-col p-3 sm:p-3.5">
+        <p className="mb-2 text-[10px] text-ink-soft">Temsili görsel</p>
         <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-          {product.series || 'Nefis Aroma'}
+          {product.series || 'Mixle'}
         </p>
         <h3 className="mt-1 line-clamp-2 text-[13.5px] font-semibold leading-snug text-ink">
           <Link href={`/urun/${product.slug}`} className="hover:text-brand-500">

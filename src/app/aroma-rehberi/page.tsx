@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/aroma-rehberi' },
 };
 
-const images = ['/images/nefisaroma/guide/tat-notalari.webp', '/images/nefisaroma/story/aroma-atolyesi.webp', '/images/nefisaroma/categories/mix.webp', '/images/nefisaroma/categories/ferah.webp'];
+const images = ['/images/showcase/tfa-citrus-punch.webp', '/images/showcase/inawera-vanilla.webp', '/images/showcase/tfa-rainbow-sherbet.webp', '/images/showcase/tfa-cucumber.webp'];
 
 export default async function GuidePage() {
   const products = await getProducts();

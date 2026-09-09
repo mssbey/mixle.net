@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { getProducts } from '@/data/products';
 import { ProductRail } from '@/components/product/ProductRail';
-import { SectionHeading, Reveal } from '@/components/ui/Reveal';
 
 export async function NewArrivalsSection() {
   const products = await getProducts();
@@ -13,16 +12,16 @@ export async function NewArrivalsSection() {
   return (
     <section className="section container-page">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <SectionHeading eyebrow="Yeni Gelenler" title="Kataloğa son eklenenler" />
-        <Reveal>
-          <Link href="/yeni-gelenler" className="btn-ghost">
+        <h2 className="store-section-title">Yeni Eklenenler</h2>
+        <div>
+          <Link href="/yeni-gelenler" className="inline-flex items-center gap-2 text-xs font-semibold hover:text-brand-500">
             Tümünü gör <ArrowRight size={15} />
           </Link>
-        </Reveal>
+        </div>
       </div>
-      <Reveal className="mt-10">
+      <div className="mt-4">
         <ProductRail products={list} />
-      </Reveal>
+      </div>
     </section>
   );
 }

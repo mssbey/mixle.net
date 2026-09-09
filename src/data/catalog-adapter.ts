@@ -22,6 +22,7 @@ import type {
   AdminVariant,
 } from '@/types/admin';
 import { fromMinor } from '@/lib/money';
+import { productArtwork, categoryArtwork, collectionArtwork, storefrontLogo } from '@/lib/storefront-images';
 
 const VOLUMES: VariantVolume[] = ['10ml', '30ml', '60ml', '100ml'];
 const INTENSITIES: VariantIntensity[] = ['Standart', 'Yoğun', 'Extra Fresh'];
@@ -33,7 +34,6 @@ const FORM_TYPE: Record<ProductForm, VariantType> = {
   baz: 'Konsantre Aroma',
 };
 
-const FALLBACK_IMAGE = '/images/nefisaroma/story/aroma-atolyesi.webp';
 
 // buildProduct() ile bire bir aynı placeholder metinleri — vitrin metni değişmesin.
 const INGREDIENTS_NOTE =
@@ -88,7 +88,7 @@ function toStorefrontVariant(product: AdminProduct, v: AdminVariant): ProductVar
     oldPrice: onSale ? fromMinor(v.compareAtPriceMinor as number) : undefined,
     stock: stockStatusFromCount(stockCount),
     stockCount,
-    image: v.image || product.images[0]?.src || FALLBACK_IMAGE,
+    image: productArtwork(product),
     onSale,
   };
 }
@@ -108,9 +108,7 @@ export function toStorefrontProduct(p: AdminProduct): Product {
       : 'in-stock'
     : 'out-of-stock';
 
-  const gallery = p.images.length
-    ? p.images.map((i) => ({ src: i.src, alt: i.alt }))
-    : [{ src: FALLBACK_IMAGE, alt: p.name }];
+  const gallery = [{ src: productArtwork(p), alt: `${p.name} — tat profilini anlatan temsili görsel` }];
 
   return {
     id: p.id,
@@ -156,8 +154,8 @@ export function toStorefrontCategory(c: AdminCategory): Category {
     name: c.name,
     tagline: c.tagline,
     description: c.description,
-    cover: c.cover,
-    icon: c.icon,
+    cover: categoryArtwork[c.slug] ?? storefrontLogo,
+    icon: categoryArtwork[c.slug] ?? storefrontLogo,
     subcategories: c.subcategories,
     accent: c.accent,
   };
@@ -169,7 +167,7 @@ export function toStorefrontCollection(c: AdminCollection): Collection {
     name: c.name,
     subtitle: c.subtitle,
     description: c.description,
-    cover: c.cover,
+    cover: collectionArtwork[c.slug] ?? storefrontLogo,
     atmosphere: c.atmosphere,
   };
 }

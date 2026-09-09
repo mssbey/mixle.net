@@ -124,9 +124,9 @@ export function AromaFinder({ products, compact = false }: { products: Product[]
   };
 
   const share = async () => {
-    const text = `Nefis Aroma önerim: ${results.map((r) => r.name).join(', ')}`;
+    const text = `Mixle önerim: ${results.map((r) => r.name).join(', ')}`;
     try {
-      if (navigator.share) await navigator.share({ title: 'Nefis Aroma', text });
+      if (navigator.share) await navigator.share({ title: 'Mixle', text });
       else {
         await navigator.clipboard.writeText(text);
         toast.success('Kopyalandı', 'Sonucu istediğin yere yapıştırabilirsin.');

@@ -21,7 +21,7 @@ const pickers: Record<Source, (p: Product) => boolean> = {
  */
 export async function HomeRail({
   title,
-  eyebrow,
+  eyebrow: _eyebrow,
   href,
   source,
   limit = 10,
@@ -38,10 +38,10 @@ export async function HomeRail({
 
   return (
     <section className="section container-page">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-500">{eyebrow}</p>
-          <h2 className="mt-1 text-xl font-bold text-ink sm:text-2xl">{title}</h2>
+
+          <h2 className="store-section-title">{title}</h2>
         </div>
         <Link
           href={href}
@@ -50,7 +50,7 @@ export async function HomeRail({
           Tümünü Gör <ArrowRight size={15} />
         </Link>
       </div>
-      <div className="mt-6">
+      <div className="mt-4">
         <ProductRail products={list} />
       </div>
     </section>

@@ -100,7 +100,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
 
   const searchField = (
     <form onSubmit={submitSearch} role="search" className="w-full">
-      <div className="flex items-center gap-2 rounded-md border border-purple-200 bg-white px-3 py-2 transition-colors focus-within:border-brand-400 focus-within:ring-1 focus-within:ring-brand-100">
+      <div className="flex items-center header-search gap-2 rounded-md border border-purple-200 bg-white px-3 py-2 transition-colors focus-within:border-brand-400 focus-within:ring-1 focus-within:ring-brand-100">
         <Search size={17} className="shrink-0 text-purple-400" />
         <input
           value={term}
@@ -124,7 +124,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
   return (
     <>
       <header
-        className="sticky top-0 z-[80] w-full bg-white"
+        className={cn("sticky top-0 z-[80] w-full bg-white", pathname === "/" && "storefront-header")}
         onMouseLeave={closeMega}
         onKeyDown={(e) => {
           if (e.key === 'Escape') {
@@ -136,7 +136,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
         {/* Duyuru şeridi */}
         <div
           className={cn(
-            'overflow-hidden transition-all duration-300',
+            'header-announcement overflow-hidden transition-all duration-300',
             scrolled ? 'max-h-0 opacity-0' : 'max-h-9 opacity-100',
           )}
         >
@@ -146,7 +146,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
         {/* Üst bilgi şeridi (masaüstü) */}
         <div
           className={cn(
-            'hidden border-b border-line bg-mist transition-all duration-300 lg:block',
+            'header-contact hidden border-b border-line bg-mist transition-all duration-300 lg:block',
             scrolled ? 'max-h-0 overflow-hidden border-b-0 opacity-0' : 'max-h-10 opacity-100',
           )}
         >
@@ -256,12 +256,12 @@ export function Header({ contact }: { contact: StorefrontContact }) {
         {/* Kategori navigasyonu (masaüstü) */}
         <div
           className={cn(
-            'hidden border-b border-line bg-white transition-all duration-300 lg:block',
+            'header-navigation hidden border-b border-line bg-white transition-all duration-300 lg:block',
             scrolled ? 'max-h-0 overflow-hidden border-b-0 opacity-0' : 'max-h-14 opacity-100',
           )}
         >
           <div className="container-page">
-            <nav inert={scrolled} className="flex items-stretch gap-1" aria-label="Ana menü">
+            <nav inert={scrolled} className="flex h-[50px] items-stretch gap-1" aria-label="Ana menü">
               <button
                 type="button"
                 onMouseEnter={openMega}

@@ -12,35 +12,34 @@ import { resolveStorefrontContact } from '@/lib/storefront';
 export const metadata: Metadata = {
   metadataBase: new URL(site.domain),
   title: {
-    default: 'Nefis Aroma — Her Damlasında Yeni Bir Deneyim',
-    template: '%s | Nefis Aroma',
+    default: 'Mixle Lezzet Sepeti — Her Damlasında Yeni Bir Deneyim',
+    template: '%s | Mixle Lezzet Sepeti',
   },
   description: site.description,
   applicationName: site.name,
-  keywords: ['aroma', 'esans', 'DIY kit', 'nbase', 'aroma konsantresi', 'Nefis Aroma'],
+  keywords: ['aroma', 'esans', 'DIY kit', 'nbase', 'aroma konsantresi', 'Mixle', 'Mixle Lezzet Sepeti'],
   authors: [{ name: site.name }],
-  
+
   openGraph: {
     type: 'website',
     locale: 'tr_TR',
     url: site.domain,
     siteName: site.name,
-    title: 'Nefis Aroma — Her Damlasında Yeni Bir Deneyim',
+    title: 'Mixle Lezzet Sepeti — Her Damlasında Yeni Bir Deneyim',
     description: site.description,
-    images: [{ url: '/images/nefisaroma/hero/aroma-dunyasi.webp', width: 1600, height: 1067, alt: 'Nefis Aroma' }],
+    images: [{ url: '/images/showcase/tfa-passion-fruit.webp', width: 800, height: 800, alt: 'Mixle Lezzet Sepeti aroma görseli' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Nefis Aroma',
+    title: 'Mixle Lezzet Sepeti',
     description: site.description,
-    images: ['/images/og.webp'],
+    images: ['/brand/logo.png'],
   },
   icons: {
     icon: [
-      { url: '/brand/favicon-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/brand/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/brand/logo.png', sizes: '185x84', type: 'image/png' },
     ],
-    apple: '/brand/apple-touch-icon.png',
+    apple: '/brand/logo.png',
   },
   manifest: '/manifest.webmanifest',
   robots: { index: true, follow: true },

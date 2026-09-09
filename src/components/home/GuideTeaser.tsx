@@ -40,7 +40,7 @@ export function GuideTeaser() {
           description="Tat notalarını tanı, seçenekleri karşılaştır. Kullanım uygunluğu ve oranlar için ürünün resmi teknik bilgileri esas alınır."
         />
 
-        <div className="relative mt-8 h-56 overflow-hidden rounded-2xl sm:h-72"><Image src="/images/nefisaroma/guide/tat-notalari.webp" alt="Tat notalarını temsil eden meyve, nane, vanilya ve cam kaplar" fill sizes="(max-width:1360px) 100vw, 1300px" className="object-cover" /></div>
+        <div className="relative mt-8 h-56 overflow-hidden rounded-2xl sm:h-72"><Image src="/images/showcase/tfa-citrus-punch.webp" alt="TFA Citrus Punch aroma görseli" fill sizes="(max-width:1360px) 100vw, 1300px" className="object-contain bg-white" /></div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((c, i) => (
             <Reveal key={c.slug} delay={i * 0.05}>

@@ -2,23 +2,15 @@ import Image from 'next/image';
 import { Instagram } from 'lucide-react';
 import { SectionHeading, Reveal } from '@/components/ui/Reveal';
 
-const captions = [
-  'Purple Reserve atmosferi',
-  'Golden Drop · altın tonlar',
-  'Fresh Lab · buz çalışması',
-  'Formülasyon masası',
-  'Meyveli aile denemeleri',
-  'Şişe ve etiket detayı',
-  'Tütün profili kompozisyonu',
-  'Kremsi profiller',
-];
+const artwork = ['inawera-vanilla', 'tfa-caramel', 'tfa-cucumber', 'inawera-miss-cream', 'tfa-passion-fruit', 'inawera-biscuit', 'tfa-citrus-punch', 'inawera-creme-brulee'];
+const captions = ['Vanilya', 'Karamel', 'Salatalık', 'Krema', 'Çarkıfelek meyvesi', 'Bisküvi', 'Turunçgil', 'Crème Brûlée'];
 
 export function InstagramFeed() {
   return (
     <section className="section container-page">
       <SectionHeading
         eyebrow="Görsel Dünya"
-        title="Nefis Aroma atmosferi"
+        title="Mixle atmosferi"
         description="Markanın renk ve doku dünyasından kareler. (Bu galeri site içindir; harici bağlantı içermez.)"
       />
 
@@ -27,11 +19,11 @@ export function InstagramFeed() {
           <Reveal key={i} delay={(i % 4) * 0.05}>
             <figure className="group relative aspect-square overflow-hidden rounded-xl border border-purple-100">
               <Image
-                src={`/images/feed/${i + 1}.webp`}
+                src={`/images/showcase/${artwork[i]}.webp`}
                 alt={captions[i]}
                 fill
                 sizes="(max-width:640px) 50vw, 25vw"
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                className="object-contain bg-white transition-transform duration-700 group-hover:scale-110"
               />
               <figcaption className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-purple-900/80 to-transparent p-3 text-[11px] font-medium text-cream opacity-0 transition-opacity group-hover:opacity-100">
                 <Instagram size={12} /> {captions[i]}

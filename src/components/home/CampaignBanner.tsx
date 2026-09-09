@@ -11,16 +11,17 @@ export async function CampaignBanner() {
       <Reveal>
         <div className="relative overflow-hidden rounded-lg surface-dark">
           <div className="grain absolute inset-0" aria-hidden />
+          <div className="absolute inset-y-0 right-0 hidden w-2/5 bg-white sm:block">
           <Image
             src={campaign.image}
             alt=""
             fill
-            sizes="(max-width:1360px) 100vw, 1360px"
-            className="object-cover opacity-90"
+            sizes="(max-width:1360px) 40vw, 520px"
+            className="object-contain p-5"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/60 to-transparent" />
+          </div>
           <div className="relative grid gap-6 px-6 py-14 sm:px-12 lg:py-20">
-            <div className="max-w-lg">
+            <div className="max-w-lg sm:max-w-[55%]">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-white">
                 {campaign.eyebrow}
               </span>

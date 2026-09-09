@@ -7,7 +7,7 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'Yeni Gelenler',
-  description: 'Nefis Aroma kataloğuna son eklenen aroma profilleri.',
+  description: 'Mixle kataloğuna son eklenen aroma profilleri.',
   alternates: { canonical: '/yeni-gelenler' },
 };
 

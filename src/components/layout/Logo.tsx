@@ -7,33 +7,28 @@ export function Logo({
   className,
   priority = false,
   mark = false,
+  onNavigate,
 }: {
   variant?: 'default' | 'light';
   className?: string;
   priority?: boolean;
   mark?: boolean;
+  onNavigate?: () => void;
 }) {
-  const src = mark
-    ? variant === 'light'
-      ? '/brand/logo-mark-light.svg'
-      : '/brand/logo-mark.svg'
-    : variant === 'light'
-      ? '/brand/logo-light-trimmed.svg'
-      : '/brand/logo-full-trimmed.svg';
-
   return (
     <Link
       href="/"
-      aria-label="Nefis Aroma ana sayfa"
-      className={cn('inline-flex shrink-0 items-center', className)}
+      aria-label="Ana sayfa"
+      onClick={onNavigate}
+      className={cn('inline-flex shrink-0 items-center', variant === 'light' && 'rounded-md bg-white px-3 py-2', className)}
     >
       <Image
-        src={src}
-        alt="Nefis Aroma"
-        width={mark ? 52 : 200}
-        height={mark ? 52 : 72}
+        src="/brand/logo.png"
+        alt="Mixle Lezzet Sepeti"
+        width={185}
+        height={84}
         preload={priority}
-        className={cn(mark ? 'h-12 w-12' : 'h-auto w-[112px] sm:w-[156px]', 'object-contain')}
+        className={cn(mark ? 'w-[88px]' : 'w-[100px] sm:w-[120px]', 'h-auto object-contain')}
       />
     </Link>
   );

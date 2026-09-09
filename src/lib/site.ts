@@ -3,22 +3,22 @@
 // hazır olduğunda tek yerden güncellenebilir.
 
 export const site = {
-  name: 'Nefis Aroma',
-  shortName: 'Nefis Aroma',
-  domain: process.env.NEXT_PUBLIC_SITE_URL || 'https://nefisaroma.example', // placeholder — gerçek alan adıyla değiştirin
+  name: 'Mixle Lezzet Sepeti',
+  shortName: 'Mixle',
+  domain: process.env.NEXT_PUBLIC_SITE_URL || 'https://mixle.net',
   description:
     'Özenle geliştirilen aroma profilleri, DIY kitleri ve baz ürünleri. Her damlasında yeni bir deneyim.',
   locale: 'tr_TR',
-  // İletişim — PLACEHOLDER. Gerçek bilgiler panel → Ayarlar → Mağaza'dan girilir
-  // ve `getStoreInfo()` ile bu değerlerin yerine geçer.
+  // İletişim — panel → Ayarlar → Mağaza'da kayıt varsa `getStoreInfo()` ile
+  // bu değerlerin yerine geçer.
   contact: {
-    whatsapp: '+90 000 000 00 00',
-    whatsappUrl: 'https://wa.me/900000000000',
-    phone: '+90 000 000 00 00',
-    phoneUrl: 'tel:+900000000000',
-    email: 'destek@nefisaroma.example',
-    addressLines: ['Örnek Mah. Aroma Sok. No: 0', 'Kadıköy / İstanbul (örnek adres)'],
-    mapNote: 'Harita entegrasyonu için ayrılmış alan — gerçek konum eklenecek.',
+    whatsapp: '0543 449 79 69',
+    whatsappUrl: 'https://wa.me/905434497969',
+    phone: '0543 449 79 69',
+    phoneUrl: 'tel:+905434497969',
+    email: 'info@mixle.net',
+    addressLines: ['Türkiye'],
+    mapNote: 'Harita entegrasyonu için ayrılmış alan.',
     workingHours: 'Hafta içi 09:00 – 19:00 · Cumartesi 10:00 – 13:00',
   },
   // Alt bilgide gösterilen ödeme yöntemi rozetleri (metinsel; panelden
@@ -43,8 +43,8 @@ export const site = {
   },
   announcements: [
     'Güvenli ve sızdırmaz paketleme',
-    '750 ₺ üzeri siparişlerde kargo bizden (örnek kampanya)',
-    'WhatsApp destek hattı hafta içi 09:00 – 18:00',
+    '750 ₺ üzeri siparişlerde kargo bizden',
+    'WhatsApp destek hattı hafta içi 09:00 – 19:00',
   ],
   // Hakkımızda / kurumsal — DOĞRULANMAMIŞ bilgiler placeholder olarak işaretli
   companyPlaceholders: {

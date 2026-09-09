@@ -9,7 +9,7 @@ import { Reveal, SectionHeading } from '@/components/ui/Reveal';
 
 export const metadata: Metadata = {
   title: 'Hakkımızda',
-  description: 'Nefis Aroma’nın hikâyesi, değerleri ve ürün geliştirme yaklaşımı.',
+  description: 'Mixle’nın hikâyesi, değerleri ve ürün geliştirme yaklaşımı.',
   alternates: { canonical: '/hakkimizda' },
 };
 
@@ -18,7 +18,7 @@ export default function AboutPage() {
     <div>
       <section className="surface-dark relative overflow-hidden">
         <div className="grain absolute inset-0" aria-hidden />
-        <Image src="/images/nefisaroma/hero/aroma-dunyasi.webp" alt="" fill sizes="100vw" priority className="object-cover opacity-40" />
+        <Image src="/images/showcase/tfa-passion-fruit.webp" alt="" fill sizes="100vw" priority className="object-cover opacity-40" />
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900 via-purple-900/85 to-purple-900/45" />
         <div className="container-page relative py-20 sm:py-28">
           <Breadcrumbs items={[{ label: 'Hakkımızda' }]} className="[&_*]:text-cream/70 [&_span[aria-current]]:text-cream" />
@@ -26,7 +26,7 @@ export default function AboutPage() {
             Doğadan ilham, dengeli formülasyon
           </h1>
           <p className="mt-4 max-w-lg text-cream/75">
-            Nefis Aroma, tanıdık tatları özenle kurgulanmış, dengeli aroma profillerine dönüştürmeyi amaçlar.
+            Mixle, tanıdık tatları özenle kurgulanmış, dengeli aroma profillerine dönüştürmeyi amaçlar.
           </p>
         </div>
       </section>
@@ -37,11 +37,11 @@ export default function AboutPage() {
             <SectionHeading
               eyebrow="Marka Hikâyesi"
               title="Bir tarifin arkasındaki fikir"
-              description="Nefis Aroma, meyve, tatlı, içecek ve tütün dünyasından aldığı ilhamı; ölçülü, tekrarlanabilir ve şeffaf bir aroma kataloğuna dönüştürme fikriyle yola çıktı. Her profil, tek bir notayı abartmak yerine tatlılık, ferahlık ve yoğunluğu birlikte dengelemeyi hedefler."
+              description="Mixle, meyve, tatlı, içecek ve tütün dünyasından aldığı ilhamı; ölçülü, tekrarlanabilir ve şeffaf bir aroma kataloğuna dönüştürme fikriyle yola çıktı. Her profil, tek bir notayı abartmak yerine tatlılık, ferahlık ve yoğunluğu birlikte dengelemeyi hedefler."
             />
           </Reveal>
           <Reveal delay={0.1} className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)]">
-            <Image src="/images/nefisaroma/story/aroma-atolyesi.webp" alt="" fill sizes="(max-width:1024px) 100vw, 50vw" className="object-cover" />
+            <Image src="/images/showcase/inawera-vanilla.webp" alt="" fill sizes="(max-width:1024px) 100vw, 50vw" className="object-cover" />
           </Reveal>
         </div>
       </section>

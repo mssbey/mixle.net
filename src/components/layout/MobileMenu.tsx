@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Phone, MessageCircle } from 'lucide-react';
 import { Drawer } from '@/components/ui/Drawer';
+import { Logo } from './Logo';
 import { useTaxonomy } from '@/components/catalog/CatalogProvider';
 import { mobileMenuLinks } from '@/data/nav';
 import type { StorefrontContact } from '@/lib/storefront';
@@ -22,7 +23,7 @@ export function MobileMenu({
   const [catOpen, setCatOpen] = useState(true);
 
   return (
-    <Drawer open={open} onClose={onClose} label="Menü" side="left" title="Menü">
+    <Drawer open={open} onClose={onClose} label="Menü" side="left" title={<Logo onNavigate={onClose} />}>
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         <Link
           href="/urunler"

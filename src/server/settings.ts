@@ -33,8 +33,8 @@ export const storeSettingsSchema = z.object({
 export type StoreSettings = z.infer<typeof storeSettingsSchema>;
 
 export const storeInfoSchema = z.object({
-  legalName: z.string().default('Nefis Aroma'),
-  tradeName: z.string().default('Nefis Aroma'),
+  legalName: z.string().default('Mixle Lezzet Sepeti'),
+  tradeName: z.string().default('Mixle Lezzet Sepeti'),
   address: z.string().default(''),
   city: z.string().default(''),
   phone: z.string().default(''),

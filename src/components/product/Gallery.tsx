@@ -37,6 +37,7 @@ export function Gallery({
 
   return (
     <div>
+      <p className="mb-3 text-xs leading-5 text-ink-soft">Temsili görsel: tat profilini anlatır; ürünün ambalajını veya markasını göstermez.</p>
       <div className="hidden gap-3 sm:flex">
         <div className="flex w-16 flex-col gap-2.5">
           {images.map((img, i) => (
@@ -51,7 +52,7 @@ export function Gallery({
                 active === i ? 'border-brand-500' : 'border-line hover:border-ink/30',
               )}
             >
-              <Image src={img.src} alt="" fill sizes="64px" className="object-cover" />
+              <Image src={img.src} alt="" fill sizes="64px" className="object-contain bg-white" />
             </button>
           ))}
         </div>
@@ -71,7 +72,7 @@ export function Gallery({
               fill
               sizes="(max-width:1024px) 100vw, 50vw"
               loading="eager"
-              className="object-cover transition-transform duration-200"
+              className="object-contain bg-white transition-transform duration-200"
               style={
                 zoom.on
                   ? { transform: 'scale(1.9)', transformOrigin: `${zoom.x}% ${zoom.y}%` }
@@ -96,7 +97,7 @@ export function Gallery({
           <div className="flex">
             {images.map((img, i) => (
               <div key={img.src} className="relative aspect-square min-w-0 shrink-0 grow-0 basis-full bg-mist">
-                <Image src={img.src} alt={img.alt || productName} fill loading={i === 0 ? "eager" : "lazy"} sizes="100vw" className="object-cover" />
+                <Image src={img.src} alt={img.alt || productName} fill loading={i === 0 ? "eager" : "lazy"} sizes="100vw" className="object-contain bg-white" />
               </div>
             ))}
           </div>

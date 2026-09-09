@@ -7,7 +7,7 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'Tüm Aromalar',
-  description: 'Meyveli, ferah, tatlı, tütün ve daha fazlası — Nefis Aroma kataloğundaki tüm aroma profillerini keşfedin.',
+  description: 'Meyveli, ferah, tatlı, tütün ve daha fazlası — Mixle kataloğundaki tüm aroma profillerini keşfedin.',
   alternates: { canonical: '/urunler' },
 };
 

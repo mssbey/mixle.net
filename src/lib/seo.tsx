@@ -7,7 +7,7 @@ export function organizationJsonLd() {
     '@type': 'Organization',
     name: site.name,
     url: site.domain,
-    logo: `${site.domain}/brand/logo-full.png`,
+    logo: `${site.domain}/brand/logo.png`,
   };
 }
 

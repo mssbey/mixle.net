@@ -2,7 +2,7 @@
 // Yorumlar ve değerlendirmeler DEMO'dur; gerçek müşteri verisi değildir.
 
 export const heroContent = {
-  eyebrow: 'Nefis Aroma',
+  eyebrow: 'Mixle',
   title: 'Her Damlasında Yeni Bir Deneyim',
   subtitle: 'Özenle geliştirilen aroma profilleriyle kendi dünyanı keşfet.',
   primaryCta: { label: 'Aromaları Keşfet', href: '/urunler' },
@@ -27,28 +27,28 @@ export const processSteps: ProcessStep[] = [
     title: 'Fikir ve tat profili',
     description:
       'Bir tat ailesi ve hedeflenen his belirlenir. Referans notlar çıkarılır, profil kabaca kâğıt üzerinde tanımlanır.',
-    image: '/images/process/1.webp',
+    image: '/images/showcase/tfa-passion-fruit.webp',
   },
   {
     no: '02',
     title: 'Formülasyon',
     description:
       'Notalar farklı oranlarda denenir. Ana nota, destek notaları ve arka plan katmanı ayrı ayrı ayarlanır.',
-    image: '/images/process/2.webp',
+    image: '/images/showcase/inawera-vanilla.webp',
   },
   {
     no: '03',
     title: 'Test ve dengeleme',
     description:
       'Örnekler dinlendirilir ve tekrar tadılır. Tatlılık, ferahlık ve yoğunluk küçük adımlarla dengelenir.',
-    image: '/images/process/3.webp',
+    image: '/images/showcase/inawera-miss-cream.webp',
   },
   {
     no: '04',
     title: 'Üretim ve paketleme',
     description:
       'Onaylanan tarif hazırlanır, sızdırmaz kapaklı şişelere alınır ve darbe emici paketle gönderime hazırlanır.',
-    image: '/images/process/4.webp',
+    image: '/images/showcase/inawera-biscuit.webp',
   },
 ];
 
@@ -220,7 +220,7 @@ export const campaign = {
   code: 'GOLDENDROP',
   codeNote: 'Sepette “GOLDENDROP” kodu ile %15 indirim (örnek kampanya).',
   cta: { label: 'Koleksiyonu İncele', href: '/koleksiyon/purple-reserve' },
-  image: '/images/nefisaroma/collections/aroma-seckisi.webp',
+  image: '/images/showcase/tfa-caramel.webp',
 };
 
 export interface TimelineItem {
@@ -262,7 +262,7 @@ export const faqGroups: { heading: string; items: { q: string; a: string }[] }[]
     items: [
       {
         q: 'Aromalarınız nikotin içeriyor mu?',
-        a: 'Hayır. Nefis Aroma ürünleri aroma konsantreleri, DIY kitleri ve nötr bazlardan oluşur; nikotin içermez.',
+        a: 'Hayır. Mixle ürünleri aroma konsantreleri, DIY kitleri ve nötr bazlardan oluşur; nikotin içermez.',
       },
       {
         q: 'Konsantre aroma ile shortfill arasındaki fark nedir?',

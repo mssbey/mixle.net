@@ -66,7 +66,7 @@ export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
                   alt=""
                   width={88}
                   height={64}
-                  className="h-16 shrink-0 rounded object-cover"
+                  className="h-16 shrink-0 rounded object-contain bg-white"
                   style={{ width: 88 }}
                 />
                 <div className="min-w-0">

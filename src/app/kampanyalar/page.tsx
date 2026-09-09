@@ -11,7 +11,7 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'Kampanyalar',
-  description: 'Nefis Aroma’da güncel indirimli ürünler ve örnek kampanya kodları.',
+  description: 'Mixle’da güncel indirimli ürünler ve örnek kampanya kodları.',
   alternates: { canonical: '/kampanyalar' },
 };
 

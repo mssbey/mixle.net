@@ -27,13 +27,13 @@ export function ProductRail({ products, className }: { products: Product[]; clas
   }, [embla, onSelect]);
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('product-rail relative', className)}>
       <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex gap-4 sm:gap-5">
+        <div className="product-rail-track flex gap-4 sm:gap-5">
           {products.map((p) => (
             <div
               key={p.id}
-              className="min-w-0 shrink-0 grow-0 basis-[64%] sm:basis-[40%] lg:basis-[28%] xl:basis-[23%]"
+              className="product-rail-slide min-w-0 shrink-0 grow-0 basis-[64%] sm:basis-[40%] lg:basis-[28%] xl:basis-[23%]"
             >
               <ProductCard product={p} onQuickView={setQuick} />
             </div>

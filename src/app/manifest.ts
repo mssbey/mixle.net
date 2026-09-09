@@ -8,13 +8,11 @@ export default function manifest(): MetadataRoute.Manifest {
     description: site.description,
     start_url: '/',
     display: 'standalone',
-    background_color: '#FAF8F4',
-    theme_color: '#140B19',
+    background_color: '#FFFFFF',
+    theme_color: '#0F1729',
     lang: 'tr-TR',
     icons: [
-      { src: '/brand/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/brand/icon-512.png', sizes: '512x512', type: 'image/png' },
-      { src: '/brand/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: '/brand/logo.png', sizes: '185x84', type: 'image/png' },
     ],
   };
 }
