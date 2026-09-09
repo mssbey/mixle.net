@@ -26,7 +26,7 @@ export function QuickAddPanel({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.2 }}
-      className="absolute inset-1 z-20 overflow-y-auto rounded-xl border border-purple-100 bg-white p-3 shadow-lift"
+      className="absolute inset-1 z-20 overflow-y-auto rounded-md border border-line bg-white p-3 shadow-lift"
       onClick={(e) => e.preventDefault()}
     >
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Hacim</p>
@@ -38,8 +38,8 @@ export function QuickAddPanel({
             aria-pressed={v === volume}
             onClick={() => setVolume(v)}
             className={cn(
-              'rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors',
-              v === volume ? 'border-purple-600 bg-purple-600 text-cream' : 'border-purple-200 text-purple-700 hover:border-purple-400',
+              'rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors',
+              v === volume ? 'border-brand-500 bg-brand-500 text-white' : 'border-line text-ink hover:border-ink/30',
             )}
           >
             {v}
@@ -58,7 +58,7 @@ export function QuickAddPanel({
                 onClick={() => setIntensity(it)}
                 className={cn(
                   'rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors',
-                  it === intensity ? 'border-purple-600 bg-purple-600 text-cream' : 'border-purple-200 text-purple-700 hover:border-purple-400',
+                  it === intensity ? 'border-brand-500 bg-brand-500 text-white' : 'border-line text-ink hover:border-ink/30',
                 )}
               >
                 {it}
@@ -71,7 +71,7 @@ export function QuickAddPanel({
         type="button"
         disabled={variant.stock === 'out-of-stock'}
         onClick={() => onConfirm(variant.id)}
-        className="btn-gold mt-3 w-full py-2 text-xs disabled:opacity-50"
+        className="btn-primary mt-3 w-full py-2 text-xs disabled:opacity-50"
       >
         {variant.stock === 'out-of-stock' ? (
           'Bu varyant tükendi'

@@ -82,7 +82,7 @@ export function ProductBrowser({
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
       <aside className="hidden lg:block">
-        <div className="sticky top-[calc(var(--header-h)+16px)] max-h-[calc(100vh-var(--header-h)-32px)] overflow-y-auto rounded-2xl border border-purple-100 bg-white p-5">
+        <div className="sticky top-[calc(var(--header-h-scrolled)+16px)] max-h-[calc(100vh-var(--header-h-scrolled)-32px)] overflow-y-auto rounded-lg border border-line bg-white p-5">
           <FilterPanel
             filters={filters}
             set={set}
@@ -97,9 +97,9 @@ export function ProductBrowser({
       </aside>
 
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-100 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
           <p aria-live="polite" className="text-sm text-ink-soft">
-            <strong className="text-purple-900">{filtered.length}</strong> ürün bulundu
+            <strong className="text-ink">{filtered.length}</strong> ürün bulundu
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -109,7 +109,7 @@ export function ProductBrowser({
             >
               <SlidersHorizontal size={14} /> Filtrele
               {activeCount > 0 && (
-                <span className="ml-0.5 grid h-4 w-4 place-items-center rounded-full bg-purple-600 text-[10px] text-cream">
+                <span className="ml-0.5 grid h-4 w-4 place-items-center rounded-full bg-brand-500 text-[10px] text-white">
                   {activeCount}
                 </span>
               )}
@@ -120,7 +120,7 @@ export function ProductBrowser({
                 value={filters.sort}
                 onChange={(e) => set({ sort: e.target.value as FilterState['sort'] })}
                 aria-label="Sıralama"
-                className="appearance-none rounded-full border border-purple-200 bg-white py-2 pl-3 pr-8 text-xs font-medium text-purple-800 outline-none focus:border-purple-400"
+                className="appearance-none rounded-md border border-line bg-white py-2 pl-3 pr-8 text-xs font-medium text-ink outline-none focus:border-brand-400"
               >
                 {sortOptions.map((o) => (
                   <option key={o.key} value={o.key}>
@@ -131,13 +131,13 @@ export function ProductBrowser({
               <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-400" />
             </div>
 
-            <div className="hidden items-center gap-1 rounded-full border border-purple-200 p-1 sm:flex">
+            <div className="hidden items-center gap-1 rounded-md border border-line p-1 sm:flex">
               <button
                 type="button"
                 onClick={() => setView('grid')}
                 aria-label="Izgara görünümü"
                 aria-pressed={view === 'grid'}
-                className={cn('grid h-7 w-7 place-items-center rounded-full', view === 'grid' ? 'bg-purple-600 text-cream' : 'text-purple-500')}
+                className={cn('grid h-7 w-7 place-items-center rounded', view === 'grid' ? 'bg-brand-500 text-white' : 'text-ink-soft')}
               >
                 <LayoutGrid size={14} />
               </button>
@@ -146,7 +146,7 @@ export function ProductBrowser({
                 onClick={() => setView('list')}
                 aria-label="Liste görünümü"
                 aria-pressed={view === 'list'}
-                className={cn('grid h-7 w-7 place-items-center rounded-full', view === 'list' ? 'bg-purple-600 text-cream' : 'text-purple-500')}
+                className={cn('grid h-7 w-7 place-items-center rounded', view === 'list' ? 'bg-brand-500 text-white' : 'text-ink-soft')}
               >
                 <List size={14} />
               </button>
@@ -173,7 +173,7 @@ export function ProductBrowser({
               }
             />
           ) : view === 'grid' ? (
-            <ProductGrid products={shown} />
+            <ProductGrid products={shown} columns={4} />
           ) : (
             <div className="space-y-4">
               {shown.map((p) => (
@@ -207,7 +207,7 @@ export function ProductBrowser({
             lockCategory={lockCategory}
           />
         </div>
-        <div className="border-t border-purple-100 p-4">
+        <div className="border-t border-line p-4">
           <button type="button" onClick={() => setSheetOpen(false)} className="btn-primary w-full">
             {filtered.length} ürünü göster
           </button>

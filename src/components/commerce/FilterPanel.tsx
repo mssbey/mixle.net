@@ -24,15 +24,15 @@ interface Props {
 function Group({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-purple-100 py-4">
+    <div className="border-b border-line py-4">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between text-sm font-semibold text-purple-800"
+        className="flex w-full items-center justify-between text-sm font-semibold text-ink"
       >
         {title}
-        <ChevronDown size={16} className={cn('text-gold-400 transition-transform', open && 'rotate-180')} />
+        <ChevronDown size={16} className={cn('text-ink-soft transition-transform', open && 'rotate-180')} />
       </button>
       {open && <div className="mt-3">{children}</div>}
     </div>
@@ -49,11 +49,11 @@ function CheckRow({
   onChange: () => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 py-1.5 text-sm text-ink-soft hover:text-purple-800">
+    <label className="flex cursor-pointer items-center gap-2.5 py-1.5 text-sm text-ink-soft hover:text-ink">
       <span
         className={cn(
           'grid h-4 w-4 shrink-0 place-items-center rounded border transition-colors',
-          checked ? 'border-purple-600 bg-purple-600 text-cream' : 'border-purple-300 bg-white',
+          checked ? 'border-brand-500 bg-brand-500 text-white' : 'border-line bg-white',
         )}
       >
         {checked && (
@@ -133,8 +133,8 @@ export function FilterPanel({
               className={cn(
                 'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                 filters.profiles.includes(p)
-                  ? 'border-purple-600 bg-purple-600 text-cream'
-                  : 'border-purple-200 text-purple-700 hover:border-purple-400',
+                  ? 'border-brand-500 bg-brand-500 text-white'
+                  : 'border-line text-ink hover:border-ink/30',
               )}
             >
               {profileLabels[p]}
@@ -164,10 +164,10 @@ export function FilterPanel({
               type="button"
               onClick={() => set({ volumes: toggle(filters.volumes, v) })}
               className={cn(
-                'rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors',
+                'rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors',
                 filters.volumes.includes(v)
-                  ? 'border-purple-600 bg-purple-600 text-cream'
-                  : 'border-purple-200 text-purple-700 hover:border-purple-400',
+                  ? 'border-brand-500 bg-brand-500 text-white'
+                  : 'border-line text-ink hover:border-ink/30',
               )}
             >
               {v}

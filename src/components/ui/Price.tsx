@@ -19,19 +19,17 @@ export function Price({ price, oldPrice, size = 'md', className, showBadge = tru
   const pct = discountPercent(price, oldPrice);
   const s = sizeMap[size];
   return (
-    <div className={cn('flex flex-wrap items-baseline gap-x-2 gap-y-1', className)}>
-      <span className={cn('font-display font-semibold text-purple-800', s.now)}>
+    <div className={cn('flex flex-wrap items-baseline gap-x-2 gap-y-0.5', className)}>
+      {pct > 0 && (
+        <span className={cn('text-ink-soft line-through', s.was)}>{currency(oldPrice!)}</span>
+      )}
+      <span className={cn('font-bold tracking-tight text-ink', s.now, pct > 0 && 'text-brand-600')}>
         {currency(price)}
       </span>
-      {pct > 0 && (
-        <>
-          <span className={cn('text-ink-soft line-through', s.was)}>{currency(oldPrice!)}</span>
-          {showBadge && (
-            <span className="rounded-full bg-gold-100 px-2 py-0.5 text-xs font-semibold text-gold-700">
-              -%{pct}
-            </span>
-          )}
-        </>
+      {pct > 0 && showBadge && (
+        <span className="rounded bg-brand-50 px-1.5 py-0.5 text-xs font-bold text-brand-600">
+          %{pct}
+        </span>
       )}
     </div>
   );

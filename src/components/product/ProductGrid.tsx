@@ -10,13 +10,13 @@ import { cn } from '@/lib/utils';
 export function ProductGrid({
   products,
   className,
-  columns = 4,
+  columns = 5,
   reveal = true,
   priorityCount = 0,
 }: {
   products: Product[];
   className?: string;
-  columns?: 3 | 4;
+  columns?: 3 | 4 | 5;
   reveal?: boolean;
   priorityCount?: number;
 }) {
@@ -25,11 +25,13 @@ export function ProductGrid({
   const colClass =
     columns === 3
       ? 'grid-cols-2 md:grid-cols-3'
-      : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
+      : columns === 4
+        ? 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
+        : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
 
   return (
     <>
-      <div className={cn('grid gap-4 sm:gap-5', colClass, className)}>
+      <div className={cn('grid gap-3 sm:gap-4', colClass, className)}>
         {products.map((p, i) => {
           const card = (
             <ProductCard

@@ -14,15 +14,15 @@ export const metadata: Metadata = {
 export default async function AllProductsPage() {
   const products = await getProducts();
   return (
-    <div className="container-page section !pt-8">
+    <div className="container-page section !pt-6">
       <Breadcrumbs items={[{ label: 'Tüm Aromalar' }]} />
-      <div className="page-intro mt-5"><h1 className="mt-4 text-display-sm">Tüm Aromalar</h1></div>
-      <p className="mt-2 max-w-2xl text-ink-soft">
+      <h1 className="mt-3 text-2xl font-bold text-ink sm:text-3xl">Tüm Aromalar</h1>
+      <p className="mt-1.5 max-w-2xl text-sm text-ink-soft">
         {products.length} üründen oluşan kataloğumuzda kategoriye, tat profiline, forma ve fiyata göre filtreleyerek
         aradığınız aromayı bulun.
       </p>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <Suspense fallback={<ProductGridSkeleton count={12} />}>
           <ProductBrowser baseProducts={products} />
         </Suspense>

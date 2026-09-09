@@ -36,26 +36,43 @@ export default async function CategoryPage({ params }: { params: Params }) {
   return (
     <div>
       <JsonLd data={breadcrumbJsonLd([{ name: cat.name, href: `/kategori/${cat.slug}` }])} />
-      <section className="surface-dark relative overflow-hidden">
-        <div className="grain absolute inset-0" aria-hidden />
-        <Image src={cat.cover} alt="" fill sizes="100vw" className="object-cover opacity-45" />
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-900 via-purple-900/85 to-purple-900/40" />
-        <div className="container-page relative py-16 sm:py-20">
-          <Breadcrumbs items={[{ label: cat.name }]} className="[&_*]:text-cream/70 [&_span[aria-current]]:text-cream" />
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-gold-200">{cat.tagline}</p>
-          <h1 className="mt-2 max-w-2xl font-display text-3xl font-semibold text-cream sm:text-4xl">{cat.name}</h1>
-          <p className="mt-3 max-w-xl text-cream/75">{cat.description}</p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {cat.subcategories.map((s) => (
-              <span key={s} className="rounded-full border border-cream/25 px-3 py-1 text-xs text-cream/85">
-                {s}
-              </span>
-            ))}
+      <div className="border-b border-line bg-mist">
+        <div className="container-page py-6">
+          <Breadcrumbs items={[{ label: cat.name }]} />
+          <div className="mt-3 grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              {cat.tagline && (
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-500">
+                  {cat.tagline}
+                </p>
+              )}
+              <h1 className="mt-1 text-2xl font-bold text-ink sm:text-3xl">{cat.name}</h1>
+              {cat.description && (
+                <p className="mt-2 max-w-2xl text-sm text-ink-soft">{cat.description}</p>
+              )}
+              {cat.subcategories.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {cat.subcategories.map((s) => (
+                    <span
+                      key={s}
+                      className="rounded-full border border-line bg-white px-2.5 py-1 text-xs text-ink-soft"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            {cat.cover && (
+              <div className="relative hidden h-28 w-64 shrink-0 overflow-hidden rounded-lg border border-line md:block">
+                <Image src={cat.cover} alt="" fill sizes="256px" className="object-cover" />
+              </div>
+            )}
           </div>
         </div>
-      </section>
+      </div>
 
-      <div className="container-page section !pt-10">
+      <div className="container-page section !pt-8">
         <Suspense fallback={<ProductGridSkeleton count={8} />}>
           <ProductBrowser
             baseProducts={list}

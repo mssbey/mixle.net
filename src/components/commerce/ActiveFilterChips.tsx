@@ -66,13 +66,13 @@ export function ActiveFilterChips({ filters, set, clear, priceMin, priceMax }: P
           key={i}
           type="button"
           onClick={c.onRemove}
-          className="chip gap-1.5 hover:border-rose-300 hover:text-rose-600"
+          className="chip gap-1.5 hover:border-brand-300 hover:text-brand-600"
         >
           {c.label}
           <X size={12} />
         </button>
       ))}
-      <button type="button" onClick={clear} className="text-xs font-semibold text-purple-500 underline hover:text-purple-700">
+      <button type="button" onClick={clear} className="text-xs font-semibold text-brand-500 underline hover:text-brand-600">
         Filtreleri temizle
       </button>
     </div>

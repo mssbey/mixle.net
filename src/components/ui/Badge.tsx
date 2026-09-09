@@ -2,10 +2,10 @@ import { cn } from '@/lib/utils';
 import type { BadgeKind } from '@/types';
 
 const config: Record<BadgeKind, { label: string; className: string }> = {
-  yeni: { label: 'Yeni', className: 'bg-purple-600 text-cream' },
-  'cok-satan': { label: 'Seçki', className: 'bg-gold-400 text-purple-900' },
-  'sinirli-seri': { label: 'Özel Seri', className: 'bg-purple-900 text-cream' },
-  indirim: { label: 'İndirim', className: 'bg-cream text-purple-800 ring-1 ring-gold-300' },
+  yeni: { label: 'Yeni', className: 'bg-ink text-white' },
+  'cok-satan': { label: 'Çok Satan', className: 'bg-gold-400 text-ink' },
+  'sinirli-seri': { label: 'Özel Seri', className: 'bg-purple-800 text-white' },
+  indirim: { label: 'İndirim', className: 'bg-brand-500 text-white' },
 };
 
 export function Badge({ kind, className }: { kind: BadgeKind; className?: string }) {
@@ -13,7 +13,7 @@ export function Badge({ kind, className }: { kind: BadgeKind; className?: string
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide shadow-soft',
+        'inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide',
         c.className,
         className,
       )}

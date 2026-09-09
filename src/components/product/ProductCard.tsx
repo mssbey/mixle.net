@@ -4,17 +4,18 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AnimatePresence } from 'framer-motion';
-import { Plus, Eye } from 'lucide-react';
+import { ShoppingBag, SlidersHorizontal, Eye } from 'lucide-react';
 import type { Product } from '@/types';
 import { Price } from '@/components/ui/Price';
-import { BadgeStack } from '@/components/ui/Badge';
-import { FlavorTag } from '@/components/ui/FlavorTag';
+import { Badge } from '@/components/ui/Badge';
+import { Rating } from '@/components/ui/Rating';
 import { FavoriteButton } from './FavoriteButton';
 import { QuickAddPanel } from './QuickAddPanel';
 import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
 import { pickDefaultVariant, stockLabel } from '@/lib/commerce';
+import { discountPercent } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
 export function ProductCard({
@@ -36,6 +37,16 @@ export function ProductCard({
   const defaultVariant = pickDefaultVariant(product);
   const soldOut = product.stockStatus === 'out-of-stock';
   const img2 = product.images[1]?.src ?? product.images[0].src;
+  const pct = discountPercent(defaultVariant.price, defaultVariant.oldPrice);
+  const stock = stockLabel[product.stockStatus];
+  // Öne çıkan tek rozet: indirim > çok satan > yeni > özel seri
+  const badge = product.badges.includes('cok-satan')
+    ? 'cok-satan'
+    : product.badges.includes('yeni')
+      ? 'yeni'
+      : product.badges.includes('sinirli-seri')
+        ? 'sinirli-seri'
+        : null;
 
   const doAdd = (variantId: string) => {
     add(product.id, variantId, 1);
@@ -44,48 +55,50 @@ export function ProductCard({
     toast.success('Sepete eklendi', product.name);
   };
 
-  const handleQuickAdd = () => {
+  const handleCta = () => {
     if (soldOut) return;
     if (singleVariant) doAdd(defaultVariant.id);
     else setPanelOpen((v) => !v);
   };
 
-  const stock = stockLabel[product.stockStatus];
-
   return (
     <article
       className={cn(
-        'product-card group relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-purple-100 bg-white shadow-soft transition-shadow duration-300 hover:shadow-lift',
+        'product-card group relative flex h-full flex-col overflow-hidden rounded-md border border-line bg-white transition-all duration-200 hover:border-purple-200 hover:shadow-lift',
         className,
       )}
     >
-      <div className="relative aspect-square overflow-hidden bg-purple-50">
+      <div className="relative aspect-square overflow-hidden bg-mist">
         <Link href={`/urun/${product.slug}`} aria-label={product.name} className="absolute inset-0">
+          {/* Not: gerçek beyaz zeminli paket görselleri yüklenince object-contain'e geçin. */}
           <Image
             src={product.images[0].src}
             alt={product.name}
             fill
-            sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
+            sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, (max-width:1536px) 25vw, 20vw"
             preload={priority}
-            className={cn(
-              'object-cover transition-opacity duration-500',
-              'group-hover:opacity-0',
-            )}
+            className="object-cover transition-opacity duration-500 group-hover:opacity-0"
           />
           <Image
             src={img2}
             alt=""
             fill
-            sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
+            sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, (max-width:1536px) 25vw, 20vw"
             className="scale-105 object-cover opacity-0 transition-all duration-500 group-hover:scale-100 group-hover:opacity-100"
           />
         </Link>
 
-        <div className="pointer-events-none absolute left-3 top-3 z-10">
-          <BadgeStack kinds={product.badges} />
+        <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-1.5">
+          {pct > 0 ? (
+            <span className="rounded bg-brand-500 px-1.5 py-0.5 text-[11px] font-bold text-white">
+              %{pct} İndirim
+            </span>
+          ) : (
+            badge && <Badge kind={badge} />
+          )}
         </div>
 
-        <div className="absolute right-3 top-3 z-10 flex flex-col gap-2">
+        <div className="absolute right-2.5 top-2.5 z-10 flex flex-col gap-2">
           <FavoriteButton productId={product.id} productName={product.name} className="h-9 w-9" />
           {onQuickView && (
             <button
@@ -95,53 +108,69 @@ export function ProductCard({
                 onQuickView(product);
               }}
               aria-label="Hızlı incele"
-              className="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-purple-700 opacity-100 shadow-soft backdrop-blur transition-all duration-300 hover:text-purple-900 group-hover:opacity-100"
+              className="grid h-9 w-9 place-items-center rounded-full border border-line bg-white/95 text-ink-soft opacity-0 shadow-card backdrop-blur transition-opacity hover:text-ink group-hover:opacity-100 max-lg:opacity-100"
             >
-              <Eye size={17} />
+              <Eye size={16} />
             </button>
           )}
         </div>
 
         {soldOut && (
-          <div className="absolute inset-0 z-10 grid place-items-center bg-cream/70 backdrop-blur-[1px]">
-            <span className="rounded-full bg-purple-900 px-4 py-1.5 text-xs font-semibold text-cream">
+          <div className="absolute inset-0 z-10 grid place-items-center bg-white/70 backdrop-blur-[1px]">
+            <span className="rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-white">
               Tükendi
             </span>
           </div>
         )}
 
-        <AnimatePresence>{panelOpen && <QuickAddPanel product={product} onConfirm={doAdd} />}</AnimatePresence>
+        <AnimatePresence>
+          {panelOpen && <QuickAddPanel product={product} onConfirm={doAdd} />}
+        </AnimatePresence>
       </div>
 
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-gold-500">{product.series}</p>
-        <h3 className="mt-1 line-clamp-2 text-[15px] font-semibold leading-snug text-purple-900">
-          <Link href={`/urun/${product.slug}`} className="hover:text-purple-600">
+      <div className="flex flex-1 flex-col p-3 sm:p-3.5">
+        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+          {product.series || 'Nefis Aroma'}
+        </p>
+        <h3 className="mt-1 line-clamp-2 text-[13.5px] font-semibold leading-snug text-ink">
+          <Link href={`/urun/${product.slug}`} className="hover:text-brand-500">
             {product.name}
           </Link>
         </h3>
 
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {product.flavorProfiles.slice(0, 2).map((p) => (
-            <FlavorTag key={p} profile={p} />
-          ))}
-        </div>
+        {product.rating > 0 && (
+          <Rating value={product.rating} count={product.reviewCount} size={13} className="mt-1.5" />
+        )}
 
-        <p className="mt-3 text-[10px] text-ink-soft">Temsili görsel · Demo ürün</p>
+        <div className="mt-auto pt-2.5">
+          <Price price={defaultVariant.price} oldPrice={defaultVariant.oldPrice} size="md" />
+          <p className={cn('mt-0.5 text-[11px] font-medium', stock.className)}>{stock.text}</p>
 
-        <div className="product-price-row mt-auto flex items-end justify-between gap-2 pt-3">
-          <div>
-            <Price price={defaultVariant.price} oldPrice={defaultVariant.oldPrice} size="md" />
-            <p className={cn('mt-0.5 text-[11px] font-medium', stock.className)}>{stock.text}</p>
-          </div>
           <button
             type="button"
-            onClick={handleQuickAdd}
+            onClick={handleCta}
             disabled={soldOut}
-            aria-label={singleVariant ? 'Sepete ekle' : 'Hızlı ekle'}
-            className="relative z-20 flex h-10 shrink-0 items-center justify-center gap-1 px-3 rounded-full bg-purple-600 text-cream transition-all hover:bg-purple-700 hover:shadow-lift disabled:opacity-40"
+            className={cn(
+              'mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-md text-[13px] font-semibold transition-colors',
+              soldOut
+                ? 'cursor-not-allowed bg-purple-100 text-ink-soft'
+                : singleVariant
+                  ? 'bg-brand-500 text-white hover:bg-brand-600'
+                  : 'border border-brand-500 bg-white text-brand-500 hover:bg-brand-50',
+            )}
           >
-            <span className="text-[11px] font-semibold">Ekle</span><Plus size={16} className={cn('transition-transform', panelOpen && 'rotate-45')} />
+            {soldOut ? (
+              'Tükendi'
+            ) : singleVariant ? (
+              <>
+                <ShoppingBag size={15} /> Sepete Ekle
+              </>
+            ) : (
+              <>
+                <SlidersHorizontal size={15} className={cn('transition-transform', panelOpen && 'rotate-90')} />
+                Seçenekleri Gör
+              </>
+            )}
           </button>
         </div>
       </div>
