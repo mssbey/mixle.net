@@ -46,14 +46,14 @@ export function GuideTeaser() {
             <Reveal key={c.slug} delay={i * 0.05}>
               <Link
                 href={`/aroma-rehberi#${c.slug}`}
-                className="group flex h-full flex-col rounded-[var(--radius-card)] border border-purple-100 bg-white p-5 shadow-soft transition-shadow hover:shadow-lift"
+                className="group flex h-full flex-col rounded-[var(--radius-card)] border border-line bg-white p-5 shadow-soft transition-shadow hover:shadow-lift"
               >
-                <span className="grid h-11 w-11 place-items-center rounded-full bg-purple-50 text-purple-600">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-mist text-brand-500">
                   <c.icon size={20} strokeWidth={1.6} />
                 </span>
-                <h3 className="mt-4 font-display text-base font-semibold text-purple-900">{c.title}</h3>
+                <h3 className="mt-4 text-base font-semibold text-ink">{c.title}</h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-soft">{c.text}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-purple-700">
+                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-ink">
                   Oku <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" />
                 </span>
               </Link>

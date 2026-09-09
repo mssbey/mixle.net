@@ -46,8 +46,8 @@ export function FlavorExplorer({ products }: { products: Product[] }) {
               className={cn(
                 'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all',
                 active === p
-                  ? 'border-purple-600 bg-purple-600 text-cream shadow-soft'
-                  : 'border-purple-200 bg-white text-purple-700 hover:border-purple-400',
+                  ? 'border-brand-500 bg-brand-500 text-white shadow-soft'
+                  : 'border-line bg-white text-ink hover:border-line',
               )}
             >
               <span className={cn('h-2 w-2 rounded-full', flavorMeta[p].dot)} />
@@ -76,7 +76,7 @@ export function FlavorExplorer({ products }: { products: Product[] }) {
         <div className="mt-6">
           <Link
             href={`/urunler?profil=${active}`}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-purple-700 link-underline"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink link-underline"
           >
             {flavorMeta[active].label} aromaların tümünü gör <ArrowRight size={15} />
           </Link>

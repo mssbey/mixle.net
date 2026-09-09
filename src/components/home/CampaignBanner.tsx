@@ -9,7 +9,7 @@ export async function CampaignBanner() {
   return (
     <section className="section container-page">
       <Reveal>
-        <div className="relative overflow-hidden rounded-[var(--radius-card)] surface-dark">
+        <div className="relative overflow-hidden rounded-lg surface-dark">
           <div className="grain absolute inset-0" aria-hidden />
           <Image
             src={campaign.image}
@@ -18,25 +18,25 @@ export async function CampaignBanner() {
             sizes="(max-width:1360px) 100vw, 1360px"
             className="object-cover opacity-90"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/95 via-purple-900/55 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/60 to-transparent" />
           <div className="relative grid gap-6 px-6 py-14 sm:px-12 lg:py-20">
             <div className="max-w-lg">
-              <span className="inline-flex items-center gap-2 rounded-full border border-gold-200/30 bg-gold-200/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-gold-200">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-white">
                 {campaign.eyebrow}
               </span>
-              <h2 className="mt-4 font-display text-3xl font-semibold text-cream sm:text-4xl">
+              <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">
                 {campaign.title}
               </h2>
-              <p className="mt-3 text-base text-cream/75">{campaign.description}</p>
+              <p className="mt-3 text-sm text-white/75">{campaign.description}</p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Link href={campaign.cta.href} className="btn-gold">
+                <Link href={campaign.cta.href} className="btn-primary">
                   {campaign.cta.label} <ArrowRight size={16} />
                 </Link>
-                <span className="inline-flex items-center gap-2 rounded-full border border-dashed border-cream/30 px-3 py-2 text-xs font-semibold text-cream/80">
+                <span className="inline-flex items-center gap-2 rounded-full border border-dashed border-white/30 px-3 py-2 text-xs font-semibold text-white/85">
                   <Tag size={13} /> {campaign.code}
                 </span>
               </div>
-              <p className="mt-3 text-xs text-cream/50">{campaign.codeNote}</p>
+              <p className="mt-3 text-xs text-white/55">{campaign.codeNote}</p>
             </div>
           </div>
         </div>

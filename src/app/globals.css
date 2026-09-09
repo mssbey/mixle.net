@@ -224,7 +224,7 @@
     overflow: hidden;
   }
   .hero-photo {
-    height: 320px;
+    height: 240px;
   }
   .hero-copy {
     animation: hero-enter 600ms ease-out both;
@@ -248,15 +248,7 @@
   }
   @media (min-width: 1024px) {
     .hero-photo {
-      height: 560px;
-      margin-right: calc((min(100vw, 1280px) - 100vw) / 2 - 32px);
-    }
-    .hero-photo::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, var(--mist), transparent 18%);
-      pointer-events: none;
+      height: 380px;
     }
   }
   @media (max-width: 639px) {

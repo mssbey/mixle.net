@@ -22,7 +22,7 @@ export async function SignatureCollections() {
             <Reveal key={c.slug} delay={i * 0.06}>
               <Link
                 href={`/koleksiyon/${c.slug}`}
-                className="group grid overflow-hidden rounded-[var(--radius-card)] border border-purple-100 bg-white shadow-soft transition-shadow hover:shadow-lift "
+                className="group grid overflow-hidden rounded-[var(--radius-card)] border border-line bg-white shadow-soft transition-shadow hover:shadow-lift "
               >
                 <div className="relative aspect-[4/3]">
                   <Image
@@ -34,15 +34,15 @@ export async function SignatureCollections() {
                   />
                 </div>
                 <div className="flex flex-col justify-center gap-3 p-6 sm:p-7">
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-500">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
                     {String(i + 1).padStart(2, '0')} · {count} ürün
                   </span>
-                  <h3 className="font-display text-2xl font-semibold text-purple-900 sm:text-3xl">
+                  <h3 className="text-2xl font-semibold text-ink sm:text-3xl">
                     {c.name}
                   </h3>
-                  <p className="text-sm font-medium text-purple-600">{c.subtitle}</p>
+                  <p className="text-sm font-medium text-brand-500">{c.subtitle}</p>
                   <p className="text-sm leading-relaxed text-ink-soft">{c.description}</p>
-                  <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-purple-700">
+                  <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-ink">
                     Koleksiyonu keşfet
                     <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
                   </span>
