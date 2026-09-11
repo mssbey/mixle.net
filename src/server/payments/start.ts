@@ -14,9 +14,10 @@ import { thankYouUrl } from '../orders/access';
 import type { PaymentRequest } from './provider';
 import { getCardProvider } from './registry';
 import type { AddressSnapshot } from '../customers/address-schema';
+import { site } from '@/lib/site';
 
 function siteBase(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  return site.domain.replace(/\/$/, '');
 }
 
 export interface StartResult {

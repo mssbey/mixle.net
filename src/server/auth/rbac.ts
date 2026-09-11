@@ -117,6 +117,7 @@ const ROUTE_RULES: { prefix: string; permission: Permission }[] = [
   { prefix: '/admin/odemeler', permission: 'siparis:oku' },
   { prefix: '/admin/musteriler', permission: 'musteri:oku' },
   { prefix: '/admin/kuponlar', permission: 'katalog:oku' },
+  { prefix: '/admin/indirimler', permission: 'katalog:oku' },
   { prefix: '/admin/stok', permission: 'katalog:oku' },
   { prefix: '/admin/raporlar', permission: 'rapor:oku' },
   { prefix: '/admin/urunler', permission: 'katalog:oku' },

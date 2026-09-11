@@ -41,7 +41,7 @@ function LoginForm() {
             <h1 className="text-base font-semibold text-[var(--brand-purple-deep)]">
               Yönetim Paneli
             </h1>
-            <p className="admin-hint">Nefis Aroma mağaza yönetimi</p>
+            <p className="admin-hint">Mixle Lezzet Sepeti mağaza yönetimi</p>
           </div>
         </div>
 

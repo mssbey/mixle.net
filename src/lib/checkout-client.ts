@@ -82,6 +82,13 @@ export interface QuoteResponse {
     | { ok: true; code: string; type: string; discountMinor: number; freeShipping: boolean }
     | { ok: false; reason: string }
     | null;
+  /** Kod gerektirmeden otomatik uygulanan indirim kuralları. */
+  appliedDiscounts: {
+    id: string;
+    name: string;
+    type: 'sepet-yuzde' | 'x-al-y-ode';
+    discountMinor: number;
+  }[];
   paymentOptions: {
     id: 'kart' | 'havale' | 'kapida';
     label: string;

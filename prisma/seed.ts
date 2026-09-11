@@ -9,7 +9,7 @@
 import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { importCatalog, legacyCatalogSchema, legacyToCatalog } from '../src/server/catalog/import';
 
@@ -82,7 +82,7 @@ async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL tanımlı değil (.env dosyasına ekleyin).');
 
-  const db = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) });
+  const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
   try {
     await seed(db);
   } finally {

@@ -15,6 +15,7 @@ import {
   Mail,
   Truck,
   LayoutGrid,
+  MessageCircle,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { AnnouncementBar } from './AnnouncementBar';
@@ -28,6 +29,9 @@ import { useCart } from '@/store/cart';
 import { useFavorites } from '@/store/favorites';
 import { useMounted } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
+import { useSlimProducts } from '@/components/catalog/CatalogProvider';
+import { detailLines, summarize } from '@/lib/cart-math';
+import { currency } from '@/lib/site';
 
 export function Header({ contact }: { contact: StorefrontContact }) {
   const pathname = usePathname();
@@ -35,6 +39,9 @@ export function Header({ contact }: { contact: StorefrontContact }) {
   const mounted = useMounted();
   const { setSearch, openCart, mobileMenuOpen, setMobileMenu } = useUI();
   const cartCount = useCart((s) => s.lines.reduce((n, l) => n + l.qty, 0));
+  const cartLines = useCart((s) => s.lines);
+  const { products: cartProducts } = useSlimProducts(mounted && cartCount > 0 && pathname === '/');
+  const cartTotal = summarize(mounted ? detailLines(cartLines, cartProducts) : [], null).subtotal;
   const favCount = useFavorites((s) => s.ids.length);
 
   const [scrolled, setScrolled] = useState(false);
@@ -115,7 +122,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
           aria-label="Aramayı başlat"
           className="hidden shrink-0 rounded bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 sm:block"
         >
-          Ara
+          <Search size={21} />
         </button>
       </div>
     </form>
@@ -156,6 +163,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
                 <Phone size={13} className="text-brand-500" />
                 {contact.phone}
               </a>
+              {pathname === '/' && <a href={`https://wa.me/${contact.phone.replace(/\D/g, '').replace(/^0/, '90')}`} className="inline-flex items-center gap-1.5"><MessageCircle size={13} />{contact.phone}</a>}
               <a href={contact.emailUrl} className="inline-flex items-center gap-1.5 hover:text-ink">
                 <Mail size={13} className="text-brand-500" />
                 {contact.email}
@@ -180,7 +188,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
           <div className="container-page">
             <div
               className={cn(
-                'flex items-center gap-3 transition-all duration-300 lg:gap-8',
+                'header-main-row flex items-center gap-3 transition-all duration-300 lg:gap-8',
                 scrolled ? 'h-14' : 'h-[68px]',
               )}
             >
@@ -195,9 +203,9 @@ export function Header({ contact }: { contact: StorefrontContact }) {
 
               <Logo priority className="shrink-0" />
 
-              <div className="mx-auto hidden w-full max-w-xl lg:block">{searchField}</div>
+              <div className="header-desktop-search mx-auto hidden w-full max-w-xl lg:block">{searchField}</div>
 
-              <div className="ml-auto flex items-center gap-1 lg:ml-0 lg:gap-2">
+              <div className="header-actions ml-auto flex items-center gap-1 lg:ml-0 lg:gap-2">
                 <Link
                   href="/favoriler"
                   aria-label="Favorilerim"
@@ -217,7 +225,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
                   className="hidden h-11 flex-col items-center justify-center rounded-md px-2 text-ink hover:bg-mist sm:flex"
                 >
                   <User size={20} />
-                  <span className="mt-0.5 hidden text-[11px] font-medium xl:block">Hesabım</span>
+                  <span className="mt-0.5 hidden text-[11px] font-medium xl:block">{pathname === '/' ? <>Giriş Yap<strong className="block text-brand-500">veya Üye Ol</strong></> : 'Hesabım'}</span>
                 </Link>
 
                 <div className="relative" onMouseEnter={openMini} onMouseLeave={closeMini}>
@@ -235,7 +243,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
                         </span>
                       )}
                     </span>
-                    <span className="hidden text-[13px] font-semibold lg:block">Sepetim</span>
+                    <span className="hidden text-[13px] font-semibold lg:block">{pathname === '/' ? <span className="block text-left text-xs font-normal">Sepet<strong className="block">{currency(cartTotal)}</strong></span> : 'Sepetim'}</span>
                   </button>
                   <AnimatePresence>
                     {miniOpen && (
@@ -275,7 +283,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
                 <ChevronDown size={14} className={cn('transition-transform', megaOpen && 'rotate-180')} />
               </button>
 
-              {primaryNav.map((link) => {
+              {(pathname === '/' ? primaryNav.slice(0, 4) : primaryNav).map((link) => {
                 const active =
                   pathname === link.href ||
                   (link.href.startsWith('/') && link.href !== '/' && pathname.startsWith(link.href.split('?')[0]));

@@ -11,8 +11,9 @@
 //  - Oran: her zaman `Int`, ON BİNDE (`rateBps: 2000` = %20).
 //  - Zaman: `DateTime` (UTC). Gösterim `Europe/Istanbul` katmanında yapılır.
 //
-// Postgres'e geçiş: datasource provider'ı "postgresql" yap, DATABASE_URL'i
-// değiştir, `prisma migrate dev` ile yeni migration üret. Başka değişiklik gerekmez.
+// Üretimde PostgreSQL kullanılır (Vercel gibi sunucusuz ortamlarda SQLite
+// kalıcı değildir). Bağlantı `DATABASE_URL` üzerinden, adaptör
+// `src/server/db.ts` içinde kurulur.
 
 generator client {
   provider = "prisma-client"
@@ -20,7 +21,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 // ============================================================== KATALOG =====
@@ -333,6 +334,10 @@ model Order {
 
   couponCode     String?
   couponSnapshot Json?
+
+  /// Otomatik uygulanan indirim kurallarının anlık görüntüsü:
+  /// [{ id, name, type, discountMinor }]
+  discountRulesSnapshot Json?
 
   /// Kapıda ödeme gibi ek hizmet bedeli, kuruş.
   surchargeMinor Int @default(0)
@@ -680,6 +685,47 @@ model CouponRedemption {
   @@unique([couponId, orderId])
   @@index([customerId])
   @@index([email])
+}
+
+/// Gelişmiş indirim kuralı — kupon kodu GEREKTİRMEZ, checkout'ta uygun sepete
+/// otomatik uygulanır. Değerlendirme mantığı `src/server/pricing/discount-rules.ts`
+/// içinde saftır; burası yalnız tabloyu tanımlar.
+model DiscountRule {
+  id   String @id @default(cuid())
+  name String
+
+  /// sepet-yuzde | x-al-y-ode
+  type String
+
+  isActive  Boolean @default(true)
+  /// Küçük değer önce uygulanır.
+  priority  Int     @default(0)
+  /// false ise bu kural uygulandıktan sonra kalan kurallar atlanır.
+  stackable Boolean @default(true)
+
+  /// string[] — boşsa tüm kategoriler.
+  includeCategoryIds Json
+  /// string[] — boşsa tüm ürünler (kategori filtresiyle kesişir).
+  includeProductIds  Json
+
+  // sepet-yuzde: on binde (3000 = %30)
+  percentBps        Int  @default(0)
+  // sepet-yuzde: sepet ara toplamı eşiği, kuruş (null = yok)
+  minCartTotalMinor Int?
+
+  // x-al-y-ode
+  buyQuantity Int? // X
+  payQuantity Int? // Y — bedava adet = X - Y
+  minQuantity Int? // kuralın tetiklenmesi için min uygun ürün adedi (null → X)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  version   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 // ============================================================== STOK ========

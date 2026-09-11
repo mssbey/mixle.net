@@ -6,6 +6,7 @@ import type { Category, Collection } from '@/types';
 import type { StorefrontContact } from '@/lib/storefront';
 import { CatalogProvider } from '@/components/catalog/CatalogProvider';
 import { Header } from '@/components/layout/Header';
+import { HomeFooter } from '@/components/layout/HomeFooter';
 import { Footer } from '@/components/layout/Footer';
 import { MobileTabBar } from '@/components/layout/MobileTabBar';
 import { CartDrawer } from '@/components/layout/CartDrawer';
@@ -47,11 +48,11 @@ export function LayoutFrame({
       <main id="main" className="pb-16 lg:pb-0">
         {children}
       </main>
-      <Footer contact={contact} />
+      {pathname === '/' ? <HomeFooter contact={contact} /> : <Footer contact={contact} />}
       <MobileTabBar />
       <CartDrawer />
       <SearchOverlay />
-      <WhatsAppFab />
+      <WhatsAppFab alwaysVisible={pathname === '/'} href={pathname === '/' ? `https://wa.me/${contact.phone.replace(/\D/g, '').replace(/^0/, '90')}` : undefined} />
       <Toaster />
     </CatalogProvider>
   );

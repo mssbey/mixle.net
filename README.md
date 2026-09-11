@@ -9,7 +9,7 @@ WooCommerce düzeyinde bir mağaza yönetim paneli. İki bölümden oluşur:
   stok/müşteri yönetimi, roller ve raporlar.
 
 Next.js App Router, React, TypeScript ve Tailwind CSS kullanır; veritabanı
-Prisma + SQLite (Postgres'e taşınabilir). Sepet/favori durumu tarayıcıda
+Prisma + PostgreSQL. Sepet/favori durumu tarayıcıda
 Zustand ile tutulur; kalan her şey (ürün, sipariş, ödeme, kullanıcı) gerçek
 veritabanı kaydıdır.
 
@@ -28,7 +28,7 @@ veritabanı kaydıdır.
 | Animasyon | framer-motion (`LazyMotion`, `reducedMotion="user"`) |
 | İkon | lucide-react |
 | Grafik | recharts (yalnız panel raporlarında) |
-| Veritabanı | Prisma 7 + SQLite (`data/nefis.db`); `DATABASE_URL` ile Postgres'e taşınabilir |
+| Veritabanı | Prisma 7 + PostgreSQL (`DATABASE_URL`) |
 | Kimlik doğrulama | `jose` imzalı httpOnly oturum çerezi + `crypto.scrypt` parola özeti, rol tabanlı yetki |
 
 ## Kurulum ve çalıştırma
@@ -67,7 +67,7 @@ npm start
 
 | Değişken | Zorunlu | Açıklama |
 | --- | --- | --- |
-| `DATABASE_URL` | evet | Prisma bağlantısı. Varsayılan `file:./data/nefis.db` (yol proje köküne göre) |
+| `DATABASE_URL` | evet | PostgreSQL bağlantı dizesi (Neon/Vercel Postgres/Supabase vb.) |
 | `SESSION_SECRET` | evet | Oturum çerezini imzalar; en az 32 karakter |
 | `ENCRYPTION_KEY` | `DEMO_MODE=false` iken | Hassas ayarların AES-256-GCM anahtarı (32 bayt base64). **Kaybedilirse şifreli veriler okunamaz** |
 | `DEMO_MODE` | hayır (varsayılan `true`) | Ödeme sağlayıcılarını test moduna zorlar; e-postalar gerçekten gönderilmez, `EmailLog`'a yazılır |
@@ -81,10 +81,13 @@ kayıt yoksa yedek olarak okunur. e-Fatura değişkenleri hiçbir kod yolu
 tarafından okunmaz — yalnız gelecekteki entegrasyon için ayrılmıştır (bkz.
 "Kapsam dışı").
 
-> **Dağıtım uyarısı:** SQLite dosyası Vercel gibi sunucusuz ortamlarda kalıcı
-> **değildir**. Canlıya çıkmadan önce `DATABASE_URL`'i Postgres'e çevirin ve
-> `prisma/schema.prisma` içindeki `provider` alanını `postgresql` yapıp yeniden
-> migration üretin.
+> **Dağıtım:** Veritabanı PostgreSQL'dir (Vercel gibi sunucusuz ortamlarda
+> SQLite kalıcı olmadığı için). İlk deploy'da migration'ların uygulanması için
+> `vercel-build` script'i `prisma migrate deploy` çalıştırır — `DATABASE_URL`
+> tanımlıysa ek adım gerekmez. Kataloğun ilk kez doldurulması
+> (`npm run db:seed` veya `npm run db:migrate-catalog`) ve ilk panel
+> kullanıcısının oluşturulması (`npm run admin:create-user`) hâlâ elle,
+> production `DATABASE_URL` ile bir kerelik çalıştırılmalıdır.
 
 ---
 
@@ -283,8 +286,8 @@ olmayan `getStoreInfo`/`getStoreSettings`i düzenler (fatura bilgileri, KDV,
 cayma hakkı, rezervasyon süresi, düşük stok eşiği, kapıda ödeme).
 
 **Görseller.** `/admin/gorseller` — dosyalar `data/uploads/YYYY/MM/` altına
-yazılır (SQLite ile aynı dizin) ve `/api/medya/[...path]` üzerinden servis
-edilir; **`public/` klasörüne YAZILMAZ** çünkü `next start` (üretim) yalnızca
+yazılır ve `/api/medya/[...path]` üzerinden servis edilir; **`public/`
+klasörüne YAZILMAZ** çünkü `next start` (üretim) yalnızca
 `next build` anında var olan `public/` dosyalarını sunar — çalışma zamanında
 eklenenler 404 döner. Kimlik doğrulama gerektirmez (ürün/kampanya görselleri
 gibi herkese açık içeriktir), yol rastgele son ek taşıdığından uzun süre
@@ -526,7 +529,7 @@ CRUD işlemleri `src/app/api/admin/**` Route Handler'larıyla yapılır:
 | `src/data/tr-address` | İl/ilçe listesi (gömülü); mahalle `/api/adres/mahalleler` |
 | `src/generated/prisma` | Üretilen Prisma istemcisi (git'e girmez) |
 | `prisma/` | `schema.prisma`, migration'lar, `seed.ts` |
-| `data/nefis.db` | SQLite veritabanı (git'e girmez) |
+| `data/uploads/` | Panelden yüklenen medya (git'e girmez; bkz. "Kapsam dışı") |
 | `src/types` | `index.ts` (vitrin), `admin.ts` (panel) |
 | `public` | Statik dosyalar ve görseller |
 | `scripts` | Görsel işleme, veri geçişi, kullanıcı oluşturma ve QA betikleri |
@@ -662,8 +665,11 @@ Müşteri puanı/yorumu şu an yok.
   bir medya yükleme altyapısı (`/admin/gorseller`) geldi ama iade formuna
   bağlanmadı.
 - **Yüklenen medya kalıcılığı** — `data/uploads/` diskte tutulur; Vercel gibi
-  sunucusuz ortamlarda SQLite ile aynı kalıcılık kısıtına tabidir (nesne
-  depolama entegrasyonu yok).
+  sunucusuz ortamlarda bu dizin KALICI DEĞİLDİR (nesne depolama entegrasyonu
+  yok). Panelden görsel yüklemek yerine `ImageListEditor`'a doğrudan URL
+  girmek (veya `public/images/` altına derleme öncesi ekleyip oradan
+  referans vermek) canlıda kalıcı çözümdür; gerçek yükleme desteği için
+  Vercel Blob gibi bir nesne depolama entegrasyonu eklenmelidir.
 - **`/admin/sayfalar` kapsamı** — yalnız SSS ve kampanya bandı; rehber
   konuları, yorumlar, süreç adımları ve hakkımızda içeriği hâlâ
   `src/data/content.ts`'te statiktir.

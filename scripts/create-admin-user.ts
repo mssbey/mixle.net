@@ -11,7 +11,7 @@
 import 'dotenv/config';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { hashPassword, passwordProblem } from '../src/server/auth/password';
 import { ROLES, isRole, roleDescriptions, type Role } from '../src/server/auth/rbac';
@@ -27,7 +27,7 @@ async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL tanımlı değil (.env dosyasına ekleyin).');
 
-  const db = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) });
+  const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
   try {
     if (wantsList) {

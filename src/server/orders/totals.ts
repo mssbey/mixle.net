@@ -36,6 +36,11 @@ export interface TotalsInput {
   shippingTaxRateBps?: number;
   /** Kapıda ödeme gibi ek hizmet bedeli, kuruş. */
   surchargeMinor?: number;
+  /**
+   * Otomatik indirim kurallarından satır bazında ek indirim (kuponla toplanır).
+   * `lines` ile aynı sıra/uzunluk; eksik indeks 0 sayılır.
+   */
+  autoDiscountPerLineMinor?: number[];
 }
 
 export interface OrderLineTotals extends PricedLine {
@@ -65,12 +70,15 @@ export function computeTotals(input: TotalsInput): OrderTotals {
 
   const couponOk = input.coupon && input.coupon.ok ? input.coupon : null;
   const perLineDiscount = couponOk ? couponOk.perLineMinor : input.lines.map(() => 0);
+  const autoPerLine = input.autoDiscountPerLineMinor ?? [];
 
   const lines: OrderLineTotals[] = input.lines.map((l, i) => {
     const qty = Math.max(0, Math.round(l.quantity));
     const unit = Math.max(0, Math.round(l.unitPriceMinor));
     const lineTotalMinor = unit * qty;
-    const discountMinor = Math.min(lineTotalMinor, Math.max(0, perLineDiscount[i] ?? 0));
+    const combinedDiscount =
+      Math.max(0, perLineDiscount[i] ?? 0) + Math.max(0, autoPerLine[i] ?? 0);
+    const discountMinor = Math.min(lineTotalMinor, combinedDiscount);
     const netLineMinor = lineTotalMinor - discountMinor;
     const tax = taxLine({ amountMinor: netLineMinor, rateBps: l.taxRateBps }, input.pricesIncludeTax);
     return {

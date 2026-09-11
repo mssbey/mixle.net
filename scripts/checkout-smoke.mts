@@ -12,12 +12,12 @@
 import 'dotenv/config';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 
 const port = Number(process.argv[2] ?? 3994);
 const base = `http://127.0.0.1:${port}`;
-const db = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! }) });
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 
 let passed = 0;
 const failures: string[] = [];

@@ -337,6 +337,9 @@ export async function createOrder(
         couponSnapshot: quote.coupon?.ok
           ? ({ code: quote.coupon.code, type: quote.coupon.type, discountMinor: quote.coupon.discountMinor } as Prisma.InputJsonValue)
           : undefined,
+        discountRulesSnapshot: quote.appliedDiscounts.length
+          ? (quote.appliedDiscounts as unknown as Prisma.InputJsonValue)
+          : undefined,
         paymentMethod: input.paymentMethod,
         shippingMethod: {
           id: quote.selectedShipping!.methodId,

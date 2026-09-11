@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -30,7 +31,7 @@
     "kargo:sync": "tsx scripts/sync-shipments.mts"
   },
   "dependencies": {
-    "@prisma/adapter-better-sqlite3": "^7.10.0",
+    "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7.10.0",
     "clsx": "^2.1.1",
     "embla-carousel-react": "^8.5.2",
@@ -40,6 +41,7 @@
     "lucide-react": "^0.474.0",
     "next": "^16.3.4",
     "nodemailer": "^10.0.1",
+    "pg": "^8.23.0",
     "prisma": "7.10.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

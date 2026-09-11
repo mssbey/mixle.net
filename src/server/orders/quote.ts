@@ -10,6 +10,8 @@ import { computeTotals, type OrderTotals } from './totals';
 import { cartLineSchema, priceCart, resolveCoupon, type PricedCart } from './pricing';
 import { quoteShipping, type ShippingQuote } from '../pricing/shipping-rates';
 import type { CouponOutcome } from '../pricing/coupons';
+import { evaluateDiscountRules, type AppliedDiscount } from '../pricing/discount-rules';
+import { loadActiveDiscountRules } from '../discounts/rules';
 import { getShippingZones } from '../shipping/zones';
 import { getStoreSettings } from '../settings';
 import { DEMO_MODE } from '../config';
@@ -50,6 +52,8 @@ export interface CheckoutQuote {
   shippingOptions: ShippingQuote[];
   selectedShipping: ShippingQuote | null;
   coupon: CouponOutcome | null;
+  /** Kod gerektirmeden otomatik uygulanan indirim kuralları. */
+  appliedDiscounts: AppliedDiscount[];
   paymentOptions: PaymentOption[];
   selectedPayment: PaymentMethodId | null;
   /** Kullanıcıya gösterilecek uyarılar (stok düşürüldü, kupon reddedildi …). */
@@ -77,9 +81,22 @@ export async function buildQuote(
   });
   if (coupon && !coupon.ok) problems.push(coupon.reason);
 
-  // Kupon indirimi sonrası ara toplam, kargo eşikleri için.
+  // Otomatik indirim kuralları: kod gerektirmez, uygun sepete uygulanır.
+  // `couponLines` ve `cart.lines` `priceCart` içinde aynı sırada üretilir.
+  const discountRules = await loadActiveDiscountRules();
+  const ruleOutcome = evaluateDiscountRules(discountRules, {
+    lines: cart.lines.map((l, i) => ({
+      productId: l.productId,
+      categoryIds: cart.couponLines[i]?.categoryIds ?? [],
+      unitPriceMinor: l.unitPriceMinor,
+      quantity: l.quantity,
+    })),
+  });
+  const ruleDiscountTotal = ruleOutcome.applied.reduce((s, d) => s + d.discountMinor, 0);
+
+  // Kupon + kural indirimi sonrası ara toplam, kargo eşikleri için.
   const subtotal = cart.lines.reduce((s, l) => s + l.unitPriceMinor * l.quantity, 0);
-  const discount = coupon?.ok ? coupon.discountMinor : 0;
+  const discount = (coupon?.ok ? coupon.discountMinor : 0) + ruleDiscountTotal;
 
   const zones = await getShippingZones();
   const shippingOptions = input.city
@@ -175,6 +192,7 @@ export async function buildQuote(
     pricesIncludeTax: settings.pricesIncludeTax,
     shippingTaxRateBps: settings.shippingTaxRateBps,
     surchargeMinor: surcharge,
+    autoDiscountPerLineMinor: ruleOutcome.perLineMinor,
   });
 
   return {
@@ -183,6 +201,7 @@ export async function buildQuote(
     shippingOptions,
     selectedShipping,
     coupon,
+    appliedDiscounts: ruleOutcome.applied,
     paymentOptions,
     selectedPayment,
     problems,

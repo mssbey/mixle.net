@@ -15,7 +15,7 @@
 import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import {
   importCatalog,
@@ -74,7 +74,7 @@ async function main() {
     return;
   }
 
-  const adapter = new PrismaBetterSqlite3({ url });
+  const adapter = new PrismaPg({ connectionString: url });
   const db = new PrismaClient({ adapter });
 
   try {

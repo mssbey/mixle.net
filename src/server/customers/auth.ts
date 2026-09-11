@@ -18,6 +18,7 @@ import { db } from '../db';
 import { hashPassword, passwordProblem, verifyPassword } from '../auth/password';
 import { checkLock, recordAttempt } from '../auth/rate-limit';
 import { queueEmail } from '../notifications/email';
+import { site } from '@/lib/site';
 
 export const CUSTOMER_COOKIE = 'na_musteri';
 const SESSION_SECONDS = 30 * 24 * 60 * 60; // 30 gün — vitrin oturumu uzun ömürlü
@@ -185,7 +186,7 @@ export async function registerCustomer(raw: unknown): Promise<CustomerUser> {
     template: 'hesap-olusturuldu',
     vars: {
       musteriAdi: `${customer.firstName} ${customer.lastName}`.trim(),
-      hesapLinki: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/hesabim`,
+      hesapLinki: `${site.domain}/hesabim`,
     },
   });
 

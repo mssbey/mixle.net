@@ -15,6 +15,7 @@ import { db } from '../db';
 import { DEMO_MODE } from '../config';
 import { formatMinor } from '@/lib/money';
 import { paymentMethodLabel } from '@/lib/payment-labels';
+import { site } from '@/lib/site';
 
 export type EmailTemplateKey =
   | 'siparis-alindi'
@@ -247,7 +248,7 @@ export function orderEmailVars(order: {
       ? `${order.customer.firstName} ${order.customer.lastName}`.trim()
       : `${addr.firstName ?? ''} ${addr.lastName ?? ''}`.trim() || 'Müşterimiz';
   const email = order.customer?.email ?? order.guestEmail ?? '';
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const base = site.domain;
   const takip = `${base}/siparis-takibi?no=${encodeURIComponent(order.orderNumber)}&eposta=${encodeURIComponent(email)}`;
 
   return {

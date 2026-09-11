@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -14,6 +15,7 @@ import {
   Users,
   RotateCcw,
   Tag,
+  BadgePercent,
   Boxes,
   BarChart3,
   Image as ImageIcon,
@@ -44,6 +46,7 @@ const NAV = [
   { href: '/admin/kategoriler', label: 'Kategoriler', icon: FolderTree, exact: false },
   { href: '/admin/koleksiyonlar', label: 'Koleksiyonlar', icon: Layers, exact: false },
   { href: '/admin/kuponlar', label: 'Kuponlar', icon: Tag, exact: false },
+  { href: '/admin/indirimler', label: 'İndirimler', icon: BadgePercent, exact: false },
   { href: '/admin/stok', label: 'Stok', icon: Boxes, exact: false },
   { href: '/admin/raporlar', label: 'Raporlar', icon: BarChart3, exact: false },
   { href: '/admin/ayarlar', label: 'Ayarlar', icon: Settings, exact: false },
@@ -62,6 +65,7 @@ const CRUMB_LABELS: Record<string, string> = {
   kategoriler: 'Kategoriler',
   koleksiyonlar: 'Koleksiyonlar',
   kuponlar: 'Kuponlar',
+  indirimler: 'İndirimler',
   stok: 'Stok',
   raporlar: 'Raporlar',
   gorseller: 'Görseller',
@@ -147,14 +151,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
       )}
 
       <aside className="admin-sidebar" data-mobile-open={mobileOpen} aria-label="Panel gezinme">
-        <div className="mb-3 flex items-center gap-2 px-2 py-1">
-          <span
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-brand-500 text-[13px] font-bold text-white"
-            aria-hidden="true"
-          >
-            NA
+        <div className="mb-3 px-1 py-1">
+          <span className="flex min-w-0 items-center justify-center rounded-md bg-white px-2 py-1.5">
+            <Image
+              src="/brand/logo.png"
+              alt="Mixle Lezzet Sepeti"
+              width={140}
+              height={64}
+              priority
+              className="h-7 w-auto max-w-full object-contain"
+            />
           </span>
-          <span className="admin-nav-label text-sm font-semibold text-white">Nefis Aroma</span>
         </div>
 
         <nav className="flex flex-col gap-1">

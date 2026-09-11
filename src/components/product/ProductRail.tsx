@@ -8,14 +8,18 @@ import { ProductCard } from './ProductCard';
 import { QuickView } from './QuickView';
 import { cn } from '@/lib/utils';
 
-export function ProductRail({ products, className }: { products: Product[]; className?: string }) {
-  const [emblaRef, embla] = useEmblaCarousel({ align: 'start', dragFree: true, containScroll: 'trimSnaps' });
+export function ProductRail({ products, className, pagination = false }: { products: Product[]; className?: string; pagination?: boolean }) {
+  const [emblaRef, embla] = useEmblaCarousel({ align: 'start', dragFree: !pagination, slidesToScroll: pagination ? 'auto' : 1, containScroll: 'trimSnaps' });
+  const [selected, setSelected] = useState(0);
+  const [snaps, setSnaps] = useState<number[]>([]);
   const [prev, setPrev] = useState(false);
   const [next, setNext] = useState(false);
   const [quick, setQuick] = useState<Product | null>(null);
 
   const onSelect = useCallback(() => {
     if (!embla) return;
+    setSelected(embla.selectedScrollSnap());
+    setSnaps(embla.scrollSnapList());
     setPrev(embla.canScrollPrev());
     setNext(embla.canScrollNext());
   }, [embla]);
@@ -24,6 +28,7 @@ export function ProductRail({ products, className }: { products: Product[]; clas
     if (!embla) return;
     onSelect();
     embla.on('select', onSelect).on('reInit', onSelect);
+    return () => { embla.off('select', onSelect).off('reInit', onSelect); };
   }, [embla, onSelect]);
 
   return (
@@ -62,6 +67,7 @@ export function ProductRail({ products, className }: { products: Product[]; clas
         </button>
       </div>
 
+      {pagination && <div className="reference-rail-dots" aria-label="Ürün slaytları">{snaps.map((_, index) => <button key={index} type="button" onClick={() => embla?.scrollTo(index)} aria-label={`${index + 1}. ürün grubunu göster`} aria-pressed={selected === index}><span className={selected === index ? 'active' : ''} /></button>)}</div>}
       <QuickView product={quick} onClose={() => setQuick(null)} />
     </div>
   );

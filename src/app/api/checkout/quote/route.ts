@@ -33,6 +33,7 @@ export async function POST(request: Request) {
           ? { ok: true, code: quote.coupon.code, type: quote.coupon.type, discountMinor: quote.coupon.discountMinor, freeShipping: quote.coupon.freeShipping }
           : { ok: false, reason: quote.coupon.reason }
         : null,
+      appliedDiscounts: quote.appliedDiscounts,
       paymentOptions: quote.paymentOptions,
       selectedPayment: quote.selectedPayment,
       problems: quote.problems,

@@ -90,6 +90,15 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
               : quote.coupon.reason}
           </p>
         )}
+        {quote?.appliedDiscounts?.length ? (
+          <ul className="mt-1.5 space-y-0.5 text-xs text-success" role="status">
+            {quote.appliedDiscounts.map((d) => (
+              <li key={d.id}>
+                {d.name}: −{formatMinor(d.discountMinor)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </form>
 
       {/* Toplamlar */}

@@ -20,10 +20,12 @@ export function NewsletterForm({
   variant = 'dark',
   kind = 'eposta',
   className,
+  submitLabel,
 }: {
   variant?: 'dark' | 'light';
   kind?: 'eposta' | 'sms';
   className?: string;
+  submitLabel?: string;
 }) {
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export function NewsletterForm({
           ) : state === 'done' ? (
             <Check size={16} />
           ) : (
-            <ArrowRight size={16} />
+            submitLabel || <ArrowRight size={16} />
           )}
         </button>
       </div>
