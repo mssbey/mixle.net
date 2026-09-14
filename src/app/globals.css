@@ -32,6 +32,9 @@
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
     scrollbar-gutter: stable;
+    /* Yapışkan header kaydırınca daralıyor; tarayıcının scroll anchoring'i bu
+       yükseklik değişimini scrollY'ye yansıtıp header'ı aç/kapa döngüsüne sokuyordu. */
+    overflow-anchor: none;
   }
 
   body {

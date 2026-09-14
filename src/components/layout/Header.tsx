@@ -33,6 +33,11 @@ import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { detailLines, summarize } from '@/lib/cart-math';
 import { currency } from '@/lib/site';
 
+/** Header bu kadar kaydırılınca daralır… */
+const HEADER_COLLAPSE_AT = 160;
+/** …ve ancak bu kadar yukarı çıkılınca tekrar açılır. */
+const HEADER_EXPAND_AT = 16;
+
 export function Header({ contact }: { contact: StorefrontContact }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -53,11 +58,22 @@ export function Header({ contact }: { contact: StorefrontContact }) {
 
   useEffect(() => {
     let raf = 0;
+    const update = () => {
+      const y = window.scrollY;
+      // Header daralınca sayfa ~150px kısalıyor; tek bir eşik kullanılırsa
+      // eşik civarında aç/kapa döngüsüne girip titriyor. Bu yüzden daralma ve
+      // genişleme eşikleri ayrı (histerezis). Sayfa sonunda daralma scrollY'yi
+      // geri çekip döngüye sokmasın diye yeterli kaydırma payı da şart.
+      const room = document.documentElement.scrollHeight - window.innerHeight;
+      setScrolled((prev) =>
+        prev ? y > HEADER_EXPAND_AT : y > HEADER_COLLAPSE_AT && room > HEADER_COLLAPSE_AT * 2,
+      );
+    };
     const onScroll = () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => setScrolled(window.scrollY > 24));
+      raf = requestAnimationFrame(update);
     };
-    onScroll();
+    update();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
