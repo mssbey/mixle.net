@@ -33,8 +33,8 @@ import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { detailLines, summarize } from '@/lib/cart-math';
 import { currency } from '@/lib/site';
 
-/** Header bu kadar kaydırılınca daralır… */
-const HEADER_COLLAPSE_AT = 160;
+/** Header en az bu kadar kaydırılınca daralır (açık header yüksekliği daha büyükse o esas alınır)… */
+const HEADER_COLLAPSE_AT_MIN = 160;
 /** …ve ancak bu kadar yukarı çıkılınca tekrar açılır. */
 const HEADER_EXPAND_AT = 16;
 
@@ -55,19 +55,27 @@ export function Header({ contact }: { contact: StorefrontContact }) {
   const [term, setTerm] = useState('');
   const megaTimer = useRef<number>(undefined);
   const miniTimer = useRef<number>(undefined);
+  const headerRef = useRef<HTMLElement>(null);
+  const expandedHeight = useRef(0);
 
   useEffect(() => {
     let raf = 0;
     const update = () => {
       const y = window.scrollY;
-      // Header daralınca sayfa ~150px kısalıyor; tek bir eşik kullanılırsa
-      // eşik civarında aç/kapa döngüsüne girip titriyor. Bu yüzden daralma ve
-      // genişleme eşikleri ayrı (histerezis). Sayfa sonunda daralma scrollY'yi
-      // geri çekip döngüye sokmasın diye yeterli kaydırma payı da şart.
+      // Header daralınca sayfa, açık ve kapalı yükseklik farkı kadar kısalıyor;
+      // tek bir eşik kullanılırsa eşik civarında aç/kapa döngüsüne girip
+      // titriyor. Bu yüzden daralma ve genişleme eşikleri ayrı (histerezis) ve
+      // aradaki bant, tarayıcı scroll anchoring'i scrollY'yi bu fark kadar
+      // oynatsa bile durum değişmeyecek şekilde açık header yüksekliğinden
+      // büyük tutuluyor. Sayfa sonunda daralma scrollY'yi geri çekip döngüye
+      // sokmasın diye yeterli kaydırma payı da şart.
       const room = document.documentElement.scrollHeight - window.innerHeight;
-      setScrolled((prev) =>
-        prev ? y > HEADER_EXPAND_AT : y > HEADER_COLLAPSE_AT && room > HEADER_COLLAPSE_AT * 2,
-      );
+      setScrolled((prev) => {
+        if (prev) return y > HEADER_EXPAND_AT;
+        expandedHeight.current = Math.max(expandedHeight.current, headerRef.current?.offsetHeight ?? 0);
+        const collapseAt = Math.max(HEADER_COLLAPSE_AT_MIN, expandedHeight.current);
+        return y > collapseAt && room > collapseAt * 2;
+      });
     };
     const onScroll = () => {
       cancelAnimationFrame(raf);
@@ -86,6 +94,14 @@ export function Header({ contact }: { contact: StorefrontContact }) {
     setMobileMenu(false);
     setMiniOpen(false);
   }, [pathname, setMobileMenu]);
+
+  // Header daralınca kategori çubuğu gizleniyor; ona bağlı mega menü açık kalmasın.
+  useEffect(() => {
+    if (scrolled) {
+      window.clearTimeout(megaTimer.current);
+      setMegaOpen(false);
+    }
+  }, [scrolled]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -147,6 +163,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
   return (
     <>
       <header
+        ref={headerRef}
         className={cn("sticky top-0 z-[80] w-full bg-white", pathname === "/" && "storefront-header")}
         onMouseLeave={closeMega}
         onKeyDown={(e) => {

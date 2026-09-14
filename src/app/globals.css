@@ -43,6 +43,8 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    /* Kaydırıcı body'nin overflow'undan türediği için anchoring burada da kapalı. */
+    overflow-anchor: none;
   }
 
   h1,
