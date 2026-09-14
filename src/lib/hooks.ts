@@ -1,12 +1,24 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useSelectedLayoutSegment } from 'next/navigation';
 
 /** Persist store'ların SSR/CSR uyumsuzluğunu önlemek için mount guard. */
 export function useMounted() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   return mounted;
+}
+
+/**
+ * Ana sayfada mıyız? `usePathname() === '/'` yerine router ağacındaki segment
+ * kullanılır: Vercel'in statik ön-render'ında kök sayfa `/index` yoluyla
+ * üretildiği için pathname sunucuda '/index', istemcide '/' oluyor; buna bağlı
+ * header/footer dalları hydration hatasına (React #418) ve yükleme sonrası
+ * header'ın değişip zıplamasına yol açıyordu. Segment iki tarafta da aynıdır.
+ */
+export function useIsHome() {
+  return useSelectedLayoutSegment() === null;
 }
 
 /** Body scroll kilidi (modal/drawer açıkken). Scrollbar genişliğini telafi eder. */

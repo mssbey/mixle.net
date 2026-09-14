@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { useIsHome } from '@/lib/hooks';
 import type { Category, Collection } from '@/types';
 import type { StorefrontContact } from '@/lib/storefront';
 import { CatalogProvider } from '@/components/catalog/CatalogProvider';
@@ -30,6 +31,7 @@ export function LayoutFrame({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const isHome = useIsHome();
   const isAdmin = pathname?.startsWith('/admin');
 
   if (isAdmin) {
@@ -48,11 +50,11 @@ export function LayoutFrame({
       <main id="main" className="pb-16 lg:pb-0">
         {children}
       </main>
-      {pathname === '/' ? <HomeFooter contact={contact} /> : <Footer contact={contact} />}
+      {isHome ? <HomeFooter contact={contact} /> : <Footer contact={contact} />}
       <MobileTabBar />
       <CartDrawer />
       <SearchOverlay />
-      <WhatsAppFab alwaysVisible={pathname === '/'} href={pathname === '/' ? `https://wa.me/${contact.phone.replace(/\D/g, '').replace(/^0/, '90')}` : undefined} />
+      <WhatsAppFab alwaysVisible={isHome} href={isHome ? `https://wa.me/${contact.phone.replace(/\D/g, '').replace(/^0/, '90')}` : undefined} />
       <Toaster />
     </CatalogProvider>
   );

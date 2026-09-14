@@ -6,11 +6,12 @@ import { Compass, LayoutGrid, Heart, ShoppingBag, User } from 'lucide-react';
 import { useUI } from '@/store/ui';
 import { useCart } from '@/store/cart';
 import { useFavorites } from '@/store/favorites';
-import { useMounted } from '@/lib/hooks';
+import { useIsHome, useMounted } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 
 export function MobileTabBar() {
   const pathname = usePathname();
+  const isHome = useIsHome();
   const { openCart, setMobileMenu } = useUI();
   const mounted = useMounted();
   const cartCount = useCart((s) => s.lines.reduce((n, l) => n + l.qty, 0));
@@ -32,7 +33,7 @@ export function MobileTabBar() {
       <ul className="mx-auto flex max-w-md items-stretch">
         {items.map((it) => {
           const active =
-            !!it.href && (it.href === '/' ? pathname === '/' : pathname.startsWith(it.href));
+            !!it.href && (it.href === '/' ? isHome : pathname.startsWith(it.href));
           const Icon = it.icon;
           const inner = (
             <span className="relative flex min-h-[52px] flex-col items-center justify-center gap-1 py-2">

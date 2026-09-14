@@ -27,7 +27,7 @@ import type { StorefrontContact } from '@/lib/storefront';
 import { useUI } from '@/store/ui';
 import { useCart } from '@/store/cart';
 import { useFavorites } from '@/store/favorites';
-import { useMounted } from '@/lib/hooks';
+import { useIsHome, useMounted } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { detailLines, summarize } from '@/lib/cart-math';
@@ -40,12 +40,13 @@ const HEADER_EXPAND_AT = 16;
 
 export function Header({ contact }: { contact: StorefrontContact }) {
   const pathname = usePathname();
+  const isHome = useIsHome();
   const router = useRouter();
   const mounted = useMounted();
   const { setSearch, openCart, mobileMenuOpen, setMobileMenu } = useUI();
   const cartCount = useCart((s) => s.lines.reduce((n, l) => n + l.qty, 0));
   const cartLines = useCart((s) => s.lines);
-  const { products: cartProducts } = useSlimProducts(mounted && cartCount > 0 && pathname === '/');
+  const { products: cartProducts } = useSlimProducts(mounted && cartCount > 0 && isHome);
   const cartTotal = summarize(mounted ? detailLines(cartLines, cartProducts) : [], null).subtotal;
   const favCount = useFavorites((s) => s.ids.length);
 
@@ -164,7 +165,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
     <>
       <header
         ref={headerRef}
-        className={cn("sticky top-0 z-[80] w-full bg-white", pathname === "/" && "storefront-header")}
+        className={cn("sticky top-0 z-[80] w-full bg-white", isHome && "storefront-header")}
         onMouseLeave={closeMega}
         onKeyDown={(e) => {
           if (e.key === 'Escape') {
@@ -196,7 +197,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
                 <Phone size={13} className="text-brand-500" />
                 {contact.phone}
               </a>
-              {pathname === '/' && <a href={`https://wa.me/${contact.phone.replace(/\D/g, '').replace(/^0/, '90')}`} className="inline-flex items-center gap-1.5"><MessageCircle size={13} />{contact.phone}</a>}
+              {isHome && <a href={`https://wa.me/${contact.phone.replace(/\D/g, '').replace(/^0/, '90')}`} className="inline-flex items-center gap-1.5"><MessageCircle size={13} />{contact.phone}</a>}
               <a href={contact.emailUrl} className="inline-flex items-center gap-1.5 hover:text-ink">
                 <Mail size={13} className="text-brand-500" />
                 {contact.email}
@@ -258,7 +259,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
                   className="hidden h-11 flex-col items-center justify-center rounded-md px-2 text-ink hover:bg-mist sm:flex"
                 >
                   <User size={20} />
-                  <span className="mt-0.5 hidden text-[11px] font-medium xl:block">{pathname === '/' ? <>Giriş Yap<strong className="block text-brand-500">veya Üye Ol</strong></> : 'Hesabım'}</span>
+                  <span className="mt-0.5 hidden text-[11px] font-medium xl:block">{isHome ? <>Giriş Yap<strong className="block text-brand-500">veya Üye Ol</strong></> : 'Hesabım'}</span>
                 </Link>
 
                 <div className="relative" onMouseEnter={openMini} onMouseLeave={closeMini}>
@@ -276,7 +277,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
                         </span>
                       )}
                     </span>
-                    <span className="hidden text-[13px] font-semibold lg:block">{pathname === '/' ? <span className="block text-left text-xs font-normal">Sepet<strong className="block">{currency(cartTotal)}</strong></span> : 'Sepetim'}</span>
+                    <span className="hidden text-[13px] font-semibold lg:block">{isHome ? <span className="block text-left text-xs font-normal">Sepet<strong className="block">{currency(cartTotal)}</strong></span> : 'Sepetim'}</span>
                   </button>
                   <AnimatePresence>
                     {miniOpen && (
@@ -316,7 +317,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
                 <ChevronDown size={14} className={cn('transition-transform', megaOpen && 'rotate-180')} />
               </button>
 
-              {(pathname === '/' ? primaryNav.slice(0, 4) : primaryNav).map((link) => {
+              {(isHome ? primaryNav.slice(0, 4) : primaryNav).map((link) => {
                 const active =
                   pathname === link.href ||
                   (link.href.startsWith('/') && link.href !== '/' && pathname.startsWith(link.href.split('?')[0]));
