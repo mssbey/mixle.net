@@ -8,10 +8,11 @@ import { cache } from 'react';
 import { z } from 'zod';
 import { db } from '../db';
 import { seal, tryOpen, isEncryptionConfigured } from '../crypto/secret-box';
+import { site } from '@/lib/site';
 
 export const emailSettingsSchema = z.object({
   provider: z.enum(['yok', 'smtp', 'resend']).default('yok'),
-  fromName: z.string().trim().max(80).default('Nefis Aroma'),
+  fromName: z.string().trim().max(80).default(site.name),
   fromEmail: z.string().trim().max(200).default(''),
   replyTo: z.string().trim().max(200).default(''),
   smtp: z
@@ -59,7 +60,7 @@ function decryptSecrets(s: EmailSettings): EmailSettings {
     }
   }
   if (!out.fromEmail) out.fromEmail = ENV_FALLBACK.fromEmail;
-  if (!out.fromName || out.fromName === 'Nefis Aroma') out.fromName = ENV_FALLBACK.fromName || out.fromName;
+  if (!out.fromName || out.fromName === site.name) out.fromName = ENV_FALLBACK.fromName || out.fromName;
   if (out.provider === 'yok') {
     if (ENV_FALLBACK.resend.apiKey) out.provider = 'resend';
     else if (ENV_FALLBACK.smtp.host) out.provider = 'smtp';

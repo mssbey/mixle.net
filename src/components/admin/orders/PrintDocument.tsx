@@ -4,6 +4,7 @@ import type { AdminOrderView } from '@/server/orders/admin-view';
 import type { StoreInfo } from '@/server/settings';
 import { formatMinor, bpsToPercent } from '@/lib/money';
 import { formatPhoneTR } from '@/lib/validators/phone';
+import { site } from '@/lib/site';
 import { PrintButton } from './PrintButton';
 
 const dateFmt = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long', timeZone: 'Europe/Istanbul' });
@@ -43,7 +44,7 @@ export function PrintDocument({ orders, kind, store }: { orders: AdminOrderView[
         <section key={o.id} className="sheet">
           <div className="head">
             <div>
-              <div className="brand">{store.tradeName || 'Nefis Aroma'}</div>
+              <div className="brand">{store.tradeName || site.name}</div>
               <div className="muted">
                 {store.legalName}{store.address ? ` · ${store.address}` : ''}{store.city ? ` / ${store.city}` : ''}<br />
                 {store.phone && `Tel: ${store.phone} · `}{store.email}{store.taxOffice && ` · ${store.taxOffice} VD ${store.taxNumber}`}{store.mersisNo && ` · MERSİS ${store.mersisNo}`}

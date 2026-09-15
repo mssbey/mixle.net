@@ -16,7 +16,7 @@ export default function DistanceSalesPage() {
       <LegalLayout title="Mesafeli Satış Sözleşmesi" updated="Örnek belge — gerçek sipariş sistemi devreye alındığında güncellenecektir">
         <LegalSection title="1. Taraflar">
           <p>
-            İşbu sözleşme, “Satıcı” olarak Nefis Aroma ile siparişi veren “Alıcı” arasında, alıcının
+            İşbu sözleşme, “Satıcı” olarak {site.name} ile siparişi veren “Alıcı” arasında, alıcının
             elektronik ortamda onayladığı siparişe ilişkin koşulları düzenlemek amacıyla örnek olarak
             hazırlanmıştır. Bu sürümde gerçek bir sipariş/ödeme altyapısı bulunmadığından sözleşme
             bilgilendirme amaçlıdır.

@@ -23,7 +23,7 @@ export const useFavorites = create<FavoritesState>()(
       has: (id) => get().ids.includes(id),
       clear: () => set({ ids: [] }),
     }),
-    { name: 'nefis-aroma-favorites', version: 1 },
+    { name: 'mixle-favorites', version: 1 },
   ),
 );
 
@@ -41,7 +41,7 @@ export const useRecentlyViewed = create<RecentlyViewedState>()(
           ids: [id, ...state.ids.filter((x) => x !== id)].slice(0, 8),
         })),
     }),
-    { name: 'nefis-aroma-recent', version: 1 },
+    { name: 'mixle-recent', version: 1 },
   ),
 );
 
@@ -63,6 +63,6 @@ export const useSearchHistory = create<SearchHistoryState>()(
         }),
       clear: () => set({ terms: [] }),
     }),
-    { name: 'nefis-aroma-search-history', version: 1 },
+    { name: 'mixle-search-history', version: 1 },
   ),
 );

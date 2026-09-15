@@ -1,18 +1,19 @@
 import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { LegalLayout, LegalSection } from '@/components/legal/LegalLayout';
+import { site } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Çerez Politikası',
-  description: 'Nefis Aroma çerez kullanımı hakkında bilgilendirme.',
+  description: `${site.name} çerez kullanımı hakkında bilgilendirme.`,
   alternates: { canonical: '/cerez-politikasi' },
 };
 
 const rows = [
-  { name: 'nefis-aroma-cart', purpose: 'Sepet içeriğinin tarayıcıda saklanması', duration: 'Kalıcı (tarayıcı temizlenene kadar)' },
-  { name: 'nefis-aroma-favorites', purpose: 'Favori ürün listesinin saklanması', duration: 'Kalıcı' },
-  { name: 'nefis-aroma-recent', purpose: 'Son görüntülenen ürünlerin saklanması', duration: 'Kalıcı' },
-  { name: 'nefis-aroma-search-history', purpose: 'Son aramaların saklanması', duration: 'Kalıcı' },
+  { name: 'mixle-cart', purpose: 'Sepet içeriğinin tarayıcıda saklanması', duration: 'Kalıcı (tarayıcı temizlenene kadar)' },
+  { name: 'mixle-favorites', purpose: 'Favori ürün listesinin saklanması', duration: 'Kalıcı' },
+  { name: 'mixle-recent', purpose: 'Son görüntülenen ürünlerin saklanması', duration: 'Kalıcı' },
+  { name: 'mixle-search-history', purpose: 'Son aramaların saklanması', duration: 'Kalıcı' },
   { name: 'na-announce-hidden', purpose: 'Duyuru bandının kapatılma tercihi', duration: 'Oturum' },
 ];
 

@@ -4,6 +4,7 @@ import { requirePermission } from '@/server/auth/current-user';
 import { db } from '@/server/db';
 import { getStoreInfo } from '@/server/settings';
 import { ShipmentLabelDocument, type LabelViewModel } from '@/components/admin/shipping/ShipmentLabelDocument';
+import { site } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,7 +72,7 @@ export default async function ShipmentLabelsPage({ searchParams }: { searchParam
   return (
     <ShipmentLabelDocument
       labels={labels}
-      from={{ name: store.tradeName || 'Nefis Aroma', phone: store.phone, addressLine: store.address, city: store.city }}
+      from={{ name: store.tradeName || site.name, phone: store.phone, addressLine: store.address, city: store.city }}
     />
   );
 }

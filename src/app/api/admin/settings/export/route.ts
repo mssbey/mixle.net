@@ -15,7 +15,7 @@ export function GET(request: Request): Promise<Response> {
       return new Response(catalogToCsv(catalog), {
         headers: {
           'content-type': 'text/csv; charset=utf-8',
-          'content-disposition': `attachment; filename="nefis-aroma-katalog-${stamp}.csv"`,
+          'content-disposition': `attachment; filename="mixle-katalog-${stamp}.csv"`,
         },
       });
     }
@@ -23,7 +23,7 @@ export function GET(request: Request): Promise<Response> {
     return new Response(JSON.stringify(catalog, null, 2) + '\n', {
       headers: {
         'content-type': 'application/json; charset=utf-8',
-        'content-disposition': `attachment; filename="nefis-aroma-katalog-${stamp}.json"`,
+        'content-disposition': `attachment; filename="mixle-katalog-${stamp}.json"`,
       },
     });
   });

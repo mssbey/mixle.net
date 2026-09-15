@@ -53,7 +53,7 @@ Siparişinizi takip etmek için: {{takipLinki}}
 
 Kabul ettiğiniz Mesafeli Satış Sözleşmesi (sürüm {{sozlesmeSurumu}}) ve Ön Bilgilendirme Formu bu e-postanın ekinde yer alır.
 
-Nefis Aroma`,
+${site.name}`,
   },
   'odeme-basarili': {
     subject: 'Ödemeniz alındı — {{siparisNo}}',
@@ -63,7 +63,7 @@ Nefis Aroma`,
 
 Takip: {{takipLinki}}
 
-Nefis Aroma`,
+${site.name}`,
   },
   'odeme-basarisiz': {
     subject: 'Ödeme alınamadı — {{siparisNo}}',
@@ -71,7 +71,7 @@ Nefis Aroma`,
 
 {{siparisNo}} numaralı siparişiniz için ödeme alınamadı. Siparişiniz bekliyor; yeniden ödeme yapmak için: {{takipLinki}}
 
-Nefis Aroma`,
+${site.name}`,
   },
   'kargoya-verildi': {
     subject: 'Siparişiniz kargoda — {{siparisNo}}',
@@ -81,7 +81,7 @@ Nefis Aroma`,
 Takip numarası: {{kargoTakipNo}}
 Takip linki: {{kargoTakipLinki}}
 
-Nefis Aroma`,
+${site.name}`,
   },
   'teslim-edildi': {
     subject: 'Siparişiniz teslim edildi — {{siparisNo}}',
@@ -91,7 +91,7 @@ Nefis Aroma`,
 
 Cayma hakkınız teslim tarihinden itibaren {{caymaGun}} gündür. İade talebi için: {{takipLinki}}
 
-Nefis Aroma`,
+${site.name}`,
   },
   iptal: {
     subject: 'Siparişiniz iptal edildi — {{siparisNo}}',
@@ -99,7 +99,7 @@ Nefis Aroma`,
 
 {{siparisNo}} numaralı siparişiniz iptal edildi. Ödeme yaptıysanız iade işlemi başlatılmıştır.
 
-Nefis Aroma`,
+${site.name}`,
   },
   'iade-onayi': {
     subject: 'İade talebiniz alındı — {{siparisNo}}',
@@ -107,7 +107,7 @@ Nefis Aroma`,
 
 {{siparisNo}} numaralı siparişiniz için iade talebiniz alındı. İnceleme sonucunu e-posta ile bildireceğiz.
 
-Nefis Aroma`,
+${site.name}`,
   },
   'iade-talebi-onaylandi': {
     subject: 'İade talebiniz onaylandı — {{siparisNo}}',
@@ -119,7 +119,7 @@ Nefis Aroma`,
 
 Ürün elimize ulaştığında iade işleminizi tamamlayıp size bilgi vereceğiz.
 
-Nefis Aroma`,
+${site.name}`,
   },
   'iade-talebi-reddedildi': {
     subject: 'İade talebiniz hakkında — {{siparisNo}}',
@@ -131,7 +131,7 @@ Sonuç: {{redSebebi}}
 
 Sorularınız için bize ulaşabilirsiniz.
 
-Nefis Aroma`,
+${site.name}`,
   },
   'iade-tamamlandi': {
     subject: 'İadeniz tamamlandı — {{siparisNo}}',
@@ -139,7 +139,7 @@ Nefis Aroma`,
 
 {{siparisNo}} numaralı siparişinizin iadesi tamamlandı. {{iadeTutari}} ödeme yönteminize iade edildi.
 
-Nefis Aroma`,
+${site.name}`,
   },
   'parola-sifirla': {
     subject: 'Parola sıfırlama',
@@ -149,7 +149,7 @@ Parolanızı sıfırlamak için bağlantı (1 saat geçerli): {{sifirlamaLinki}}
 
 Bu isteği siz yapmadıysanız bu e-postayı yok sayın.
 
-Nefis Aroma`,
+${site.name}`,
   },
   'yeni-siparis-yonetici': {
     subject: 'Yeni sipariş: {{siparisNo}} — {{toplam}}',
@@ -163,12 +163,12 @@ Toplam: {{toplam}}
 Panel: {{panelLinki}}`,
   },
   'hesap-olusturuldu': {
-    subject: 'Nefis Aroma hesabınız oluşturuldu',
+    subject: `${site.name} hesabınız oluşturuldu`,
     body: `Merhaba {{musteriAdi}},
 
 Hesabınız oluşturuldu. Siparişlerinizi ve adreslerinizi {{hesapLinki}} adresinden yönetebilirsiniz.
 
-Nefis Aroma`,
+${site.name}`,
   },
 };
 

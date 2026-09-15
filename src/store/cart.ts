@@ -83,7 +83,7 @@ export const useCart = create<CartState>()(
       removePromo: () => set({ promo: null }),
       count: () => get().lines.reduce((sum, l) => sum + l.qty, 0),
     }),
-    { name: 'nefis-aroma-cart', version: 1 },
+    { name: 'mixle-cart', version: 1 },
   ),
 );
 

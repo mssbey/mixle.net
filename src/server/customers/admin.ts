@@ -176,7 +176,7 @@ export async function anonymizeCustomer(id: string, user: AdminUser, ip: string 
   if (!current) throw new CustomerAdminError('Müşteri bulunamadı.', 404);
   if (current.anonymizedAt) throw new CustomerAdminError('Bu müşteri zaten anonimleştirilmiş.', 409);
 
-  const placeholder = `silindi-${id}@anonim.nefisaroma.local`;
+  const placeholder = `silindi-${id}@anonim.mixle.local`;
 
   await db.$transaction([
     db.customer.update({

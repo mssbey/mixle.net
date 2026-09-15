@@ -19,3 +19,6 @@ artifacts/
 # Veritabanı (Prisma/SQLite), panelden yüklenen medya ve üretilen Prisma istemcisi
 /data/
 /src/generated/
+
+.env*
+.vercel

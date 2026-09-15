@@ -4,6 +4,7 @@
 import { z } from 'zod';
 import { handle, readJson } from '@/lib/admin/http';
 import { sendMailNow } from '@/server/notifications/mailer';
+import { site } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +15,8 @@ export function POST(request: Request): Promise<Response> {
     const { to } = bodySchema.parse(await readJson(request));
     const result = await sendMailNow(
       to,
-      'Nefis Aroma — Test e-postası',
-      `Merhaba,\n\nBu, ${user.name || user.email} tarafından panel ayarlarından gönderilen bir test e-postasıdır. Bu e-postayı görüyorsanız gönderim ayarları çalışıyor.\n\nNefis Aroma`,
+      `${site.name} — Test e-postası`,
+      `Merhaba,\n\nBu, ${user.name || user.email} tarafından panel ayarlarından gönderilen bir test e-postasıdır. Bu e-postayı görüyorsanız gönderim ayarları çalışıyor.\n\n${site.name}`,
     );
     if (!result.ok) {
       return Response.json({ ok: false, message: result.error ?? 'Gönderim başarısız' }, { status: 422 });

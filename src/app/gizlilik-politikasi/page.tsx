@@ -5,7 +5,7 @@ import { site } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Gizlilik Politikası',
-  description: 'Nefis Aroma gizlilik politikası ve KVKK aydınlatma metni (örnek içerik).',
+  description: `${site.name} gizlilik politikası ve KVKK aydınlatma metni (örnek içerik).`,
   alternates: { canonical: '/gizlilik-politikasi' },
 };
 
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
       <LegalLayout title="Gizlilik Politikası" updated="Örnek belge — yayın tarihi eklenecek">
         <LegalSection title="1. Kapsam">
           <p>
-            Bu belge, Nefis Aroma web sitesinin bu sürümünde toplanan sınırlı verilerin nasıl işlendiğini
+            Bu belge, {site.name} web sitesinin bu sürümünde toplanan sınırlı verilerin nasıl işlendiğini
             açıklamak amacıyla hazırlanmış <strong>örnek</strong> bir metindir. Bu sürümde gerçek bir sunucu
             tarafı veri tabanı, ödeme sistemi veya üyelik altyapısı bulunmamaktadır.
           </p>
