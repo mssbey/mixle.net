@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const slides = [
-  { image: '/images/reference/2.jpg', alt: 'Dinner Lady aroma koleksiyonu', href: '/arama?q=Dinner%20Lady' },
-  { image: '/images/reference/1.jpg', alt: 'Mixle aroma koleksiyonu', href: '/kategori/mix' },
+  { image: '/images/reference/2.jpg', alt: 'Dinner Lady puff aroma serisi', href: '/kategori/puff-aromalar?alt=Dinner+Lady+Fruit+Full+Puff+Aroma' },
+  { image: '/images/reference/1.jpg', alt: 'Mixle aroma koleksiyonu', href: '/kategori/puff-aromalar' },
 ];
 export function Hero() {
   const [active, setActive] = useState(0);

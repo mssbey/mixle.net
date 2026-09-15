@@ -1,59 +1,6 @@
-// Site içeriği — metinler örnek/placeholder olarak hazırlanmıştır.
-// Yorumlar ve değerlendirmeler DEMO'dur; gerçek müşteri verisi değildir.
-
-export const heroContent = {
-  eyebrow: 'Mixle',
-  title: 'Her Damlasında Yeni Bir Deneyim',
-  subtitle: 'Özenle geliştirilen aroma profilleriyle kendi dünyanı keşfet.',
-  primaryCta: { label: 'Aromaları Keşfet', href: '/urunler' },
-  secondaryCta: { label: 'Aroma Rehberini İncele', href: '/aroma-rehberi' },
-  stats: [
-    { value: '8', label: 'Tat ailesi' },
-    { value: '60+', label: 'Aroma profili' },
-    { value: '4', label: 'Hacim seçeneği' },
-  ],
-};
-
-export interface ProcessStep {
-  no: string;
-  title: string;
-  description: string;
-  image: string;
-}
-
-export const processSteps: ProcessStep[] = [
-  {
-    no: '01',
-    title: 'Fikir ve tat profili',
-    description:
-      'Bir tat ailesi ve hedeflenen his belirlenir. Referans notlar çıkarılır, profil kabaca kâğıt üzerinde tanımlanır.',
-    image: '/images/showcase/tfa-passion-fruit.webp',
-  },
-  {
-    no: '02',
-    title: 'Formülasyon',
-    description:
-      'Notalar farklı oranlarda denenir. Ana nota, destek notaları ve arka plan katmanı ayrı ayrı ayarlanır.',
-    image: '/images/showcase/inawera-vanilla.webp',
-  },
-  {
-    no: '03',
-    title: 'Test ve dengeleme',
-    description:
-      'Örnekler dinlendirilir ve tekrar tadılır. Tatlılık, ferahlık ve yoğunluk küçük adımlarla dengelenir.',
-    image: '/images/showcase/inawera-miss-cream.webp',
-  },
-  {
-    no: '04',
-    title: 'Üretim ve paketleme',
-    description:
-      'Onaylanan tarif hazırlanır, sızdırmaz kapaklı şişelere alınır ve darbe emici paketle gönderime hazırlanır.',
-    image: '/images/showcase/inawera-biscuit.webp',
-  },
-];
-
-export const processNote =
-  'Yukarıdaki adımlar ürün geliştirme yaklaşımımızı özetleyen örnek içeriktir. Kesin oranlar, bekleme süreleri ve kullanım bilgileri her ürünün kendi sayfasında ve etiketinde yer alır.';
+// Vitrin sayfalarındaki statik metinler (aroma rehberi, hakkımızda, SSS,
+// kampanya bloğu). SSS ve kampanya panelden düzenlenebilir; buradakiler
+// kayıt yokken kullanılan varsayılanlardır.
 
 export interface GuideTopic {
   slug: string;
@@ -151,76 +98,15 @@ export const guideTopics: GuideTopic[] = [
 export const guideDisclaimer =
   'Bu içerikler genel bilgilendirme amaçlıdır ve sağlıkla ilgili bir iddia taşımaz. Kesin kullanım oranları, bekleme süreleri ve uyarılar için ürün etiketini ve üretici talimatlarını esas alın.';
 
-export interface Testimonial {
-  name: string;
-  location: string;
-  rating: number;
-  text: string;
-  product: string;
-  demo: true;
-}
-
-// DEMO içerik — gerçek müşteri yorumu değildir.
-export const testimonials: Testimonial[] = [
-  {
-    name: 'Deniz K.',
-    location: 'İzmir',
-    rating: 5,
-    text: 'Frozen Orchard tam beklediğim gibi çıktı; elma notası yapay değil, buz dozu da abartısız. Paketleme özenliydi.',
-    product: 'Frozen Orchard',
-    demo: true,
-  },
-  {
-    name: 'Mert A.',
-    location: 'İstanbul',
-    rating: 4,
-    text: 'Velvet Custard’ı bir haftada oturttum, kremsi ama ağır değil. Tek eksik bende biraz daha vanilya isteğiydi.',
-    product: 'Velvet Custard',
-    demo: true,
-  },
-  {
-    name: 'Selin T.',
-    location: 'Ankara',
-    rating: 5,
-    text: 'DIY setiyle ilk karışımımı yaptım, tarif kartı çok açıklayıcıydı. Ölçüm için gereken her şey kutudaydı.',
-    product: 'Fresh Lab DIY Seti',
-    demo: true,
-  },
-  {
-    name: 'Onur B.',
-    location: 'Bursa',
-    rating: 5,
-    text: 'Mystic Tobacco akşamları için ideal; tütün notası sert değil, vanilya ile güzel dengelenmiş.',
-    product: 'Mystic Tobacco',
-    demo: true,
-  },
-  {
-    name: 'Ece M.',
-    location: 'Antalya',
-    rating: 4,
-    text: 'Citrus Pulse sabah kullanımı için birebir. Greyfurt kabuğu notası tarifi tekdüzelikten kurtarıyor.',
-    product: 'Citrus Pulse',
-    demo: true,
-  },
-  {
-    name: 'Kaan Y.',
-    location: 'Eskişehir',
-    rating: 5,
-    text: 'Golden Mango Reserve gerçekten olgun mango gibi. Tatlı karışımlara taban olarak da çok iyi çalışıyor.',
-    product: 'Golden Mango Reserve',
-    demo: true,
-  },
-];
-
 export const campaign = {
-  eyebrow: 'Sınırlı Süreli',
-  title: 'Purple Reserve Koleksiyonu',
+  eyebrow: 'Güncel',
+  title: 'İndirimli Puff Aromaları',
   description:
-    'Koyu meyve ve derin karakterli profiller. Seçili Purple Reserve ürünlerinde sepette ekstra avantaj.',
-  code: 'GOLDENDROP',
-  codeNote: 'Sepette “GOLDENDROP” kodu ile %15 indirim (örnek kampanya).',
-  cta: { label: 'Koleksiyonu İncele', href: '/koleksiyon/purple-reserve' },
-  image: '/images/showcase/tfa-caramel.webp',
+    'Drifter, IVG, Vampire Vape, Dinner Lady ve Mixle Puff serilerinde fiyatı düşen aromalar. İndirim ürün sayfasında görünür.',
+  code: '',
+  codeNote: '',
+  cta: { label: 'Puff Aromaları İncele', href: '/kategori/puff-aromalar' },
+  image: '/images/products/puff/triple-melon-drifter-bar-aroma.webp',
 };
 
 export interface TimelineItem {
@@ -232,9 +118,9 @@ export interface TimelineItem {
 // Zaman çizelgesi — yıllar PLACEHOLDER'dır, kurumsal onay sonrası güncellenecek.
 export const aboutTimeline: TimelineItem[] = [
   { year: '—', title: 'İlk tarifler', text: 'Küçük ölçekli denemelerle birkaç temel profilin oluşturulması.' },
-  { year: '—', title: 'Profil ailesi', text: 'Meyveli, ferah ve tatlı ailelerinin genişletilmesi, tat profili göstergesinin tasarlanması.' },
-  { year: '—', title: 'DIY yaklaşımı', text: 'Aroma, baz ve tarif kartını bir araya getiren setlerin hazırlanması.' },
-  { year: '—', title: 'Bugün', text: 'Sekiz tat ailesinde, kontrollü varyasyonlarla büyüyen bir aroma kataloğu.' },
+  { year: '—', title: 'Profil ailesi', text: 'Meyveli, ferah ve tatlı profillerin genişletilmesi, tat profili göstergesinin tasarlanması.' },
+  { year: '—', title: 'DIY yaklaşımı', text: 'Aroma ve bazı bir arada sunan DIY kit boylarının hazırlanması.' },
+  { year: '—', title: 'Bugün', text: 'Puff aromaları başta olmak üzere, kontrollü varyasyonlarla büyüyen bir katalog.' },
 ];
 
 export const aboutValues = [
@@ -265,8 +151,8 @@ export const faqGroups: { heading: string; items: { q: string; a: string }[] }[]
         a: 'Hayır. Mixle ürünleri aroma konsantreleri, DIY kitleri ve nötr bazlardan oluşur; nikotin içermez.',
       },
       {
-        q: 'Konsantre aroma ile shortfill arasındaki fark nedir?',
-        a: 'Konsantre aroma, baz ile seyreltilerek kullanılır ve oranı siz belirlersiniz. Shortfill ise kısmen bazla hazırlanmıştır, üzerine ekleme yapılır.',
+        q: 'DIY kit boyu ile normal aroma arasındaki fark nedir?',
+        a: 'Normal şişede yalnızca konsantre aroma vardır; oranı siz belirlersiniz. DIY kit boyunda şişe, aromasıyla birlikte gelir — kalanını baz ile doldurup hazır ürün elde edersiniz (ör. 30 ml DIY kit içinde 9 ml aroma).',
       },
       {
         q: 'Ürünlerin son kullanma tarihi var mı?',
@@ -292,11 +178,11 @@ export const faqGroups: { heading: string; items: { q: string; a: string }[] }[]
     items: [
       {
         q: 'Kargo ne kadar sürede gelir?',
-        a: 'Siparişler örnek olarak 1–3 iş günü içinde kargoya verilir. Kesin süreler kampanya dönemlerine göre değişebilir.',
+        a: 'Siparişler 1–3 iş günü içinde kargoya verilir. Kesin süreler kampanya dönemlerine göre değişebilir.',
       },
       {
         q: 'Ücretsiz kargo koşulu nedir?',
-        a: 'Örnek kampanyaya göre belirli bir tutar üzeri siparişlerde kargo ücretsizdir. Güncel tutar sepet sayfasında görünür.',
+        a: 'Belirli bir tutar üzeri siparişlerde kargo ücretsizdir. Güncel tutar sepet sayfasında ve üst bantta görünür.',
       },
       {
         q: 'İade yapabilir miyim?',
@@ -313,7 +199,7 @@ export const faqGroups: { heading: string; items: { q: string; a: string }[] }[]
       },
       {
         q: 'Bilgilerim nasıl korunuyor?',
-        a: 'Gizlilik ve çerez politikası sayfalarında verilerin nasıl işlendiği örnek metinlerle açıklanır.',
+        a: 'Gizlilik ve çerez politikası sayfalarında verilerin nasıl işlendiği açıklanır.',
       },
     ],
   },

@@ -18,20 +18,15 @@ export function catalogPhotos<T extends { src: string }>(images: T[]): T[] {
   return images.filter((img) => img.src && !LEGACY_IMAGE_PATTERNS.some((re) => re.test(img.src)));
 }
 
+/**
+ * Kategori/koleksiyon görseli panelden girilmediyse kullanılan yedekler.
+ * Kayıttaki `cover` doluysa o kazanır (bkz. catalog-adapter).
+ */
 export const categoryArtwork: Record<string, string> = {
   'puff-aromalar': '/images/products/puff/triple-melon-drifter-bar-aroma.webp',
-  meyveli: showcaseImage('tfa-passion-fruit'),
-  'tatli-kremsi': showcaseImage('inawera-miss-cream'),
-  ferah: showcaseImage('tfa-cucumber'),
-  icecek: showcaseImage('tfa-citrus-punch'),
-  mix: showcaseImage('tfa-rainbow-sherbet'),
 };
 
-export const collectionArtwork: Record<string, string> = {
-  'golden-drop': showcaseImage('tfa-caramel'),
-  'purple-reserve': showcaseImage('inawera-wild-red-cap'),
-  'fresh-lab': showcaseImage('tfa-cucumber'),
-};
+export const collectionArtwork: Record<string, string> = {};
 
 /** These are flavor illustrations, not photographs of the named catalog item. */
 export function productArtwork(product: {

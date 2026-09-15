@@ -4,19 +4,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Tag } from 'lucide-react';
 import { getOnSaleProducts } from '@/data/products';
-import { campaign } from '@/data/content';
+import { getCampaignContent } from '@/server/content/settings';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'Kampanyalar',
-  description: 'Mixle’da güncel indirimli ürünler ve örnek kampanya kodları.',
+  description: 'Mixle’da fiyatı düşen aromalar ve güncel kampanyalar.',
   alternates: { canonical: '/kampanyalar' },
 };
 
 export default async function CampaignsPage() {
-  const list = await getOnSaleProducts();
+  const [list, campaign] = await Promise.all([getOnSaleProducts(), getCampaignContent()]);
   return (
     <div>
       <section className="surface-dark relative overflow-hidden">
@@ -26,18 +26,17 @@ export default async function CampaignsPage() {
         <div className="container-page relative py-16 sm:py-20">
           <Breadcrumbs items={[{ label: 'Kampanyalar' }]} className="[&_*]:text-cream/70 [&_span[aria-current]]:text-cream" />
           <h1 className="mt-4 font-display text-3xl font-semibold text-cream sm:text-4xl">Kampanyalar</h1>
-          <p className="mt-3 max-w-xl text-cream/75">
-            İndirimli aromalar ve örnek kampanya kodları. Kodlar sepet sayfasında uygulanabilir.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {['NEFIS10', 'ILKAROMA', 'GOLDENDROP'].map((code) => (
-              <span key={code} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gold-200/50 px-3 py-1.5 text-xs font-semibold text-gold-200">
-                <Tag size={12} /> {code}
+          <p className="mt-3 max-w-xl text-cream/75">{campaign.description}</p>
+          {campaign.code && (
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gold-200/50 px-3 py-1.5 text-xs font-semibold text-gold-200">
+                <Tag size={12} /> {campaign.code}
               </span>
-            ))}
-          </div>
+              {campaign.codeNote && <span className="text-xs text-cream/70">{campaign.codeNote}</span>}
+            </div>
+          )}
           <Link href={campaign.cta.href} className="mt-6 inline-block text-sm font-semibold text-gold-200 link-underline">
-            {campaign.title} koleksiyonunu incele →
+            {campaign.cta.label} →
           </Link>
         </div>
       </section>

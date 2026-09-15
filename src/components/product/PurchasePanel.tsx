@@ -82,7 +82,7 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
       <div className="mt-5 flex flex-wrap items-end justify-between gap-3 rounded-lg border border-line bg-mist p-4">
         <Price price={variant.price} oldPrice={variant.oldPrice} size="lg" />
         <p className="max-w-[12rem] text-right text-[11px] leading-snug text-ink-soft">
-          Fiyata KDV dahildir. Demo katalog — gerçek ödeme alınmaz.
+          Fiyata KDV dahildir.
         </p>
       </div>
 

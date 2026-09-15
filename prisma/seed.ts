@@ -1,6 +1,6 @@
-// Demo verisi — `src/data/catalog.seed.json` kaynağından.
+// Katalog kurulumu — `src/data/catalog.seed.json` kaynağından.
 //
-// "Demo verisine sıfırla" akışının kaynağıdır (panel: Ayarlar → Bakım).
+// "Kataloğu yeniden yükle" akışının kaynağıdır (panel: Ayarlar → Bakım).
 // Kataloğu SIFIRDAN yazar: mevcut katalog kayıtları silinir.
 // Sipariş/müşteri/kullanıcı tablolarına DOKUNMAZ.
 //
@@ -33,41 +33,14 @@ async function readCatalog(relative: string) {
 }
 
 export async function seed(db: PrismaClient): Promise<void> {
-  // Demo katalog sıfırdan yazılır; ardından gerçek Puff Aromalar kataloğu
-  // (scripts/build-puff-catalog.py çıktısı) aynı veritabanına eklenir.
   const catalog = await readCatalog('src/data/catalog.seed.json');
   const report = await importCatalog(db, catalog, { wipe: true });
-  const puff = await readCatalog('src/data/catalog.puff.json');
-  const puffReport = await importCatalog(db, puff);
 
   for (const rate of TAX_RATES) {
     await db.taxRate.upsert({
       where: { id: rate.id },
       create: rate,
       update: { name: rate.name, rateBps: rate.rateBps, isDefault: rate.isDefault },
-    });
-  }
-
-  // Demo kuponlar — vitrindeki kampanya sayfasında ilan edilen kodlar.
-  // Yüzde tipinde value ON BİNDE, tutar tipinde KURUŞ.
-  const coupons = [
-    { code: 'NEFIS10', type: 'yüzde', value: 1000, minCartTotalMinor: null, firstOrderOnly: false },
-    { code: 'ILKAROMA', type: 'tutar', value: 6000, minCartTotalMinor: 30_000, firstOrderOnly: true },
-    { code: 'GOLDENDROP', type: 'yüzde', value: 1500, minCartTotalMinor: null, firstOrderOnly: false },
-  ];
-  for (const c of coupons) {
-    await db.coupon.upsert({
-      where: { code: c.code },
-      create: {
-        ...c,
-        maxDiscountMinor: null,
-        includeProductIds: [],
-        excludeProductIds: [],
-        includeCategoryIds: c.code === 'GOLDENDROP' ? ['golden-drop'] : [],
-        isActive: true,
-        stackable: false,
-      },
-      update: { type: c.type, value: c.value, minCartTotalMinor: c.minCartTotalMinor, firstOrderOnly: c.firstOrderOnly, isActive: true },
     });
   }
 
@@ -79,9 +52,8 @@ export async function seed(db: PrismaClient): Promise<void> {
   });
 
   console.log(
-    `Demo verisi yüklendi: ${report.products} ürün, ${report.variants} varyant, ` +
-      `${report.categories} kategori, ${report.collections} koleksiyon. ` +
-      `Puff Aromalar: ${puffReport.products} ürün, ${puffReport.variants} varyant.`,
+    `Katalog yüklendi: ${report.products} ürün, ${report.variants} varyant, ` +
+      `${report.categories} kategori, ${report.collections} koleksiyon.`,
   );
 }
 

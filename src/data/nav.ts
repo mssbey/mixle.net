@@ -12,7 +12,6 @@ export interface NavLink {
  */
 export const primaryNav: NavLink[] = [
   { label: 'Toptan Satın Al', href: '/iletisim?konu=toptan' },
-  { label: 'En Çok Satanlar', href: '/cok-satanlar' },
   { label: 'Yeni Ürünler', href: '/yeni-gelenler' },
   { label: 'Fırsat Ürünleri', href: '/kampanyalar', emphasis: true },
   { label: 'Aroma Rehberi', href: '/aroma-rehberi' },
@@ -23,7 +22,6 @@ export const mobileMenuLinks: NavLink[] = [
   { label: 'Ana Sayfa', href: '/' },
   { label: 'Tüm Ürünler', href: '/urunler' },
   { label: 'Toptan Satın Al', href: '/iletisim?konu=toptan' },
-  { label: 'En Çok Satanlar', href: '/cok-satanlar' },
   { label: 'Yeni Ürünler', href: '/yeni-gelenler' },
   { label: 'Fırsat Ürünleri', href: '/kampanyalar' },
   { label: 'Aroma Rehberi', href: '/aroma-rehberi' },
@@ -57,7 +55,6 @@ export function buildMegaMenuColumns(categories: Category[]) {
       links: [
         { label: 'Tüm Ürünler', href: '/urunler', hint: `${categories.length} kategori` },
         { label: 'Yeni Ürünler', href: '/yeni-gelenler', hint: 'Son eklenenler' },
-        { label: 'En Çok Satanlar', href: '/cok-satanlar', hint: 'En çok tercih edilenler' },
         { label: 'Fırsat Ürünleri', href: '/kampanyalar', hint: 'İndirimli seçkiler' },
       ],
     },
@@ -91,7 +88,6 @@ export const footerNav = [
     links: [
       { label: 'Tüm Ürünler', href: '/urunler' },
       { label: 'Yeni Ürünler', href: '/yeni-gelenler' },
-      { label: 'En Çok Satanlar', href: '/cok-satanlar' },
       { label: 'Fırsat Ürünleri', href: '/kampanyalar' },
       { label: 'Sipariş Takibi', href: '/siparis-takibi' },
       { label: 'Favorilerim', href: '/favoriler' },

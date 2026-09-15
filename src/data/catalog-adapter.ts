@@ -170,8 +170,9 @@ export function toStorefrontCategory(c: AdminCategory): Category {
     name: c.name,
     tagline: c.tagline,
     description: c.description,
-    cover: categoryArtwork[c.slug] ?? storefrontLogo,
-    icon: categoryArtwork[c.slug] ?? storefrontLogo,
+    // Panelden girilen görsel önceliklidir; yoksa yedek/logo.
+    cover: c.cover || categoryArtwork[c.slug] || storefrontLogo,
+    icon: c.icon || categoryArtwork[c.slug] || storefrontLogo,
     subcategories: c.subcategories,
     accent: c.accent,
   };
@@ -183,7 +184,7 @@ export function toStorefrontCollection(c: AdminCollection): Collection {
     name: c.name,
     subtitle: c.subtitle,
     description: c.description,
-    cover: collectionArtwork[c.slug] ?? storefrontLogo,
+    cover: c.cover || collectionArtwork[c.slug] || storefrontLogo,
     atmosphere: c.atmosphere,
   };
 }

@@ -6,7 +6,7 @@ Zincir:
   python scripts/falcon-puff-scrape.py       # ham dokum
   python scripts/falcon-puff-normalize.py    # temiz JSON/CSV + gorsel indirme
   python scripts/build-puff-catalog.py       # site katalogu + webp
-  npm run db:migrate-catalog -- --file=src/data/catalog.puff.json
+  npm run db:seed                            # veritabanına yaz
 """
 import json, sys, time, urllib.request, urllib.parse, html, re, os
 sys.stdout.reconfigure(encoding='utf-8')

@@ -1,6 +1,6 @@
-// Demo verisine sıfırla — `src/data/catalog.seed.json` kaynağından.
+// Kataloğu yeniden yükle — `src/data/catalog.seed.json` kaynağından.
 //
-// YIKICIDIR: mevcut katalog kayıtları silinir ve seed dosyasından yeniden
+// YIKICIDIR: mevcut katalog kayıtları silinir ve dosyadan yeniden
 // yazılır. Sipariş/müşteri/kullanıcı tablolarına dokunmaz.
 // Arayüz tarafında onay diyaloğu + geri alınamaz uyarısı gösterilir.
 
@@ -22,12 +22,12 @@ export function POST(): Promise<Response> {
     try {
       raw = JSON.parse(await readFile(file, 'utf8'));
     } catch {
-      throw new AdminError('Demo veri dosyası (catalog.seed.json) okunamadı', 500);
+      throw new AdminError('Katalog dosyası (catalog.seed.json) okunamadı', 500);
     }
 
     const parsed = legacyCatalogSchema.safeParse(raw);
     if (!parsed.success) {
-      throw new AdminError('Demo veri dosyasının şeması geçersiz', 422);
+      throw new AdminError('Katalog dosyasının şeması geçersiz', 422);
     }
 
     const catalog = legacyToCatalog(parsed.data);
@@ -37,7 +37,7 @@ export function POST(): Promise<Response> {
       user,
       action: 'ayar',
       entityType: 'Catalog',
-      entityId: 'demo-sifirla',
+      entityId: 'katalog-sifirla',
       diff: { urun: { before: null, after: catalog.products.length } },
     });
 

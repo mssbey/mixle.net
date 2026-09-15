@@ -1,13 +1,13 @@
-// Tek seferlik geçiş: katalog JSON dosyası → veritabanı.
+// Katalog JSON dosyası → veritabanı (ekleyerek/güncelleyerek).
 //
-// Özgün dosya geçiş sonrası src/data/legacy/catalog.json altına arşivlendi;
-// geri dönüş yolu olarak duruyor, uygulama artık onu okumuyor.
+// Varsayılan kaynak `src/data/catalog.seed.json`; `npm run db:seed` ile aynı
+// dosyayı okur ama bu betik katalog tablolarını boşaltmaz (`--wipe` hariç).
 //
 // Kullanım:
 //   npm run db:migrate-catalog -- --dry-run     (yazmadan rapor)
 //   npm run db:migrate-catalog                  (uygula)
 //   npm run db:migrate-catalog -- --wipe        (önce katalog tablolarını boşalt)
-//   npm run db:migrate-catalog -- --file=src/data/catalog.seed.json
+//   npm run db:migrate-catalog -- --file=<baska-dosya>.json
 //
 // Fiyatlar TL float'tan KURUŞ tam sayısına çevrilir. Betik idempotenttir:
 // aynı dosyayla iki kez çalıştırmak aynı sonucu verir.
@@ -29,7 +29,7 @@ const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const wipe = args.includes('--wipe');
 const fileArg = args.find((a) => a.startsWith('--file='));
-const sourceFile = fileArg ? fileArg.slice('--file='.length) : 'src/data/legacy/catalog.json';
+const sourceFile = fileArg ? fileArg.slice('--file='.length) : 'src/data/catalog.seed.json';
 
 function formatReport(label: string, r: ImportReport): string {
   const tl = (minor: number) =>

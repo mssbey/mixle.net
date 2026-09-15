@@ -14,7 +14,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '',
     '/urunler',
     '/yeni-gelenler',
-    '/cok-satanlar',
     '/kampanyalar',
     '/aroma-rehberi',
     '/hakkimizda',

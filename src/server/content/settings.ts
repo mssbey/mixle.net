@@ -67,8 +67,7 @@ const loadCampaign = unstable_cache(
   async (): Promise<CampaignContent> => {
     const row = await db.setting.findUnique({ where: { key: KEYS.campaign } });
     const parsed = campaignContentSchema.safeParse(row?.value);
-    const content = parsed.success ? parsed.data : defaultCampaign;
-    return { ...content, image: '/images/showcase/tfa-caramel.webp' };
+    return parsed.success ? parsed.data : defaultCampaign;
   },
   ['sayfa-kampanya-icerik'],
   { tags: [CAMPAIGN_TAG] },

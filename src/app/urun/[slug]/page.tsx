@@ -2,13 +2,10 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getProducts, getProductBySlug } from '@/data/products';
 import { getCategories } from '@/data/categories';
-import { reviewsFor, qaFor } from '@/data/reviews';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
 import { ProductInfoTabs } from '@/components/product/ProductInfoTabs';
 import { RelatedRail } from '@/components/product/RelatedRail';
 import { RecentlyViewedSection, RecentlyViewedTracker } from '@/components/product/RecentlyViewedSection';
-import { ReviewsSection } from '@/components/product/ReviewsSection';
-import { QASection } from '@/components/product/QASection';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/seo';
 
@@ -79,8 +76,6 @@ export default async function ProductPage({ params }: { params: Params }) {
       <RelatedRail title="Benzer aromalar" products={similar} />
       <RecentlyViewedSection excludeSlug={product.slug} />
 
-      <ReviewsSection productId={product.id} initial={reviewsFor(product.id)} />
-      <QASection productId={product.id} initial={qaFor(product.id)} />
     </div>
   );
 }

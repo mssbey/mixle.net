@@ -758,6 +758,57 @@ filtresi (11 etiket) kontrol edildi.
 
 ---
 
+## TAMAMLANDI — Aşama 20 (demo/örnek içeriklerin kaldırılması, 2026-09-15)
+
+Kullanıcı: "bu çektiğimiz ürünler dışındaki örnek şeyleri kaldır siteden". Vitrinde artık
+yalnızca gerçek Puff Aromalar kataloğu (128 ürün) var; demo katalog ve sahte sosyal kanıt gitti.
+
+**Katalog**
+- `src/data/catalog.seed.json` artık **gerçek katalog** (eski 100 ürünlük demo dosya silindi,
+  `catalog.puff.json` bu ada taşındı). `src/data/legacy/catalog.json` arşivi silindi.
+- `prisma/seed.ts` tek dosyadan yükler (wipe); demo kuponlar (NEFIS10/ILKAROMA/GOLDENDROP) kaldırıldı.
+- `scripts/build-puff-catalog.py` çıktısı doğrudan `catalog.seed.json`; `db:migrate-catalog`
+  varsayılan kaynağı da bu dosya.
+- Panel: "Demo verisine sıfırla" → **"Kataloğu yeniden yükle"** (aynı dosyadan).
+- Yerel DB yeniden yüklendi: **128 ürün, 493 varyant, 1 kategori, 0 koleksiyon**.
+
+**Kaldırılan sahte içerik**
+- Ürün sayfasındaki **sahte yorumlar ve soru-cevap** (`src/data/reviews.ts`, `ReviewsSection`,
+  `QASection`, `Review`/`QuestionAnswer` tipleri) — üretilmiş isim/puan/tarihlerdi, backend'i yoktu.
+- Kullanılmayan 17 demo ana sayfa bileşeni (Testimonials, InstagramFeed, CampaignBanner,
+  BestSellersSection, Diy25Section, LabProcess, NewsletterSection, …) ve `content.ts` içindeki
+  `testimonials`, `heroContent`, `processSteps` blokları.
+- `BrandBanners` — satmadığımız markalara (Santa, Halo, Cosmic Fog, Suicide Bunny, Capella…)
+  giden, sonuç döndürmeyen arama bağlantılarıydı. Görseller `public/images/reference/` altında
+  duruyor ama artık hiçbir yerden kullanılmıyor.
+- `campaign` varsayılanı ölü `/koleksiyon/purple-reserve` yerine gerçek kategoriye bakıyor;
+  `/kampanyalar` sayfası sabit kupon kodu rozetleri yerine panelden düzenlenen kampanya bloğunu
+  gösteriyor (kod yalnız girilmişse çıkar).
+- "Demo katalog — gerçek ödeme alınmaz" notu ürün sayfasından kaldırıldı (fiyatlar gerçek).
+- SSS/hakkımızda metinlerindeki "örnek kampanya", "sekiz tat ailesi", shortfill gibi artık
+  geçersiz ifadeler düzeltildi.
+
+**Yeni ana sayfa** (`src/app/page.tsx`): Hero (gerçek Mixle/Dinner Lady bannerları) → Yeni
+Eklenenler → **Seriler** şeridi (`SeriesStrip`, 6 seri, gerçek ürün görseli + adet, filtreli
+kategori sayfasına gider) → Öne Çıkan Aromalar (serilerden dönüşümlü) → Fiyatı Düşenler (26 ürün).
+
+**Diğer**
+- `CategorySlug`/`CollectionSlug` sabit union yerine `string` (kategoriler veritabanından gelir).
+- `categoryArtwork`/`collectionArtwork` demo eşlemeleri temizlendi; panelden girilen `cover`
+  önceliklendirildi.
+- "En Çok Satanlar" menü bağlantıları kaldırıldı (hiçbir üründe `bestSeller` işareti yok);
+  sayfa ve paneldeki bayrak duruyor — panelden ürün işaretlenince menüye geri eklenmeli.
+
+**Bilinen:** sipariş numarası öneki hâlâ `NA-` (Nefis Aroma); mevcut siparişleri/regex'i
+bozmamak için değiştirilmedi. Vitrin görselleri hâlâ Falcon markalı (bkz. Aşama 19).
+
+Doğrulama: `typecheck`/`lint`/`test` (75) temiz, `next build` yerel DB ile 48 sayfa üretildi;
+tarayıcıda ana sayfa, /urunler, /kategori/puff-aromalar, ürün sayfası ve /kampanyalar kontrol
+edildi. (Not: bu turda `npm run build` `.env.local` → Neon ile "DatabaseNotReachable" verdi;
+kod değil, Neon erişimi kaynaklı — canlı deploy öncesi tekrar denenmeli.)
+
+---
+
 ## KONVANSİYONLAR
 - Sunucu bileşeni varsayılan; `'use client'` sadece etkileşim/hook gerekince.
 - Mock data `src/data/`, iş mantığı `src/lib/`, global state `src/store/`.

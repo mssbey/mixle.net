@@ -34,7 +34,7 @@ const SECTIONS: { href: string; icon: typeof Building2; title: string; hint: str
 
 export default function AdminSettingsPage() {
   const { status, can, updatedAt, products, categories, collections, reload } = useAdminData();
-  // Yedek yükleme ve demoya sıfırlama bakım iznine bağlıdır.
+  // Yedek yükleme ve kataloğu sıfırlama bakım iznine bağlıdır.
   const canMaintain = can('bakim:yaz');
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -72,7 +72,7 @@ export default function AdminSettingsPage() {
     try {
       await adminApi.resetCatalog();
       await reload();
-      toast.success('Demo verisine sıfırlandı');
+      toast.success('Katalog yeniden yüklendi');
     } catch (err) {
       toast.error('Sıfırlama başarısız', err instanceof Error ? err.message : undefined);
     } finally {
@@ -177,9 +177,10 @@ export default function AdminSettingsPage() {
       </section>
 
       <section className="admin-card" style={{ padding: 16 }}>
-        <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">Demo verisine sıfırla</h2>
+        <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">Kataloğu yeniden yükle</h2>
         <p className="admin-hint mt-0.5">
-          Kataloğu ilk kurulum anındaki içeriğe döndürür. Tüm değişiklikler kaybolur.
+          Kataloğu kurulum dosyasındaki (catalog.seed.json) içeriğe döndürür. Panelde yapılan
+          tüm ürün değişiklikleri kaybolur.
         </p>
         <button
           type="button"
@@ -193,8 +194,8 @@ export default function AdminSettingsPage() {
 
       <ConfirmDialog
         open={confirmReset}
-        title="Demo verisine sıfırla?"
-        description="catalog.json, catalog.seed.json içeriğiyle değiştirilecek. Bu işlem geri alınamaz."
+        title="Kataloğu yeniden yükle?"
+        description="Mevcut katalog silinip catalog.seed.json içeriğiyle değiştirilecek. Bu işlem geri alınamaz."
         confirmLabel="Sıfırla"
         destructive
         onConfirm={onReset}

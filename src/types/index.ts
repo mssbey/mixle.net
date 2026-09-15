@@ -1,18 +1,10 @@
 // Merkezi tip tanımları — Nefis Aroma
 // Backend bağlanınca bu tipler API sözleşmesine dönüştürülebilir.
 
-export type CategorySlug =
-  | 'meyveli'
-  | 'ferah'
-  | 'tatli-kremsi'
-  | 'icecek'
-  | 'tutun'
-  | 'mix'
-  | 'diy-kitler'
-  | 'nbase'
-  | 'puff-aromalar';
+/** Kategori/koleksiyon listesi veritabanından gelir; slug sabit bir küme değildir. */
+export type CategorySlug = string;
 
-export type CollectionSlug = 'golden-drop' | 'purple-reserve' | 'fresh-lab';
+export type CollectionSlug = string;
 
 export type FlavorProfile =
   | 'meyveli'
@@ -150,25 +142,3 @@ export interface CartLineDetailed extends CartLine {
   lineOldTotal: number;
 }
 
-export interface Review {
-  id: string;
-  productId: string;
-  author: string;
-  rating: number;
-  date: string;
-  title: string;
-  body: string;
-  verified: boolean;
-  /** demo veri olduğunu kod tarafında belli eden bayrak */
-  demo: true;
-}
-
-export interface QuestionAnswer {
-  id: string;
-  productId: string;
-  author: string;
-  date: string;
-  question: string;
-  answer?: string;
-  demo: true;
-}

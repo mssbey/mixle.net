@@ -1,5 +1,5 @@
 """data/falcon/puff-aromalar.json (falconkimya.com Puff Aromalar dökümü) ->
-src/data/catalog.puff.json (site katalog şeması, TL fiyatlı "legacy" biçim)
+src/data/catalog.seed.json (sitenin katalog kaynağı, TL fiyatlı "legacy" biçim)
 + public/images/products/puff/<slug>.webp ürün fotoğrafları.
 
 Marka: "Falcon Puff" serisi "Mixle Puff" olarak, Falcon Kimya/Falcon Aroma
@@ -10,7 +10,7 @@ Kullanım:
   python scripts/build-puff-catalog.py            # JSON + görseller
   python scripts/build-puff-catalog.py --no-images
 Ardından:
-  npm run db:migrate-catalog -- --file=src/data/catalog.puff.json
+  npm run db:seed        # veritabanına yazar (katalog tablolarını sıfırlar)
 """
 import datetime
 import json
@@ -23,7 +23,7 @@ from PIL import Image
 sys.stdout.reconfigure(encoding="utf-8")
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SRC = os.path.join(ROOT, "data", "falcon", "puff-aromalar.json")
-OUT = os.path.join(ROOT, "src", "data", "catalog.puff.json")
+OUT = os.path.join(ROOT, "src", "data", "catalog.seed.json")
 IMG_OUT = os.path.join(ROOT, "public", "images", "products", "puff")
 IMG_SIZE = 1000
 NOW = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
