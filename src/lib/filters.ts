@@ -106,8 +106,10 @@ export function applyFilters(source: Product[], f: FilterState): Product[] {
       list = [...list].sort((a, b) => maxDiscount(b) - maxDiscount(a));
       break;
     default:
+      // Stoktakiler önce; ardından öne çıkan / çok satan / puan.
       list = [...list].sort(
         (a, b) =>
+          Number(b.stockStatus !== 'out-of-stock') - Number(a.stockStatus !== 'out-of-stock') ||
           Number(b.featured) - Number(a.featured) ||
           Number(b.bestSeller) - Number(a.bestSeller) ||
           b.rating - a.rating,

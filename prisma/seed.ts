@@ -20,19 +20,25 @@ const TAX_RATES = [
   { id: 'kdv-1', name: 'KDV %1', rateBps: 100, isDefault: false },
 ];
 
-export async function seed(db: PrismaClient): Promise<void> {
-  const file = path.resolve(process.cwd(), 'src/data/catalog.seed.json');
+async function readCatalog(relative: string) {
+  const file = path.resolve(process.cwd(), relative);
   const raw = JSON.parse(await readFile(file, 'utf8')) as unknown;
-
   const parsed = legacyCatalogSchema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(
-      `catalog.seed.json okunamadı: ${parsed.error.issues[0]?.path.join('.')} — ${parsed.error.issues[0]?.message}`,
+      `${relative} okunamadı: ${parsed.error.issues[0]?.path.join('.')} — ${parsed.error.issues[0]?.message}`,
     );
   }
+  return legacyToCatalog(parsed.data);
+}
 
-  const catalog = legacyToCatalog(parsed.data);
+export async function seed(db: PrismaClient): Promise<void> {
+  // Demo katalog sıfırdan yazılır; ardından gerçek Puff Aromalar kataloğu
+  // (scripts/build-puff-catalog.py çıktısı) aynı veritabanına eklenir.
+  const catalog = await readCatalog('src/data/catalog.seed.json');
   const report = await importCatalog(db, catalog, { wipe: true });
+  const puff = await readCatalog('src/data/catalog.puff.json');
+  const puffReport = await importCatalog(db, puff);
 
   for (const rate of TAX_RATES) {
     await db.taxRate.upsert({
@@ -74,7 +80,8 @@ export async function seed(db: PrismaClient): Promise<void> {
 
   console.log(
     `Demo verisi yüklendi: ${report.products} ürün, ${report.variants} varyant, ` +
-      `${report.categories} kategori, ${report.collections} koleksiyon.`,
+      `${report.categories} kategori, ${report.collections} koleksiyon. ` +
+      `Puff Aromalar: ${puffReport.products} ürün, ${puffReport.variants} varyant.`,
   );
 }
 

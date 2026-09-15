@@ -87,6 +87,7 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
       </div>
 
       <div className="mt-6 space-y-5">
+        {volumes.some(Boolean) && (
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Hacim</p>
           <div className="flex flex-wrap gap-2">
@@ -107,6 +108,7 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
             })}
           </div>
         </div>
+        )}
 
         {intensities.length > 1 && (
           <div>

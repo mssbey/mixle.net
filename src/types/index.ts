@@ -9,7 +9,8 @@ export type CategorySlug =
   | 'tutun'
   | 'mix'
   | 'diy-kitler'
-  | 'nbase';
+  | 'nbase'
+  | 'puff-aromalar';
 
 export type CollectionSlug = 'golden-drop' | 'purple-reserve' | 'fresh-lab';
 
@@ -29,7 +30,11 @@ export type BadgeKind = 'yeni' | 'cok-satan' | 'sinirli-seri' | 'indirim';
 
 export type StockStatus = 'in-stock' | 'low-stock' | 'out-of-stock';
 
-export type VariantVolume = '10ml' | '30ml' | '60ml' | '100ml';
+/**
+ * Hacim seçeneğinin etiketi — serbest metin ("10ml", "15ml",
+ * "30ml DIY Kit (9ml aroma)"). Sıralama admin'deki seçenek sırasını izler.
+ */
+export type VariantVolume = string;
 export type VariantType = 'Konsantre Aroma' | 'DIY Kit' | 'Shortfill' | 'Mix Aroma';
 export type VariantIntensity = 'Standart' | 'Yoğun' | 'Extra Fresh';
 
@@ -86,6 +91,8 @@ export interface Product {
   badges: BadgeKind[];
   images: ProductImage[];
   gallery: ProductImage[];
+  /** true: görseller gerçek ürün fotoğrafı değil, tat profilini anlatan temsili illüstrasyon. */
+  representativeImages: boolean;
   videoPlaceholder?: string;
   basePrice: number;
   oldPrice?: number;

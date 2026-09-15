@@ -9,6 +9,7 @@ import { useMounted } from '@/lib/hooks';
 import { detailLines, summarize } from '@/lib/cart-math';
 import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { currency } from '@/lib/site';
+import { variantLabel } from '@/lib/commerce';
 
 /**
  * Masaüstü header'da sepet düğmesinin altında açılan mini sepet.
@@ -70,7 +71,7 @@ export function MiniCart({ open, onNavigate }: { open: boolean; onNavigate: () =
                     {line.product.name}
                   </Link>
                   <p className="mt-0.5 text-[11px] text-ink-soft">
-                    {line.variant.volume} · {line.variant.intensity}
+                    {variantLabel(line.product, line.variant)}
                   </p>
                   <div className="mt-1 flex items-center justify-between text-[12px]">
                     <span className="text-ink-soft">{line.qty} adet</span>

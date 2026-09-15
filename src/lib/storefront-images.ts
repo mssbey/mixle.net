@@ -1,8 +1,25 @@
-// Only original files supplied in gorseller are used by the storefront.
+// Vitrin görsel kaynağı kuralı:
+//  - Katalogda gerçek ürün fotoğrafı (panelden yüklenen /api/medya/… veya
+//    /images/products/puff/… gibi) varsa o gösterilir.
+//  - Eski demo kataloğunun görselleri (nefisaroma/* kompozitleri, prosedürel
+//    <slug>-N.webp setleri, eski markalı diy25-* fotoğrafları) bilerek
+//    gösterilmez; onların yerine tat profilini anlatan temsili illüstrasyon gelir.
 export const storefrontLogo = '/brand/logo.png';
 export const showcaseImage = (name: string) => `/images/showcase/${name}.webp`;
 
+const LEGACY_IMAGE_PATTERNS = [
+  /^\/images\/nefisaroma\//,
+  /^\/images\/products\/diy25-/,
+  /^\/images\/products\/[^/]+-\d\.webp$/,
+];
+
+/** Gerçek ürün fotoğrafı sayılan görseller — eski demo yolları elenir. */
+export function catalogPhotos<T extends { src: string }>(images: T[]): T[] {
+  return images.filter((img) => img.src && !LEGACY_IMAGE_PATTERNS.some((re) => re.test(img.src)));
+}
+
 export const categoryArtwork: Record<string, string> = {
+  'puff-aromalar': '/images/products/puff/triple-melon-drifter-bar-aroma.webp',
   meyveli: showcaseImage('tfa-passion-fruit'),
   'tatli-kremsi': showcaseImage('inawera-miss-cream'),
   ferah: showcaseImage('tfa-cucumber'),

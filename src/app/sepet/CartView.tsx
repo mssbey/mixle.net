@@ -13,6 +13,7 @@ import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import { ButtonLink } from '@/components/ui/Button';
 import { RelatedRail } from '@/components/product/RelatedRail';
 import { currency, site } from '@/lib/site';
+import { variantLabel } from '@/lib/commerce';
 import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { toast } from '@/store/toast';
 import { clamp } from '@/lib/utils';
@@ -85,7 +86,7 @@ export function CartView() {
                 >
                   {line.product.variants.map((v) => (
                     <option key={v.id} value={v.id} disabled={v.stock === 'out-of-stock'}>
-                      {v.volume} · {v.intensity} · {v.type}
+                      {[variantLabel(line.product, v), v.type].filter(Boolean).join(' · ')}
                       {v.stock === 'out-of-stock' ? ' (tükendi)' : ''}
                     </option>
                   ))}

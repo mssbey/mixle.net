@@ -15,6 +15,7 @@ import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Drawer } from '@/components/ui/Drawer';
 import { cn } from '@/lib/utils';
+import { sortVolumeLabels } from '@/lib/commerce';
 
 const PAGE_SIZE = 12;
 
@@ -73,7 +74,10 @@ export function ProductBrowser({
     () => Array.from(new Set(baseProducts.map((p) => p.subcategory))).sort((a, b) => a.localeCompare(b, 'tr')),
     [baseProducts],
   );
-  const volumeOptions = ['10ml', '30ml', '60ml', '100ml'];
+  const volumeOptions = useMemo(
+    () => sortVolumeLabels(Array.from(new Set(baseProducts.flatMap((p) => p.variants.map((v) => v.volume)).filter(Boolean)))),
+    [baseProducts],
+  );
 
   const filtered = useMemo(() => applyFilters(baseProducts, filters), [baseProducts, filters]);
   const shown = filtered.slice(0, visible);

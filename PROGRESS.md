@@ -700,6 +700,64 @@ bir ekran görüntüsü artefaktı (önceki QA turlarında `qa-responsive.mjs`/`
 
 ---
 
+## TAMAMLANDI — Aşama 19 (falconkimya.com Puff Aromalar kataloğu → gerçek ürünler, 2026-09-15)
+
+Kullanıcı `falconkimya.com/puff-aromalar/` altındaki **tüm ürünleri fiyat/varyant/görselle**
+çekip siteye konmasını istedi ("siteyi bitiriyoruz"); "Falcon Puff" serisi **Mixle Puff** oldu.
+Site artık 403 vermiyor; veri herkese açık WooCommerce Store API'sinden
+(`/wp-json/wc/store/v1/products?category=695`, varyantlar `?type=variation&parent=<id>`) alındı.
+
+**Veri zinciri (tekrar çalıştırılabilir):**
+1. `scripts/falcon-puff-scrape.py` → `data/falcon/puff-aromalar.raw.json` (ham API dökümü)
+2. `scripts/falcon-puff-normalize.py` → `data/falcon/puff-aromalar.json` + `.csv` + `data/falcon/images/*`
+   (orijinal görseller, 102 MB). `/data/` gitignore'da — bu dosyalar commit'e girmez.
+3. `scripts/build-puff-catalog.py` → `src/data/catalog.puff.json` (site katalog şeması, TL fiyat)
+   + `public/images/products/puff/<slug>.webp` (1000px, 20 MB, commit'e girer)
+4. `npm run db:migrate-catalog -- --file=src/data/catalog.puff.json` (mevcut kataloğa ekler, idempotent).
+   `prisma/seed.ts` de demo kataloğun ardından bu dosyayı otomatik yükler.
+
+**Sonuç:** yeni `puff-aromalar` kategorisi (sortOrder -1 → menüde ilk sırada), 6 alt kategori,
+**128 ürün / 493 varyant**: Drifter Bar (50), Vampire Vape Bar Salts (18), Mixle Puff (15),
+IVG Salt (10), Riot Bar Edtn (19, tek boy 10ml), Dinner Lady Fruit Full (16, tek boy 30ml).
+Hacim etiketleri normalize edildi: `10ml`, `15ml`, `30ml`, `100ml`, `30ml DIY Kit (9ml aroma)`,
+`60ml DIY Kit (18ml aroma)`, `30ml DIY Kit (7.5ml aroma)` … Stok: Store API yalnız stokta/tükendi
+verdiği için stokta olanlara **25** yazıldı (gerçek adet değil; panelden düzeltilir), tükenenler 0.
+Falcon'un "Ürün İçeriği / Kullanım oranı / Demlenme süresi / Menşei / VG-PG" bloğu ayrıştırılıp
+`flavorNotes`, `usageRate`, `steepTime`, `origin` ve SSS'ye dağıtıldı; açıklamalardaki emoji ve
+görsele atıf yapan satırlar temizlendi; "T****" sansürü "Tütün" yapıldı. SKU: `MP-<seri>-<sıra>-<hacim>`.
+
+**Vitrin değişiklikleri (yapısal):**
+- `VariantVolume` artık serbest metin (`string`); `catalog-adapter` "Hacim" seçeneğinin etiketini
+  olduğu gibi taşır (eskiden 10/30/60/100ml dışındakiler 30ml'ye çöküyordu). `uniqueOptions`
+  paneldeki varyant sırasını korur; `sortVolumeLabels` filtre listesi için ml'ye göre sıralar.
+  `variantLabel()` sepet satırlarında tek yoğunluklu ürünlerde "Standart" yazmaz.
+- Gerçek ürün fotoğrafları vitrinde: `catalogPhotos()` (`src/lib/storefront-images.ts`) eski demo
+  yollarını (`/images/nefisaroma/*`, `products/diy25-*`, prosedürel `<slug>-N.webp`) eler —
+  bunlar eski markalı olduğu için yine temsili illüstrasyon gösterilir; diğer tüm DB görselleri
+  (puff + panelden yüklenen `/api/medya/…`) gerçek foto olarak gösterilir. `Product.representativeImages`
+  ile "Temsili görsel" notları yalnız illüstrasyonlarda çıkar (ProductCard/QuickView/Gallery).
+- Ürün açıklaması `whitespace-pre-line` (çok paragraflı metin); `usageRate`/`steepTime` doluysa
+  placeholder yerine gerçek değer.
+- Önerilen sıralama ve "ilgili ürünler" tükenenleri sona atar. Ana sayfa rayları: "Yeni Eklenenler"
+  puff önce; ikinci ray puff serilerinden dönüşümlü (`roundRobin`).
+
+**Bilinen / karar bekleyen:**
+- **Görseller Falcon markalı:** fotoğraflarda "FALCONKIMYA" logosu, "FLCN PUFF" etiketi ve
+  falconkimya sosyal medya adresleri basılı. Mixle markasıyla çelişiyor; inpainting aracı olmadığı
+  için dokunulmadı. Değiştirmek için `public/images/products/puff/<slug>.webp` dosyasını aynı adla
+  ezmek yeterli (DB yolu değişmez).
+- Üretim (Neon) veritabanına **yüklenmedi**; yerel Docker Postgres'e yüklendi. Canlıya almak için
+  `.env.local` (Neon) ile `npm run db:migrate-catalog -- --file=src/data/catalog.puff.json`.
+- Not: `next dev` `.env.local`'ı (Neon) okur, `tsx` betikleri `.env`'i (yerel Docker). Yerelde
+  doğrulamak için `.env.local` geçici olarak kenara alınıp `.next/dev/cache/fetch-cache` silindi.
+
+Doğrulama: `typecheck`/`lint`/`build`/`vitest` (75 test) temiz. Tarayıcıda kategori sayfası,
+Drifter ürün sayfası (4 hacim, fiyat değişimi, sepete ekleme, sepet etiketi), Mixle Puff ürün
+sayfası (6 hacim), eski demo ürünü (illüstrasyon + temsili notu korunuyor), `/urunler` hacim
+filtresi (11 etiket) kontrol edildi.
+
+---
+
 ## KONVANSİYONLAR
 - Sunucu bileşeni varsayılan; `'use client'` sadece etkileşim/hook gerekince.
 - Mock data `src/data/`, iş mantığı `src/lib/`, global state `src/store/`.

@@ -13,6 +13,7 @@ import { useMounted } from '@/lib/hooks';
 import { detailLines, summarize } from '@/lib/cart-math';
 import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { currency, site } from '@/lib/site';
+import { variantLabel } from '@/lib/commerce';
 import { clamp } from '@/lib/utils';
 
 export function CartDrawer() {
@@ -100,7 +101,7 @@ export function CartDrawer() {
                   >
                     {line.product.variants.map((v) => (
                       <option key={v.id} value={v.id} disabled={v.stock === 'out-of-stock'}>
-                        {v.volume} · {v.intensity}
+                        {variantLabel(line.product, v)}
                         {v.stock === 'out-of-stock' ? ' (tükendi)' : ''}
                       </option>
                     ))}

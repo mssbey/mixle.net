@@ -72,7 +72,7 @@ export function ProductCard({
         <Link href={`/urun/${product.slug}`} aria-label={product.name} className="absolute inset-0">
           <Image
             src={product.images[0].src}
-            alt={`${product.name} — temsili görsel`}
+            alt={product.representativeImages ? `${product.name} — temsili görsel` : product.name}
             fill
             sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, (max-width:1536px) 25vw, 20vw"
             preload={priority}
@@ -128,7 +128,7 @@ export function ProductCard({
       </div>
 
       <div className="flex flex-1 flex-col p-3 sm:p-3.5">
-        <p className="mb-2 text-[10px] text-ink-soft">Temsili görsel</p>
+        {product.representativeImages && <p className="mb-2 text-[10px] text-ink-soft">Temsili görsel</p>}
         <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
           {product.series || 'Mixle'}
         </p>

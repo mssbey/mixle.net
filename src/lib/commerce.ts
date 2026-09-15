@@ -35,15 +35,33 @@ export function resolveVariant(product: Product, sel: VariantSelection): Product
   return byVol ?? pickDefaultVariant(product);
 }
 
+/** Hacim etiketlerini paneldeki varyant sırasında, tekrarsız döner. */
 export function uniqueOptions(product: Product) {
-  const order = ['10ml', '30ml', '60ml', '100ml'];
   return {
-    volumes: Array.from(new Set(product.variants.map((v) => v.volume))).sort(
-      (a, b) => order.indexOf(a) - order.indexOf(b),
-    ),
+    volumes: Array.from(new Set(product.variants.map((v) => v.volume))),
     types: Array.from(new Set(product.variants.map((v) => v.type))),
     intensities: Array.from(new Set(product.variants.map((v) => v.intensity))),
   };
+}
+
+/**
+ * Sepet/mini sepet satırında gösterilen varyant özeti: hacim etiketi, ürünün
+ * birden fazla yoğunluğu varsa yoğunluk. Tek varyantlı ürünlerde boş dönebilir.
+ */
+export function variantLabel(product: Product, variant: ProductVariant): string {
+  const { intensities } = uniqueOptions(product);
+  return [variant.volume, intensities.length > 1 ? variant.intensity : '']
+    .filter(Boolean)
+    .join(' · ');
+}
+
+/** Etiketleri başındaki ml değerine göre (10ml < 15ml < 30ml DIY Kit…) sıralar. */
+export function sortVolumeLabels(labels: string[]): string[] {
+  const ml = (s: string) => {
+    const m = /(\d+(?:[.,]\d+)?)\s*ml/i.exec(s);
+    return m ? parseFloat(m[1].replace(',', '.')) : Number.POSITIVE_INFINITY;
+  };
+  return [...labels].sort((a, b) => ml(a) - ml(b) || a.localeCompare(b, 'tr'));
 }
 
 export function isOptionAvailable(

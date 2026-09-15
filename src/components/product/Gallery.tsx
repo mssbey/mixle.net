@@ -14,10 +14,13 @@ export function Gallery({
   images,
   productName,
   activeHint,
+  representative = true,
 }: {
   images: ProductImage[];
   productName: string;
   activeHint?: string;
+  /** false: gerçek ürün fotoğrafı — "temsili görsel" notları gizlenir. */
+  representative?: boolean;
 }) {
   const [active, setActive] = useState(0);
   const [zoom, setZoom] = useState({ x: 50, y: 50, on: false });
@@ -37,7 +40,9 @@ export function Gallery({
 
   return (
     <div>
-      <p className="mb-3 text-xs leading-5 text-ink-soft">Temsili görsel: tat profilini anlatır; ürünün ambalajını veya markasını göstermez.</p>
+      {representative && (
+        <p className="mb-3 text-xs leading-5 text-ink-soft">Temsili görsel: tat profilini anlatır; ürünün ambalajını veya markasını göstermez.</p>
+      )}
       <div className="hidden gap-3 sm:flex">
         <div className="flex w-16 flex-col gap-2.5">
           {images.map((img, i) => (
@@ -116,7 +121,9 @@ export function Gallery({
       >
         <Expand size={13} /> Tam ekran görüntüle
       </button>
-      <p className="mt-3 text-xs leading-5 text-ink-soft">Görseller aroma dünyasını anlatan temsili kompozisyonlardır; gerçek ürün ambalajını veya içeriğini göstermez.</p>
+      {representative && (
+        <p className="mt-3 text-xs leading-5 text-ink-soft">Görseller aroma dünyasını anlatan temsili kompozisyonlardır; gerçek ürün ambalajını veya içeriğini göstermez.</p>
+      )}
 
       <FullscreenGallery
         open={fullscreen}

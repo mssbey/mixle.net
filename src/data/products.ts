@@ -31,6 +31,8 @@ export const getProducts = cache(async (): Promise<Product[]> => {
         if (o.category === p.category) score += 3;
         if (o.collection && o.collection === p.collection) score += 2;
         score += o.flavorProfiles.filter((fp) => p.flavorProfiles.includes(fp)).length;
+        // Tükenmiş ürünler önerilerde en sona düşsün.
+        if (o.stockStatus === 'out-of-stock') score -= 5;
         return { id: o.id, score };
       })
       .sort((a, b) => b.score - a.score);

@@ -15,7 +15,7 @@ export function ProductInfoTabs({ product }: { product: Product }) {
           label: 'Ürün Açıklaması',
           content: (
             <div className="max-w-2xl space-y-4">
-              <p>{product.longDescription}</p>
+              <p className="whitespace-pre-line">{product.longDescription}</p>
               <div className="flex flex-wrap gap-2">
                 {product.flavorNotes.map((n) => (
                   <FlavorTag key={n.label} profile={n.profile} label={n.label} />

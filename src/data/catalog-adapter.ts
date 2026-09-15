@@ -13,7 +13,6 @@ import type {
   StockStatus,
   VariantIntensity,
   VariantType,
-  VariantVolume,
 } from '@/types';
 import type {
   AdminCategory,
@@ -22,9 +21,14 @@ import type {
   AdminVariant,
 } from '@/types/admin';
 import { fromMinor } from '@/lib/money';
-import { productArtwork, categoryArtwork, collectionArtwork, storefrontLogo } from '@/lib/storefront-images';
+import {
+  productArtwork,
+  catalogPhotos,
+  categoryArtwork,
+  collectionArtwork,
+  storefrontLogo,
+} from '@/lib/storefront-images';
 
-const VOLUMES: VariantVolume[] = ['10ml', '30ml', '60ml', '100ml'];
 const INTENSITIES: VariantIntensity[] = ['Standart', 'Yoğun', 'Extra Fresh'];
 
 const FORM_TYPE: Record<ProductForm, VariantType> = {
@@ -63,13 +67,20 @@ function stockStatusFromCount(count: number): StockStatus {
   return 'in-stock';
 }
 
+/** Gerçek ürün fotoğrafı varsa onu, yoksa kategoriye göre temsili illüstrasyonu döner. */
+function primaryImage(p: AdminProduct): string {
+  return catalogPhotos(p.images)[0]?.src || productArtwork(p);
+}
+
 function toStorefrontVariant(product: AdminProduct, v: AdminVariant): ProductVariant {
-  const volLabel = optionLabel(product, v, /hac|volume|ml/i);
+  // Hacim etiketi serbest metindir; "Hacim" adında seçenek yoksa ilk seçenek
+  // kullanılır. Hiç seçenek yoksa boş kalır ve vitrin hacim satırını gizler.
+  const volLabel =
+    optionLabel(product, v, /hac|volume|ml/i) ??
+    (product.options[0] ? optionLabel(product, v, new RegExp(`^${product.options[0].name}$`)) : undefined);
   const intLabel = optionLabel(product, v, /yo[ğg]|intensity|fresh|serin/i);
 
-  const volume = (VOLUMES as string[]).includes(volLabel ?? '')
-    ? (volLabel as VariantVolume)
-    : '30ml';
+  const volume = volLabel ?? '';
   const intensity = (INTENSITIES as string[]).includes(intLabel ?? '')
     ? (intLabel as VariantIntensity)
     : 'Standart';
@@ -88,7 +99,7 @@ function toStorefrontVariant(product: AdminProduct, v: AdminVariant): ProductVar
     oldPrice: onSale ? fromMinor(v.compareAtPriceMinor as number) : undefined,
     stock: stockStatusFromCount(stockCount),
     stockCount,
-    image: productArtwork(product),
+    image: catalogPhotos(v.image ? [{ src: v.image }] : [])[0]?.src || primaryImage(product),
     onSale,
   };
 }
@@ -108,7 +119,11 @@ export function toStorefrontProduct(p: AdminProduct): Product {
       : 'in-stock'
     : 'out-of-stock';
 
-  const gallery = [{ src: productArtwork(p), alt: `${p.name} — tat profilini anlatan temsili görsel` }];
+  const photos = catalogPhotos(p.images);
+  const representativeImages = photos.length === 0;
+  const gallery = representativeImages
+    ? [{ src: productArtwork(p), alt: `${p.name} — tat profilini anlatan temsili görsel` }]
+    : photos.map((img) => ({ src: img.src, alt: img.alt || p.name }));
 
   return {
     id: p.id,
@@ -125,6 +140,7 @@ export function toStorefrontProduct(p: AdminProduct): Product {
     badges: p.badges,
     images: gallery.slice(0, 2),
     gallery,
+    representativeImages,
     videoPlaceholder: undefined,
     basePrice: defVariant?.price ?? 0,
     oldPrice: defVariant?.oldPrice,
@@ -132,8 +148,8 @@ export function toStorefrontProduct(p: AdminProduct): Product {
     reviewCount: 0,
     stockStatus,
     ingredientsNote: INGREDIENTS_NOTE,
-    usageRate: USAGE_RATE_NOTE,
-    steepTime: STEEP_TIME_NOTE,
+    usageRate: p.usageRate || USAGE_RATE_NOTE,
+    steepTime: p.steepTime || STEEP_TIME_NOTE,
     origin: p.origin,
     storage: STORAGE_NOTE,
     warnings: WARNINGS_NOTE,

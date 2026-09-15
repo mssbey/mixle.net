@@ -33,7 +33,12 @@ export function ProductDetailClient({ product }: { product: Product }) {
 
   return (
     <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
-      <Gallery images={galleryImages} productName={product.name} activeHint={variant.id} />
+      <Gallery
+        images={galleryImages}
+        productName={product.name}
+        activeHint={variant.id}
+        representative={product.representativeImages}
+      />
       <PurchasePanel
         product={product}
         variant={variant}
