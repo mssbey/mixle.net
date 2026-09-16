@@ -809,6 +809,49 @@ kod değil, Neon erişimi kaynaklı — canlı deploy öncesi tekrar denenmeli.)
 
 ---
 
+## TAMAMLANDI — Aşama 21 (admin.mixle.net ürün listesi → 838 tekil/mix aroma, 2026-09-16)
+
+Kullanıcı `admin.mixle.net/dashboard/products` (Mix Platform, `api.mixyz.net`) listesindeki
+**839 ürünü görsel ve fiyatlarıyla** çekip siteye konmasını istedi. Kararlar: **varyantlar
+çekilmedi** (her ürün tek boy), **dolar fiyatı rakam olarak TL** yazıldı (1,80 $ → ₺1,80; sonradan
+Toplu Fiyat ile düzeltilecek), mağazanın kendi markası **"Santa" → "Mixle"** (41 ürün adı +
+seri), üretici markalar (Capella, TFA/TPA, Inawera, Solub, Flavour Art, Flavor West) aynen kaldı.
+
+**Veri zinciri (tekrar çalıştırılabilir):**
+1. Tarayıcıda giriş yapılmış admin sayfasının tablosu DOM'dan okundu (API `Tenant context`
+   istediği için kimlik bilgilerine dokunulmadı; sadece sayfalama tıklandı) →
+   `data/mixle-admin/products.json` + `.csv` (839 kayıt; tarayıcı/dosya SHA-256 eşleşti).
+2. `scripts/mixle-admin-download-images.py` → `data/mixle-admin/images/<id>.<ext>` (836 dosya,
+   121 MB; `/data/` gitignore'da). 3 ürünün admin'de de görseli yok (`test`, `Lemon mix`,
+   `Black Jack T.`) — detay sayfaları kontrol edildi.
+3. `scripts/build-mixle-admin-catalog.py` → `src/data/catalog.seed.json`'a **eklenir** (Puff
+   kataloğu korunur; kendi kategorilerini değiştirir, idempotent) +
+   `public/images/products/aroma/<slug>.webp` (1000px, 30 MB, commit'e girer).
+4. `npm run db:migrate-catalog` (seed dosyasının tamamı, idempotent).
+
+**Sonuç:** 8 yeni kategori (`mix-aromalar` 165, `tfa-tpa` 152, `solub-arome` 140, `inawera` 123,
+`flavour-art` 123, `capella` 101, `flavor-west` 27, `nbase` 7), alt kategori = marka. Toplam
+**966 ürün / 1331 varyant** (128 Puff + 838). SKU = admin "Model" kodu (STK051_10, cap048, INW091…).
+Admin'de "Kapalı" 51 ürün + fiyatı 0 olan 121 ürün **taslak** (yayında değil) — Mix Aromalar'ın
+neredeyse tamamı fiyatsız (fiyat admin'de varyant seviyesinde), bu yüzden vitrinde 3 ürün görünüyor.
+Admin'deki `336.000.000` gibi yer tutucu stoklar 9.999'a sınırlandı; Inawera'nın TAMAMEN BÜYÜK
+adları başlık düzenine çevrildi. `test` kaydı atlandı; "Özel Sipariş Aroma Verici" (₺758)
+Mix Aromalar altına "Özel Sipariş" serisiyle kondu. Açıklama/kullanım oranı listede olmadığı için
+kısa açıklama otomatik (`<ad> — <marka> <kategori>, 10ml.`).
+
+**Bilinen / karar bekleyen:**
+- Üretim (Neon) veritabanına **yüklenmedi**; yerel Docker Postgres'e yüklendi (966 ürün, toplamlar
+  doğrulandı). Canlıya almak için `.env.local` (Neon) ile `npm run db:migrate-catalog`.
+- 121 fiyatsız ürün taslakta; fiyat girilince `status` panelden "yayında" yapılmalı ya da
+  `build-mixle-admin-catalog.py` içindeki kural değiştirilip tekrar koşulmalı.
+- Fiyatlar dolar rakamı (₺1,63–₺4,45); kur uygulanmadı.
+
+Doğrulama: `--dry-run` ve DB geri okuma toplamları eşleşti; tarayıcıda (yerel DB ile)
+`/kategori/inawera` (123 ürün, gerçek fotoğraflar), `/kategori/mix-aromalar`, Nasty Juice ürün
+sayfası (görsel, ₺1,90, sepete ekle) kontrol edildi.
+
+---
+
 ## KONVANSİYONLAR
 - Sunucu bileşeni varsayılan; `'use client'` sadece etkileşim/hook gerekince.
 - Mock data `src/data/`, iş mantığı `src/lib/`, global state `src/store/`.
