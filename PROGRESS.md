@@ -840,8 +840,11 @@ Mix Aromalar altına "Özel Sipariş" serisiyle kondu. Açıklama/kullanım oran
 kısa açıklama otomatik (`<ad> — <marka> <kategori>, 10ml.`).
 
 **Bilinen / karar bekleyen:**
-- Üretim (Neon) veritabanına **yüklenmedi**; yerel Docker Postgres'e yüklendi (966 ürün, toplamlar
-  doğrulandı). Canlıya almak için `.env.local` (Neon) ile `npm run db:migrate-catalog`.
+- Üretim (Neon) veritabanına da yüklendi (966 ürün, geri okuma toplamları eşleşti). İlk denemede bir
+  üründe Prisma'nın 5 sn'lik işlem zaman aşımı (P2028) aşıldı; `importCatalog` içindeki ürün başına
+  `$transaction` artık `{ maxWait: 15 s, timeout: 60 s }` ile çalışıyor (uzak DB'de ~2 sn/ürün).
+  Not: canlı `mixle.net` alan adı şu an Mix Platform vitrinini gösteriyor; bu site `mixlenet.vercel.app`
+  / `zeynart.xyz` üzerinde, `main` dalından deploy ediliyor.
 - 121 fiyatsız ürün taslakta; fiyat girilince `status` panelden "yayında" yapılmalı ya da
   `build-mixle-admin-catalog.py` içindeki kural değiştirilip tekrar koşulmalı.
 - Fiyatlar dolar rakamı (₺1,63–₺4,45); kur uygulanmadı.

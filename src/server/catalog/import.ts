@@ -315,7 +315,7 @@ export async function importCatalog(
           data: cols.map((collectionId, i) => ({ productId: p.id, collectionId, position: i })),
         });
       }
-    });
+    }, { maxWait: 15_000, timeout: 60_000 }); // uzak DB (Neon) gecikmesi: varsayılan 5 sn yetmiyor
   }
 
   return reportOf(catalog);
