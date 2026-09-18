@@ -845,6 +845,13 @@ kısa açıklama otomatik (`<ad> — <marka> <kategori>, 10ml.`).
   `$transaction` artık `{ maxWait: 15 s, timeout: 60 s }` ile çalışıyor (uzak DB'de ~2 sn/ürün).
   Not: canlı `mixle.net` alan adı şu an Mix Platform vitrinini gösteriyor; bu site `mixlenet.vercel.app`
   / `zeynart.xyz` üzerinde, `main` dalından deploy ediliyor.
+- **Canlı DB Neon DEĞİL:** Vercel'e bağlı **Prisma Postgres** (`prisma-postgres-fuchsia-ocean`, host
+  `db.prisma.io`). `.env.local`'daki Neon (`long-tree`) yalnız eski bir denemeymiş; oraya yüklenenler
+  canlıda görünmez. Bağlantı adresi Vercel → Storage → veritabanı → Quickstart/.env.local'dan alınır
+  (env değişkeni "hassas" olduğu için `vercel env pull` boş döner); `.env.local`'a `DATABASE_URL_PROD`
+  olarak eklendi. 2026-09-18: 966 ürün bu DB'ye yüklendi (`DATABASE_URL=$DATABASE_URL_PROD npm run
+  db:migrate-catalog`), ardından `vercel cache invalidate --tag katalog`. 99 demo ürün + 7 demo kategori
+  + 3 koleksiyon kullanıcı isteğiyle canlıda bırakıldı (script sonundaki toplam uyuşmazlığı bundan).
 - 121 fiyatsız ürün taslakta; fiyat girilince `status` panelden "yayında" yapılmalı ya da
   `build-mixle-admin-catalog.py` içindeki kural değiştirilip tekrar koşulmalı.
 - Fiyatlar dolar rakamı (₺1,63–₺4,45); kur uygulanmadı.
