@@ -94,7 +94,8 @@ export function Header({ contact }: { contact: StorefrontContact }) {
     setMegaOpen(false);
     setMobileMenu(false);
     setMiniOpen(false);
-  }, [pathname, setMobileMenu]);
+    setSearch(false);
+  }, [pathname, setMobileMenu, setSearch]);
 
   // Header daralınca kategori çubuğu gizleniyor; ona bağlı mega menü açık kalmasın.
   useEffect(() => {
@@ -134,8 +135,10 @@ export function Header({ contact }: { contact: StorefrontContact }) {
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (term.trim().length >= 2) router.push(`/arama?q=${encodeURIComponent(term.trim())}`);
-    else setSearch(true);
+    if (term.trim().length >= 2) {
+      setSearch(false);
+      router.push(`/arama?q=${encodeURIComponent(term.trim())}`);
+    } else setSearch(true);
   };
 
   const searchField = (
