@@ -11,6 +11,7 @@
 import 'server-only';
 import { cache } from 'react';
 import type { FlavorProfile, Product } from '@/types';
+import type { ProductStatus } from '@/types/admin';
 import { getAdminProducts } from '@/server/catalog/queries';
 import { toStorefrontProduct } from './catalog-adapter';
 
@@ -41,6 +42,33 @@ export const getProducts = cache(async (): Promise<Product[]> => {
 
   return products;
 });
+
+/**
+ * Panel önizlemesi: ürünü yayın durumuna BAKMADAN vitrin tipine çevirir.
+ * Yalnızca Draft Mode açıkken (bkz. /api/admin/preview) çağrılmalıdır; aksi
+ * hâlde taslak/arşiv ürünler herkese açılır. İlgili ürünler yayındakilerden seçilir.
+ */
+export const getProductPreview = cache(
+  async (slug: string): Promise<{ product: Product; status: ProductStatus } | undefined> => {
+    const admin = (await getAdminProducts()).find((p) => p.slug === slug);
+    if (!admin) return undefined;
+    const product = toStorefrontProduct(admin);
+    const published = await getProducts();
+    product.relatedProductIds = published
+      .filter((o) => o.id !== product.id)
+      .map((o) => ({
+        id: o.id,
+        score:
+          (o.category === product.category ? 3 : 0) +
+          (o.collection && o.collection === product.collection ? 2 : 0) +
+          o.flavorProfiles.filter((fp) => product.flavorProfiles.includes(fp)).length,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map((s) => s.id);
+    return { product, status: admin.status };
+  },
+);
 
 // ---- yardımcı sorgular (eski senkron karşılıklarıyla aynı anlamda) ----
 

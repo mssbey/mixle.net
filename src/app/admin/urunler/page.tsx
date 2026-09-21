@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, X } from 'lucide-react';
+import { ExternalLink, Eye, Plus, X } from 'lucide-react';
 import type { ProductStatus } from '@/types/admin';
 import { productStatuses, statusLabels } from '@/types/admin';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
@@ -13,6 +13,7 @@ import { listProducts, type ProductQuery } from '@/lib/admin/mutations';
 import { priceRangeOf } from '@/lib/admin/variants';
 import { formatMinor } from '@/lib/admin/format';
 import { useDebounced } from '@/lib/hooks';
+import { openInStorefrontPath } from '@/lib/admin/preview';
 
 const PAGE_SIZE = 20;
 
@@ -403,12 +404,28 @@ function ProductsView() {
                         <StatusBadge status={p.status} />
                       </td>
                       <td>
-                        <Link
-                          href={`/admin/urunler/${p.slug}`}
-                          className="admin-btn admin-btn-ghost admin-btn-sm"
-                        >
-                          Düzenle
-                        </Link>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <a
+                            href={openInStorefrontPath(p.slug, p.status)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="admin-btn admin-btn-ghost admin-btn-sm"
+                            aria-label={
+                              p.status === 'yayında'
+                                ? `${p.name} ürününü vitrinde aç`
+                                : `${p.name} ürününü önizle`
+                            }
+                            title={p.status === 'yayında' ? 'Vitrinde aç' : 'Önizle'}
+                          >
+                            {p.status === 'yayında' ? <ExternalLink size={13} /> : <Eye size={13} />}
+                          </a>
+                          <Link
+                            href={`/admin/urunler/${p.slug}`}
+                            className="admin-btn admin-btn-ghost admin-btn-sm"
+                          >
+                            Düzenle
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

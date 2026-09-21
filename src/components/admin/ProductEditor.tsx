@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2 } from 'lucide-react';
+import { ExternalLink, Eye, Plus, Trash2 } from 'lucide-react';
 import type { AdminProduct, ProductStatus } from '@/types/admin';
 import type { BadgeKind, FlavorNote, FlavorProfile, ProductForm } from '@/types';
 import { productStatuses, statusLabels } from '@/types/admin';
@@ -10,12 +10,14 @@ import { adminProductSchema, fieldErrors } from '@/lib/admin/schema';
 import { hiddenDefaultVariant, localId } from '@/lib/admin/variants';
 import { slugify } from '@/lib/utils';
 import { formatDateTime } from '@/lib/admin/format';
+import { openInStorefrontPath } from '@/lib/admin/preview';
 import { useAdminData } from './AdminDataProvider';
 import { Field } from './primitives';
 import { ImageListEditor } from './ImageListEditor';
 import { OptionEditor } from './OptionEditor';
 import { VariantTable } from './VariantTable';
 import { UnsavedGuard } from './UnsavedGuard';
+import { ProductPreviewCard } from './ProductPreviewCard';
 
 const FLAVOR_PROFILES: { id: FlavorProfile; label: string }[] = [
   { id: 'meyveli', label: 'Meyveli' },
@@ -101,6 +103,9 @@ export function ProductEditor({ initial, mode }: Props) {
   const [slugTouched, setSlugTouched] = useState(mode === 'edit');
 
   const dirty = useMemo(() => JSON.stringify(draft) !== baseline, [draft, baseline]);
+  // Vitrin bağlantıları KAYITLI slug/duruma göre kurulur; formdaki henüz
+  // kaydedilmemiş slug değişikliği yanlış adrese götürmesin.
+  const saved = useMemo(() => JSON.parse(baseline) as AdminProduct, [baseline]);
   const readOnly = !canWrite;
 
   const set = (patch: Partial<AdminProduct>) => setDraft((d) => ({ ...d, ...patch }));
@@ -171,6 +176,22 @@ export function ProductEditor({ initial, mode }: Props) {
               : 'Zorunlu alanlar yıldızlıdır'}
           </p>
         </div>
+        {mode === 'edit' && saved.slug && (
+          <a
+            href={openInStorefrontPath(saved.slug, saved.status)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="admin-btn admin-btn-ghost"
+            title={
+              saved.status === 'yayında'
+                ? 'Ürünü vitrinde yeni sekmede aç'
+                : 'Yayında olmayan ürünü önizleme modunda aç'
+            }
+          >
+            {saved.status === 'yayında' ? <ExternalLink size={14} /> : <Eye size={14} />}
+            {saved.status === 'yayında' ? 'Vitrinde aç' : 'Önizle'}
+          </a>
+        )}
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -452,6 +473,12 @@ export function ProductEditor({ initial, mode }: Props) {
 
         {/* Sağ: yan panel */}
         <aside className="flex flex-col gap-4">
+          <ProductPreviewCard
+            product={draft}
+            saved={mode === 'edit' ? saved : null}
+            dirty={dirty}
+          />
+
           <section className="admin-card" style={{ padding: 16 }}>
             <h2 className="mb-3 text-sm font-semibold text-[var(--brand-purple-deep)]">Durum</h2>
             <Field label="Yayın durumu" htmlFor="p-status">

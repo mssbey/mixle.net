@@ -1,13 +1,16 @@
 import type { Metadata } from 'next';
+import { draftMode } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { getProducts, getProductBySlug } from '@/data/products';
+import { getProducts, getProductBySlug, getProductPreview } from '@/data/products';
 import { getCategories } from '@/data/categories';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
 import { ProductInfoTabs } from '@/components/product/ProductInfoTabs';
 import { RelatedRail } from '@/components/product/RelatedRail';
 import { RecentlyViewedSection, RecentlyViewedTracker } from '@/components/product/RecentlyViewedSection';
+import { PreviewBanner } from '@/components/product/PreviewBanner';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/seo';
+import type { ProductStatus } from '@/types/admin';
 
 type Params = Promise<{ slug: string }>;
 
@@ -18,7 +21,14 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
-  if (!product) return {};
+  if (!product) {
+    // Panel önizlemesi (taslak/arşiv): başlık gösterilir ama asla dizinlenmez.
+    const { isEnabled } = await draftMode();
+    const preview = isEnabled ? await getProductPreview(slug) : undefined;
+    return preview
+      ? { title: `${preview.product.name} (önizleme)`, robots: { index: false, follow: false } }
+      : {};
+  }
   return {
     title: product.name,
     description: product.shortDescription,
@@ -33,8 +43,23 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function ProductPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
-  const product = products.find((p) => p.slug === slug);
+  const [products, categories, { isEnabled: previewing }] = await Promise.all([
+    getProducts(),
+    getCategories(),
+    draftMode(),
+  ]);
+
+  // Yayındaki ürün her zaman; yayında olmayan ürün YALNIZCA panelden açılan
+  // önizlemede (Draft Mode çerezi) görünür. Çerez yoksa 404 — müşteri için fark yok.
+  let product = products.find((p) => p.slug === slug);
+  let previewStatus: ProductStatus | null = previewing && product ? 'yayında' : null;
+  if (!product && previewing) {
+    const preview = await getProductPreview(slug);
+    if (preview) {
+      product = preview.product;
+      previewStatus = preview.status;
+    }
+  }
   if (!product) notFound();
 
   const category = categories.find((c) => c.slug === product.category);
@@ -54,7 +79,11 @@ export default async function ProductPage({ params }: { params: Params }) {
           { name: product.name },
         ])}
       />
-      <RecentlyViewedTracker slug={product.slug} />
+      {previewStatus ? (
+        <PreviewBanner slug={product.slug} status={previewStatus} />
+      ) : (
+        <RecentlyViewedTracker slug={product.slug} />
+      )}
 
       <Breadcrumbs
         items={[
