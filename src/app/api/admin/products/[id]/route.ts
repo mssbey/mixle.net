@@ -1,7 +1,7 @@
 import type { AdminProduct } from '@/types/admin';
 import { handle, readJson } from '@/lib/admin/http';
 import { AdminError, deleteProduct, updateProduct } from '@/lib/admin/mutations';
-import { readCatalog, removeProduct, saveProduct } from '@/server/catalog/persist';
+import { readCatalogSlice, removeProduct, saveProduct } from '@/server/catalog/persist';
 import { auditChange } from '@/server/audit';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export function GET(_req: Request, { params }: Ctx): Promise<Response> {
   return handle('katalog:oku', async () => {
     const { id } = await params;
-    const catalog = await readCatalog();
+    const catalog = await readCatalogSlice({ productIds: [id], slugs: [id] });
     const product = catalog.products.find((p) => p.id === id || p.slug === id);
     if (!product) throw new AdminError('Ürün bulunamadı', 404);
     return Response.json({ product });
@@ -22,7 +22,11 @@ export function PATCH(request: Request, { params }: Ctx): Promise<Response> {
   return handle('katalog:yaz', async (user) => {
     const { id } = await params;
     const patch = await readJson<Partial<AdminProduct>>(request);
-    const catalog = await readCatalog();
+    // Mevcut ürün + hedef slug'ı taşıyan olası başka ürün yeter.
+    const catalog = await readCatalogSlice({
+      productIds: [id],
+      slugs: [id, ...(patch?.slug ? [patch.slug] : [])],
+    });
     const current = catalog.products.find((p) => p.id === id || p.slug === id);
     if (!current) throw new AdminError('Ürün bulunamadı', 404);
 
@@ -45,7 +49,7 @@ export function DELETE(_req: Request, { params }: Ctx): Promise<Response> {
   // Ürün silme ayrı bir izindir: sipariş-sorumlusu rolü ürün silemez.
   return handle('katalog:sil', async (user) => {
     const { id } = await params;
-    const catalog = await readCatalog();
+    const catalog = await readCatalogSlice({ productIds: [id], slugs: [id] });
     const current = catalog.products.find((p) => p.id === id || p.slug === id);
     if (!current) throw new AdminError('Ürün bulunamadı', 404);
 

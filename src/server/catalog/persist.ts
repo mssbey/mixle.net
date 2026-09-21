@@ -24,19 +24,18 @@ import { db } from '../db';
 import {
   categoryScalars,
   collectionScalars,
-  productInclude,
   productScalars,
   rowToCategory,
   rowToCollection,
   rowToProduct,
-  type ProductRow,
 } from './mapping';
+import { loadProductRows } from './load';
 import { revalidateCatalog } from './queries';
 
 /** Veritabanındaki kataloğun tamamı — saf mutasyonların çalışma bağlamı. */
 export async function readCatalog(): Promise<CatalogFile> {
   const [products, categories, collections] = await Promise.all([
-    db.product.findMany({ include: productInclude, orderBy: { createdAt: 'asc' } }),
+    loadProductRows(),
     db.category.findMany({ orderBy: { sortOrder: 'asc' } }),
     db.collection.findMany({ orderBy: { sortOrder: 'asc' } }),
   ]);
@@ -44,7 +43,42 @@ export async function readCatalog(): Promise<CatalogFile> {
   return {
     schemaVersion: CATALOG_SCHEMA_VERSION,
     updatedAt: new Date().toISOString(),
-    products: (products as unknown as ProductRow[]).map(rowToProduct),
+    products: products.map(rowToProduct),
+    categories: categories.map(rowToCategory),
+    collections: collections.map(rowToCollection),
+  };
+}
+
+/**
+ * Kataloğun ürün işlemleri için yeten DİLİMİ: tüm kategori/koleksiyonlar +
+ * yalnızca kimliği ya da slug'ı verilen ürünler.
+ *
+ * `createProduct` / `updateProduct` / `deleteProduct` saf mutasyonları ürün
+ * listesini yalnızca slug/kimlik çakışması ve kategori doğrulaması için
+ * kullanır; 900+ ürünü alt kayıtlarıyla uzak veritabanından çekmek (15–20 sn)
+ * hem gereksizdir hem de sunucusuz ortamda fonksiyon zaman aşımına yol açar.
+ */
+export async function readCatalogSlice(match: {
+  productIds?: string[];
+  slugs?: string[];
+}): Promise<CatalogFile> {
+  const ids = (match.productIds ?? []).filter(Boolean);
+  const slugs = (match.slugs ?? []).filter(Boolean);
+  const or = [
+    ...(ids.length ? [{ id: { in: ids } }] : []),
+    ...(slugs.length ? [{ slug: { in: slugs } }] : []),
+  ];
+
+  const [products, categories, collections] = await Promise.all([
+    or.length ? loadProductRows({ OR: or }) : Promise.resolve([]),
+    db.category.findMany({ orderBy: { sortOrder: 'asc' } }),
+    db.collection.findMany({ orderBy: { sortOrder: 'asc' } }),
+  ]);
+
+  return {
+    schemaVersion: CATALOG_SCHEMA_VERSION,
+    updatedAt: new Date().toISOString(),
+    products: products.map(rowToProduct),
     categories: categories.map(rowToCategory),
     collections: collections.map(rowToCollection),
   };
@@ -61,6 +95,11 @@ export async function readCatalog(): Promise<CatalogFile> {
  */
 export async function saveProduct(product: AdminProduct): Promise<void> {
   const scalars = productScalars(product);
+
+  // Uzak veritabanında (Neon / Prisma Postgres) ~12 sıralı sorgu Prisma'nın
+  // varsayılan 5 sn'lik etkileşimli transaction süresini aşabiliyor;
+  // "Transaction already closed" ile kayıt yarım kalmasın.
+  const limits = { maxWait: 10_000, timeout: 60_000 };
 
   await db.$transaction(async (tx) => {
     await tx.product.upsert({
@@ -170,7 +209,7 @@ export async function saveProduct(product: AdminProduct): Promise<void> {
         })),
       });
     }
-  });
+  }, limits);
 
   revalidateCatalog();
 }

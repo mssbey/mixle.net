@@ -14,12 +14,11 @@ import { cache } from 'react';
 import { revalidateTag, unstable_cache } from 'next/cache';
 import type { AdminCategory, AdminCollection, AdminProduct } from '@/types/admin';
 import { db } from '../db';
+import { loadProductRows } from './load';
 import {
-  productInclude,
   rowToCategory,
   rowToCollection,
   rowToProduct,
-  type ProductRow,
 } from './mapping';
 
 /** Katalog önbellek etiketi — yazma uçları bunu geçersiz kılar. */
@@ -34,13 +33,13 @@ interface CatalogData {
 const loadCatalog = unstable_cache(
   async (): Promise<CatalogData> => {
     const [products, categories, collections] = await Promise.all([
-      db.product.findMany({ include: productInclude, orderBy: { createdAt: 'asc' } }),
+      loadProductRows(),
       db.category.findMany({ orderBy: { sortOrder: 'asc' } }),
       db.collection.findMany({ orderBy: { sortOrder: 'asc' } }),
     ]);
 
     return {
-      products: (products as unknown as ProductRow[]).map(rowToProduct),
+      products: products.map(rowToProduct),
       categories: categories.map(rowToCategory),
       collections: collections.map(rowToCollection),
     };

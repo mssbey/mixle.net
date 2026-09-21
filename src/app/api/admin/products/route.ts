@@ -1,7 +1,7 @@
 import type { AdminProduct, ProductStatus } from '@/types/admin';
 import { handle, readJson } from '@/lib/admin/http';
 import { createProduct, listProducts, type ProductQuery } from '@/lib/admin/mutations';
-import { readCatalog, saveProduct } from '@/server/catalog/persist';
+import { readCatalog, readCatalogSlice, saveProduct } from '@/server/catalog/persist';
 import { auditChange } from '@/server/audit';
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +27,11 @@ export function GET(request: Request): Promise<Response> {
 export function POST(request: Request): Promise<Response> {
   return handle('katalog:yaz', async (user) => {
     const input = await readJson<AdminProduct>(request);
-    const catalog = await readCatalog();
+    // Slug/kimlik çakışması ve kategori kontrolü için tüm katalog gerekmez.
+    const catalog = await readCatalogSlice({
+      productIds: [input?.id],
+      slugs: [input?.slug],
+    });
     // Doğrulama/normalizasyon saf mutasyonda; yazma yalnızca etkilenen üründe.
     const { product } = createProduct(catalog, input);
     await saveProduct(product);
