@@ -30,19 +30,39 @@ interface CatalogData {
   collections: AdminCollection[];
 }
 
-const loadCatalog = unstable_cache(
-  async (): Promise<CatalogData> => {
-    const [products, categories, collections] = await Promise.all([
-      loadProductRows(),
-      db.category.findMany({ orderBy: { sortOrder: 'asc' } }),
-      db.collection.findMany({ orderBy: { sortOrder: 'asc' } }),
-    ]);
+async function readCatalogFromDb(): Promise<CatalogData> {
+  const [products, categories, collections] = await Promise.all([
+    loadProductRows(),
+    db.category.findMany({ orderBy: { sortOrder: 'asc' } }),
+    db.collection.findMany({ orderBy: { sortOrder: 'asc' } }),
+  ]);
 
-    return {
-      products: products.map(rowToProduct),
-      categories: categories.map(rowToCategory),
-      collections: collections.map(rowToCollection),
-    };
+  return {
+    products: products.map(rowToProduct),
+    categories: categories.map(rowToCategory),
+    collections: collections.map(rowToCollection),
+  };
+}
+
+/**
+ * `next build` sırasında süreç (worker) başına TEK okuma.
+ *
+ * Katalog JSON'u 2 MB'ı aştığı için Next'in veri önbelleği onu saklayamıyor
+ * ("items over 2MB can not be cached"); `unstable_cache` her statik sayfada
+ * veritabanına yeniden iniyordu — yüzlerce sayfa × 7 sorgu, uzak veritabanının
+ * bağlantı kotasını dolduruyordu. Build'de veri zaten değişmez; bellekte tutulur.
+ * Çalışma zamanında bu yol KULLANILMAZ; tazelik `revalidateTag` ile korunur.
+ */
+let buildTimeCatalog: Promise<CatalogData> | null = null;
+
+const loadCatalog = unstable_cache(
+  (): Promise<CatalogData> => {
+    if (process.env.NEXT_PHASE !== 'phase-production-build') return readCatalogFromDb();
+    buildTimeCatalog ??= readCatalogFromDb().catch((err: unknown) => {
+      buildTimeCatalog = null;
+      throw err;
+    });
+    return buildTimeCatalog;
   },
   ['katalog-tam'],
   { tags: [CATALOG_TAG] },

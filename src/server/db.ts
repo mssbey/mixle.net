@@ -24,8 +24,23 @@ function databaseUrl(): string {
   return url;
 }
 
+/**
+ * Süreç başına en çok kaç bağlantı açılacağı.
+ *
+ * Katalog okuması 7 sorguyu paralel atar; `next build` ise statik sayfaları
+ * birçok worker'da aynı anda üretir. Her worker'ın havuzu sınırsız kalırsa
+ * Prisma Postgres'in doğrudan bağlantı kotası dolar ("Too many database
+ * connections") ve build düşer. Sunucusuz çalışma zamanında da her örnek
+ * kendi havuzunu açtığından küçük bir üst sınır doğrudur.
+ */
+function poolMax(): number {
+  const fromEnv = Number(process.env.DATABASE_POOL_MAX);
+  if (Number.isFinite(fromEnv) && fromEnv >= 1) return Math.floor(fromEnv);
+  return process.env.NEXT_PHASE === 'phase-production-build' ? 1 : 4;
+}
+
 function createClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: databaseUrl() });
+  const adapter = new PrismaPg({ connectionString: databaseUrl(), max: poolMax() });
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
