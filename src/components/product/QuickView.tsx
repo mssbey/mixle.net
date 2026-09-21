@@ -40,16 +40,13 @@ function QuickViewContent({ product, onClose }: { product: Product | null; onClo
           <div className="relative aspect-square bg-mist sm:rounded-l-lg">
             <Image
               src={variant.image || product.images[0].src}
-              alt={product.representativeImages ? `${product.name} — temsili görsel` : product.name}
+              alt={product.name}
               fill
               sizes="(max-width:640px) 100vw, 384px"
               className="object-contain bg-white p-4 sm:rounded-l-lg"
             />
           </div>
           <div className="flex flex-col p-5 sm:p-6">
-            {product.representativeImages && (
-              <p className="mb-2 text-xs text-ink-soft">Temsili görsel · Tat profili için kullanılmıştır.</p>
-            )}
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">{product.series}</p>
             <h2 className="mt-1 text-xl font-bold text-ink">{product.name}</h2>
             <div className="mt-2">

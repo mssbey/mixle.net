@@ -9,7 +9,7 @@ import { statusLabels } from '@/types/admin';
 import { site } from '@/lib/site';
 import { formatMinor } from '@/lib/money';
 import { priceRangeOf } from '@/lib/admin/variants';
-import { catalogPhotos, productArtwork } from '@/lib/storefront-images';
+import { catalogPhotos } from '@/lib/storefront-images';
 import { openInStorefrontPath, storefrontPath } from '@/lib/admin/preview';
 import { toast } from '@/store/toast';
 import { StatusBadge } from './primitives';
@@ -58,7 +58,8 @@ export function ProductPreviewCard({ product, saved, dirty }: Props) {
   const displayUrl = `${host}${decodeURIComponent(path)}`;
   const href = openInStorefrontPath(target.slug, target.status);
 
-  const image = catalogPhotos(product.images)[0]?.src || productArtwork(product);
+  // Otomatik görsel yok: panelden yüklenmediyse boş medya alanı gösterilir.
+  const image = catalogPhotos(product.images)[0]?.src ?? null;
   const activeVariants = product.variants.filter((v) => v.isActive);
   const pool = activeVariants.length ? activeVariants : product.variants;
   const range = priceRangeOf(product.variants);
@@ -95,7 +96,11 @@ export function ProductPreviewCard({ product, saved, dirty }: Props) {
           <div className="admin-preview-media">
             {image ? (
               <Image src={image} alt="" fill sizes="288px" className="object-cover" unoptimized />
-            ) : null}
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-xs text-[var(--admin-ink-soft)]">
+                Görsel yüklenmedi
+              </div>
+            )}
             {product.badges.length > 0 && (
               <div className="absolute left-2 top-2 flex flex-wrap gap-1">
                 {product.badges.map((b) => (

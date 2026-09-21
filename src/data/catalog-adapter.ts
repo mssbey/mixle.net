@@ -22,7 +22,7 @@ import type {
 } from '@/types/admin';
 import { fromMinor } from '@/lib/money';
 import {
-  productArtwork,
+  noPhotoPlaceholder,
   catalogPhotos,
   categoryArtwork,
   collectionArtwork,
@@ -67,9 +67,9 @@ function stockStatusFromCount(count: number): StockStatus {
   return 'in-stock';
 }
 
-/** Gerçek ürün fotoğrafı varsa onu, yoksa kategoriye göre temsili illüstrasyonu döner. */
+/** Gerçek ürün fotoğrafı varsa onu, yoksa nötr "Görsel yok" yer tutucusunu döner. Otomatik görsel atanmaz. */
 function primaryImage(p: AdminProduct): string {
-  return catalogPhotos(p.images)[0]?.src || productArtwork(p);
+  return catalogPhotos(p.images)[0]?.src || noPhotoPlaceholder;
 }
 
 function toStorefrontVariant(product: AdminProduct, v: AdminVariant): ProductVariant {
@@ -120,9 +120,9 @@ export function toStorefrontProduct(p: AdminProduct): Product {
     : 'out-of-stock';
 
   const photos = catalogPhotos(p.images);
-  const representativeImages = photos.length === 0;
-  const gallery = representativeImages
-    ? [{ src: productArtwork(p), alt: `${p.name} — tat profilini anlatan temsili görsel` }]
+  const noPhoto = photos.length === 0;
+  const gallery = noPhoto
+    ? [{ src: noPhotoPlaceholder, alt: `${p.name} — görsel yok` }]
     : photos.map((img) => ({ src: img.src, alt: img.alt || p.name }));
 
   return {
@@ -140,7 +140,7 @@ export function toStorefrontProduct(p: AdminProduct): Product {
     badges: p.badges,
     images: gallery.slice(0, 2),
     gallery,
-    representativeImages,
+    noPhoto,
     videoPlaceholder: undefined,
     basePrice: defVariant?.price ?? 0,
     oldPrice: defVariant?.oldPrice,

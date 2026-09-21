@@ -83,8 +83,8 @@ export interface Product {
   badges: BadgeKind[];
   images: ProductImage[];
   gallery: ProductImage[];
-  /** true: görseller gerçek ürün fotoğrafı değil, tat profilini anlatan temsili illüstrasyon. */
-  representativeImages: boolean;
+  /** true: panelden görsel yüklenmemiş; nötr "Görsel yok" yer tutucusu gösteriliyor. */
+  noPhoto: boolean;
   videoPlaceholder?: string;
   basePrice: number;
   oldPrice?: number;

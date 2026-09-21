@@ -37,7 +37,6 @@ export function ProductDetailClient({ product }: { product: Product }) {
         images={galleryImages}
         productName={product.name}
         activeHint={variant.id}
-        representative={product.representativeImages}
       />
       <PurchasePanel
         product={product}
