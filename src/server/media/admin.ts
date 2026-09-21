@@ -9,7 +9,7 @@
 // diskten okuyan bir Route Handler'dan servis edilir; bu her modda çalışır.
 //
 // DAĞITIM: Vercel gibi sunucusuz ortamlarda dosya sistemi kalıcı DEĞİLDİR.
-// `BLOB_READ_WRITE_TOKEN` tanımlıysa dosyalar Vercel Blob'a yazılır ve
+// Blob deposu bağlıysa (`BLOB_STORE_ID` / `BLOB_READ_WRITE_TOKEN`) dosyalar Vercel Blob'a yazılır ve
 // `path` alanı mutlak (https://…public.blob.vercel-storage.com/…) URL olur;
 // tanımlı değilse (yerel geliştirme) yukarıdaki disk yolu kullanılır.
 
@@ -44,9 +44,13 @@ const ALLOWED_MIME: Record<string, string> = {
 };
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
-/** Vercel Blob yapılandırılmış mı — yoksa yerel diske yazılır. */
+/**
+ * Vercel Blob yapılandırılmış mı — yoksa yerel diske yazılır.
+ * Depo projeye bağlanınca Vercel `BLOB_STORE_ID` verir; SDK kimliği çalışma
+ * zamanındaki OIDC token'ından alır. Klasik `BLOB_READ_WRITE_TOKEN` da geçerli.
+ */
 function blobEnabled(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 }
 
 /** `data/uploads` — SQLite ile aynı dizin; `.gitignore`'da `/data/` altında. */
