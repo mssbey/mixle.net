@@ -37,7 +37,7 @@ export function productJsonLd(product: Product, categoryName?: string) {
     category: catName,
     sku: product.variants[0]?.sku,
     brand: { '@type': 'Brand', name: site.name },
-    image: product.gallery.map((g) => `${site.domain}${g.src}`),
+    image: product.gallery.map((g) => (g.src.startsWith('http') ? g.src : `${site.domain}${g.src}`)),
   };
 }
 

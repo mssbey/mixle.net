@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Trash2, Upload } from 'lucide-react';
 import type { AdminImage } from '@/types/admin';
 import { localId } from '@/lib/admin/variants';
+import { mediaApi } from '@/lib/admin/media-client';
+import { ApiError } from '@/lib/admin/client';
+import { toast } from '@/store/toast';
 
 interface Props {
   images: AdminImage[];
@@ -13,14 +16,45 @@ interface Props {
   onChange: (images: AdminImage[]) => void;
 }
 
+const ACCEPT = 'image/jpeg,image/png,image/webp,image/avif,image/svg+xml';
+
+/** Dosya adından alt metin taslağı: "mango-ice_01.webp" → "mango ice 01". */
+function altFromFileName(name: string): string {
+  return name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim();
+}
+
 export function ImageListEditor({ images, disabled, error, onChange }: Props) {
   const [src, setSrc] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const add = () => {
     const value = src.trim();
     if (!value) return;
     onChange([...images, { id: localId('img'), src: value, alt: '' }]);
     setSrc('');
+  };
+
+  // Bilgisayardan seçilen dosyalar medya kütüphanesine yüklenir, dönen yol
+  // listeye eklenir. Ürün kaydedilmeden görsel de kalıcı olur (kütüphanede kalır).
+  const uploadFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const added: AdminImage[] = [];
+    for (const file of Array.from(files)) {
+      try {
+        const { asset } = await mediaApi.upload(file);
+        added.push({ id: localId('img'), src: asset.path, alt: altFromFileName(file.name) });
+      } catch (err) {
+        toast.error(`${file.name} yüklenemedi`, err instanceof ApiError ? err.message : undefined);
+      }
+    }
+    if (added.length > 0) {
+      onChange([...images, ...added]);
+      toast.success(`${added.length} görsel yüklendi`);
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = '';
   };
 
   const update = (id: string, fields: Partial<AdminImage>) => {
@@ -107,10 +141,26 @@ export function ImageListEditor({ images, disabled, error, onChange }: Props) {
         </p>
       )}
 
+      <label
+        className={`admin-btn admin-btn-primary admin-btn-sm self-start ${disabled || uploading ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}
+      >
+        <Upload size={13} /> {uploading ? 'Yükleniyor…' : 'Bilgisayardan görsel yükle'}
+        <input
+          ref={fileRef}
+          type="file"
+          accept={ACCEPT}
+          multiple
+          hidden
+          disabled={disabled || uploading}
+          onChange={(e) => void uploadFiles(e.target.files)}
+        />
+      </label>
+      <p className="admin-hint -mt-1">JPG, PNG, WEBP, AVIF veya SVG — en fazla 8 MB. Alternatif metin dosya adından doldurulur; düzenleyebilirsiniz.</p>
+
       <div className="flex gap-1.5">
         <input
           className="admin-input admin-btn-sm"
-          placeholder="/images/… görsel yolu"
+          placeholder="veya /images/… görsel yolu yapıştırın"
           value={src}
           disabled={disabled}
           onChange={(e) => setSrc(e.target.value)}

@@ -6,7 +6,8 @@ const nextConfig = {
   serverExternalPackages: ['iyzipay'],
   images: {
     formats: ['image/avif', 'image/webp'],
-    remotePatterns: [],
+    // Panelden yüklenen ürün görselleri (Vercel Blob) — bkz. server/media/admin.ts
+    remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
     // Yalnızca kendi markamıza ait, güvenilir SVG'ler kullanılıyor.
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',

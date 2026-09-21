@@ -8,14 +8,16 @@
 // 404 döner (yeniden derleme gerekir). Bu yüzden gerçek dosya çalışma zamanı
 // diskten okuyan bir Route Handler'dan servis edilir; bu her modda çalışır.
 //
-// DAĞITIM UYARISI: Vercel gibi sunucusuz ortamlarda dosya sistemi kalıcı
-// DEĞİLDİR (SQLite ile aynı kısıt, bkz. README). Kalıcı depolama için nesne
-// depolama (S3, R2 vb.) entegrasyonu gerekir — bu sürümde yok.
+// DAĞITIM: Vercel gibi sunucusuz ortamlarda dosya sistemi kalıcı DEĞİLDİR.
+// `BLOB_READ_WRITE_TOKEN` tanımlıysa dosyalar Vercel Blob'a yazılır ve
+// `path` alanı mutlak (https://…public.blob.vercel-storage.com/…) URL olur;
+// tanımlı değilse (yerel geliştirme) yukarıdaki disk yolu kullanılır.
 
 import 'server-only';
 import { randomBytes } from 'node:crypto';
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { del as blobDelete, put as blobPut } from '@vercel/blob';
 import { z } from 'zod';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
@@ -41,6 +43,11 @@ const ALLOWED_MIME: Record<string, string> = {
   'image/svg+xml': 'svg',
 };
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+
+/** Vercel Blob yapılandırılmış mı — yoksa yerel diske yazılır. */
+function blobEnabled(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
 
 /** `data/uploads` — SQLite ile aynı dizin; `.gitignore`'da `/data/` altında. */
 export function uploadsRoot(): string {
@@ -125,11 +132,23 @@ export async function uploadMediaAsset(file: File, actor: AdminUser, ip: string 
   const rand = randomBytes(4).toString('hex');
   const fileName = `${slugifyBase(file.name)}-${rand}.${ext}`;
   const relPath = path.posix.join(yyyy, mm, fileName);
-  const absDir = path.join(uploadsRoot(), yyyy, mm);
-  const absPath = path.join(absDir, fileName);
 
-  await mkdir(absDir, { recursive: true });
-  await writeFile(absPath, buffer);
+  let storedPath: string;
+  if (blobEnabled()) {
+    // Dosya adı zaten rastgele son ek taşıyor; Blob'un kendi son ekine gerek yok.
+    const blob = await blobPut(`uploads/${relPath}`, buffer, {
+      access: 'public',
+      contentType: file.type,
+      addRandomSuffix: false,
+      cacheControlMaxAge: 31536000,
+    });
+    storedPath = blob.url;
+  } else {
+    const absDir = path.join(uploadsRoot(), yyyy, mm);
+    await mkdir(absDir, { recursive: true });
+    await writeFile(path.join(absDir, fileName), buffer);
+    storedPath = `/api/medya/${relPath}`;
+  }
 
   let width: number | null = null;
   let height: number | null = null;
@@ -146,7 +165,7 @@ export async function uploadMediaAsset(file: File, actor: AdminUser, ip: string 
 
   const row = await db.mediaAsset.create({
     data: {
-      path: `/api/medya/${relPath.replace(/\\/g, '/')}`,
+      path: storedPath,
       fileName: file.name.slice(0, 200),
       mimeType: file.type,
       sizeBytes: file.size,
@@ -183,9 +202,13 @@ export async function deleteMediaAsset(id: string, actor: AdminUser, ip: string 
 
   await db.mediaAsset.delete({ where: { id } });
   try {
-    const segments = current.path.replace(/^\/api\/medya\//, '').split('/');
-    const abs = resolveUploadDiskPath(segments);
-    if (abs) await unlink(abs);
+    if (/^https?:\/\//.test(current.path)) {
+      if (blobEnabled()) await blobDelete(current.path);
+    } else {
+      const segments = current.path.replace(/^\/api\/medya\//, '').split('/');
+      const abs = resolveUploadDiskPath(segments);
+      if (abs) await unlink(abs);
+    }
   } catch {
     // Dosya zaten yoksa sorun değil — kayıt yine de silindi.
   }
