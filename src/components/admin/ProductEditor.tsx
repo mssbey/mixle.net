@@ -89,8 +89,7 @@ interface Props {
 
 export function ProductEditor({ initial, mode }: Props) {
   const router = useRouter();
-  const { categories, collections, canWrite, createProduct, updateProduct, duplicateProduct } =
-    useAdminData();
+  const { collections, canWrite, createProduct, updateProduct, duplicateProduct } = useAdminData();
 
   const [baseline, setBaseline] = useState(() => JSON.stringify(initial));
   const [draft, setDraft] = useState<AdminProduct>(initial);
@@ -292,33 +291,6 @@ export function ProductEditor({ initial, mode }: Props) {
                 />
               </Field>
 
-              <div>
-                <Field label="Alt kategori" htmlFor="p-subcat" error={err('subcategory')}>
-                  <input
-                    id="p-subcat"
-                    className="admin-input"
-                    list="subcat-options"
-                    value={draft.subcategory}
-                    disabled={readOnly}
-                    onChange={(e) => set({ subcategory: e.target.value })}
-                  />
-                  {/* Öneriler: seçili kategorilerin alt kategorileri + eski serbest etiketler. */}
-                  <datalist id="subcat-options">
-                    {Array.from(
-                      new Set([
-                        ...categories
-                          .filter((c) => c.parentId && draft.categoryIds.includes(c.parentId))
-                          .map((c) => c.name),
-                        ...categories
-                          .filter((c) => draft.categoryIds.includes(c.id))
-                          .flatMap((c) => c.subcategories),
-                      ]),
-                    ).map((s) => (
-                      <option key={s} value={s} />
-                    ))}
-                  </datalist>
-                </Field>
-              </div>
             </div>
           </section>
 
