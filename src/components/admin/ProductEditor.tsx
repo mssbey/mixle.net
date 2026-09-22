@@ -7,7 +7,6 @@ import type { AdminProduct, ProductStatus } from '@/types/admin';
 import type { BadgeKind, FlavorNote, FlavorProfile, ProductForm } from '@/types';
 import { productStatuses, statusLabels } from '@/types/admin';
 import { adminProductSchema, fieldErrors } from '@/lib/admin/schema';
-import { categoryTree } from '@/lib/admin/mutations';
 import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
 import { hiddenDefaultVariant, localId } from '@/lib/admin/variants';
 import { slugify } from '@/lib/utils';
@@ -16,6 +15,7 @@ import { openInStorefrontPath } from '@/lib/admin/preview';
 import { useAdminData } from './AdminDataProvider';
 import { Field } from './primitives';
 import { ImageListEditor } from './ImageListEditor';
+import { ProductCategoryBox } from './ProductCategoryBox';
 import { OptionEditor } from './OptionEditor';
 import { VariantTable } from './VariantTable';
 import { UnsavedGuard } from './UnsavedGuard';
@@ -583,34 +583,14 @@ export function ProductEditor({ initial, mode }: Props) {
 
           <section className="admin-card" style={{ padding: 16 }}>
             <h2 className="mb-2 text-sm font-semibold text-[var(--brand-purple-deep)]">
-              Kategoriler
+              Ürün kategorileri
             </h2>
-            {err('categoryIds') && (
-              <p className="admin-error mb-1" role="alert">
-                {err('categoryIds')}
-              </p>
-            )}
-            {/* WordPress gibi: alt kategoriler üstlerinin altında girintili. */}
-            <div className="flex flex-col gap-1">
-              {categoryTree(categories).map(({ category: c, depth }) => (
-                <label
-                  key={c.id}
-                  className="flex items-center gap-2 text-sm"
-                  style={{ paddingLeft: depth * 14 }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={draft.categoryIds.includes(c.id)}
-                    disabled={readOnly}
-                    onChange={() => set({ categoryIds: toggleInArray(draft.categoryIds, c.id) })}
-                  />
-                  <span className={depth > 0 ? 'text-[var(--admin-ink-soft)]' : undefined}>
-                    {depth > 0 && <span aria-hidden="true">— </span>}
-                    {c.name}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <ProductCategoryBox
+              selected={draft.categoryIds}
+              onChange={(ids) => set({ categoryIds: ids })}
+              disabled={readOnly}
+              error={err('categoryIds')}
+            />
 
             {COLLECTIONS_ENABLED && (
               <>
