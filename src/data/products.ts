@@ -12,7 +12,7 @@ import 'server-only';
 import { cache } from 'react';
 import type { FlavorProfile, Product } from '@/types';
 import type { ProductStatus } from '@/types/admin';
-import { getAdminProducts } from '@/server/catalog/queries';
+import { getAdminProductBySlugFresh, getAdminProducts } from '@/server/catalog/queries';
 import { toStorefrontProduct } from './catalog-adapter';
 import { getCategoryTreeSlugs } from './categories';
 
@@ -51,7 +51,8 @@ export const getProducts = cache(async (): Promise<Product[]> => {
  */
 export const getProductPreview = cache(
   async (slug: string): Promise<{ product: Product; status: ProductStatus } | undefined> => {
-    const admin = (await getAdminProducts()).find((p) => p.slug === slug);
+    // Önbelleksiz okuma: yeni eklenen ürün de anında önizlenebilsin.
+    const admin = await getAdminProductBySlugFresh(slug);
     if (!admin) return undefined;
     const product = toStorefrontProduct(admin);
     const published = await getProducts();

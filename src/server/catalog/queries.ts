@@ -84,6 +84,22 @@ export async function getAdminCollections(): Promise<AdminCollection[]> {
 }
 
 /**
+ * Tek ürünü slug ile ÖNBELLEKSİZ okur.
+ *
+ * Panel önizlemesi için gerekli: yeni oluşturulan/çoğaltılan ürün, katalog
+ * önbelleği henüz tazelenmemişken de görünmelidir. `revalidateTag` bir sonraki
+ * istekte hemen görünür olmayabiliyor (sunucusuz ortamda örnekler arası
+ * tutarlılık gecikmeli), bu yüzden önizleme yolu önbelleğe hiç uğramaz.
+ * Tek ürünlük sorgu olduğu için maliyeti de düşüktür.
+ */
+export const getAdminProductBySlugFresh = cache(
+  async (slug: string): Promise<AdminProduct | undefined> => {
+    const rows = await loadProductRows({ slug });
+    return rows[0] ? rowToProduct(rows[0]) : undefined;
+  },
+);
+
+/**
  * Katalog önbelleğini geçersiz kılar. Panelden yapılan HER yazma işleminden
  * sonra çağrılmalıdır; yoksa vitrin eski veriyi göstermeye devam eder.
  */

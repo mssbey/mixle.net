@@ -10,7 +10,7 @@ import { draftMode } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { handle } from '@/lib/admin/http';
 import { editorPath, safeInternalPath, storefrontPath } from '@/lib/admin/preview';
-import { getAdminProducts } from '@/server/catalog/queries';
+import { getAdminProductBySlugFresh } from '@/server/catalog/queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,7 @@ export function GET(request: Request): Promise<Response> {
     }
 
     const slug = (url.searchParams.get('slug') ?? '').trim();
-    const product = slug ? (await getAdminProducts()).find((p) => p.slug === slug) : undefined;
+    const product = slug ? await getAdminProductBySlugFresh(slug) : undefined;
     if (!product) {
       return NextResponse.json(
         { error: 'not-found', message: `"${slug}" için ürün bulunamadı.`, editor: editorPath(slug) },
