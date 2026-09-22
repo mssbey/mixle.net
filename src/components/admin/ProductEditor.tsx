@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Copy, CopyPlus, ExternalLink, Eye, Plus, Trash2 } from 'lucide-react';
 import type { AdminProduct, ProductStatus } from '@/types/admin';
-import type { BadgeKind, FlavorNote, FlavorProfile, ProductForm } from '@/types';
+import type { BadgeKind, FlavorNote, FlavorProfile } from '@/types';
 import { productStatuses, statusLabels } from '@/types/admin';
 import { adminProductSchema, fieldErrors } from '@/lib/admin/schema';
 import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
@@ -30,13 +30,6 @@ const FLAVOR_PROFILES: { id: FlavorProfile; label: string }[] = [
   { id: 'tutun', label: 'Tütün' },
   { id: 'icecek', label: 'İçecek' },
   { id: 'mentollu', label: 'Mentollü' },
-];
-
-const FORMS: { id: ProductForm; label: string }[] = [
-  { id: 'konsantre', label: 'Konsantre Aroma' },
-  { id: 'shortfill', label: 'Shortfill' },
-  { id: 'diy-kit', label: 'DIY Kit' },
-  { id: 'baz', label: 'Baz / Nbase' },
 ];
 
 const BADGES: { id: BadgeKind; label: string }[] = [
@@ -299,7 +292,7 @@ export function ProductEditor({ initial, mode }: Props) {
                 />
               </Field>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div>
                 <Field label="Alt kategori" htmlFor="p-subcat" error={err('subcategory')}>
                   <input
                     id="p-subcat"
@@ -324,51 +317,6 @@ export function ProductEditor({ initial, mode }: Props) {
                       <option key={s} value={s} />
                     ))}
                   </datalist>
-                </Field>
-                <Field label="Form" htmlFor="p-form">
-                  <select
-                    id="p-form"
-                    className="admin-select"
-                    value={draft.form}
-                    disabled={readOnly}
-                    onChange={(e) => set({ form: e.target.value as ProductForm })}
-                  >
-                    {FORMS.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="Kullanım oranı" htmlFor="p-usage">
-                  <input
-                    id="p-usage"
-                    className="admin-input"
-                    value={draft.usageRate}
-                    disabled={readOnly}
-                    onChange={(e) => set({ usageRate: e.target.value })}
-                  />
-                </Field>
-                <Field label="Dinlendirme" htmlFor="p-steep">
-                  <input
-                    id="p-steep"
-                    className="admin-input"
-                    value={draft.steepTime}
-                    disabled={readOnly}
-                    onChange={(e) => set({ steepTime: e.target.value })}
-                  />
-                </Field>
-                <Field label="Menşei" htmlFor="p-origin">
-                  <input
-                    id="p-origin"
-                    className="admin-input"
-                    value={draft.origin}
-                    disabled={readOnly}
-                    onChange={(e) => set({ origin: e.target.value })}
-                  />
                 </Field>
               </div>
             </div>
