@@ -14,6 +14,7 @@ import type { FlavorProfile, Product } from '@/types';
 import type { ProductStatus } from '@/types/admin';
 import { getAdminProducts } from '@/server/catalog/queries';
 import { toStorefrontProduct } from './catalog-adapter';
+import { getCategoryTreeSlugs } from './categories';
 
 /**
  * Yayındaki ürünler, vitrin tipine indirgenmiş ve ilgili ürünleri doldurulmuş.
@@ -75,8 +76,14 @@ export const getProductPreview = cache(
 export const getProductBySlug = async (slug: string): Promise<Product | undefined> =>
   (await getProducts()).find((p) => p.slug === slug);
 
-export const getProductsByCategory = async (slug: string): Promise<Product[]> =>
-  (await getProducts()).filter((p) => p.category === slug);
+/**
+ * Kategori arşivi. WordPress gibi, üst kategori sayfası alt kategorilerdeki
+ * ürünleri de kapsar.
+ */
+export const getProductsByCategory = async (slug: string): Promise<Product[]> => {
+  const slugs = new Set(await getCategoryTreeSlugs(slug));
+  return (await getProducts()).filter((p) => slugs.has(p.category));
+};
 
 export const getProductsByCollection = async (slug: string): Promise<Product[]> =>
   (await getProducts()).filter((p) => p.collection === slug);

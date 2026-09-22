@@ -66,6 +66,13 @@ export const adminApi = {
       body: JSON.stringify(patch),
     }),
 
+  /** WordPress'teki "Çoğalt": taslak bir kopya üretir. */
+  duplicateProduct: (id: string) =>
+    request<{ product: AdminProduct }>(
+      `/api/admin/products/${encodeURIComponent(id)}/cogalt`,
+      { method: 'POST' },
+    ),
+
   deleteProduct: (id: string) =>
     request<{ ok: true }>(`/api/admin/products/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 

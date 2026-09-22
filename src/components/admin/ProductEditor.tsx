@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, Eye, Plus, Trash2 } from 'lucide-react';
+import { Copy, CopyPlus, ExternalLink, Eye, Plus, Trash2 } from 'lucide-react';
 import type { AdminProduct, ProductStatus } from '@/types/admin';
 import type { BadgeKind, FlavorNote, FlavorProfile, ProductForm } from '@/types';
 import { productStatuses, statusLabels } from '@/types/admin';
 import { adminProductSchema, fieldErrors } from '@/lib/admin/schema';
+import { categoryTree } from '@/lib/admin/mutations';
 import { hiddenDefaultVariant, localId } from '@/lib/admin/variants';
 import { slugify } from '@/lib/utils';
 import { formatDateTime } from '@/lib/admin/format';
@@ -94,13 +95,15 @@ interface Props {
 
 export function ProductEditor({ initial, mode }: Props) {
   const router = useRouter();
-  const { categories, collections, canWrite, createProduct, updateProduct } = useAdminData();
+  const { categories, collections, canWrite, createProduct, updateProduct, duplicateProduct } =
+    useAdminData();
 
   const [baseline, setBaseline] = useState(() => JSON.stringify(initial));
   const [draft, setDraft] = useState<AdminProduct>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(mode === 'edit');
+  const [duplicating, setDuplicating] = useState(false);
 
   const dirty = useMemo(() => JSON.stringify(draft) !== baseline, [draft, baseline]);
   // Vitrin bağlantıları KAYITLI slug/duruma göre kurulur; formdaki henüz
@@ -152,6 +155,17 @@ export function ProductEditor({ initial, mode }: Props) {
     }
   };
 
+  /**
+   * WordPress "Kopyala" / "Yeni bir taslak kopyalayın": tek bir çoğaltma
+   * işlemi, iki giriş noktası — `open` kopyanın düzenleme ekranını açar.
+   */
+  const duplicate = async (open: boolean) => {
+    setDuplicating(true);
+    const copy = await duplicateProduct(saved.id);
+    setDuplicating(false);
+    if (copy && open) router.push(`/admin/urunler/${copy.slug}`);
+  };
+
   const discard = () => {
     setDraft(JSON.parse(baseline) as AdminProduct);
     setErrors({});
@@ -177,20 +191,40 @@ export function ProductEditor({ initial, mode }: Props) {
           </p>
         </div>
         {mode === 'edit' && saved.slug && (
-          <a
-            href={openInStorefrontPath(saved.slug, saved.status)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="admin-btn admin-btn-ghost"
-            title={
-              saved.status === 'yayında'
-                ? 'Ürünü vitrinde yeni sekmede aç'
-                : 'Yayında olmayan ürünü önizleme modunda aç'
-            }
-          >
-            {saved.status === 'yayında' ? <ExternalLink size={14} /> : <Eye size={14} />}
-            {saved.status === 'yayında' ? 'Vitrinde aç' : 'Önizle'}
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={openInStorefrontPath(saved.slug, saved.status)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="admin-btn admin-btn-ghost"
+              title={
+                saved.status === 'yayında'
+                  ? 'Ürünü vitrinde yeni sekmede aç'
+                  : 'Yayında olmayan ürünü önizleme modunda aç'
+              }
+            >
+              {saved.status === 'yayında' ? <ExternalLink size={14} /> : <Eye size={14} />}
+              {saved.status === 'yayında' ? 'Vitrinde aç' : 'Önizle'}
+            </a>
+            <button
+              type="button"
+              className="admin-btn admin-btn-ghost"
+              disabled={readOnly || duplicating}
+              onClick={() => void duplicate(false)}
+              title="Bu ürünün taslak bir kopyasını oluştur, bu ekranda kal"
+            >
+              <Copy size={14} /> {duplicating ? 'Kopyalanıyor…' : 'Kopyala'}
+            </button>
+            <button
+              type="button"
+              className="admin-btn admin-btn-ghost"
+              disabled={readOnly || duplicating}
+              onClick={() => void duplicate(true)}
+              title="Taslak kopya oluştur ve kopyayı düzenlemeye aç"
+            >
+              <CopyPlus size={14} /> Yeni bir taslak kopyala
+            </button>
+          </div>
         )}
       </header>
 
@@ -274,13 +308,20 @@ export function ProductEditor({ initial, mode }: Props) {
                     disabled={readOnly}
                     onChange={(e) => set({ subcategory: e.target.value })}
                   />
+                  {/* Öneriler: seçili kategorilerin alt kategorileri + eski serbest etiketler. */}
                   <datalist id="subcat-options">
-                    {categories
-                      .filter((c) => draft.categoryIds.includes(c.id))
-                      .flatMap((c) => c.subcategories)
-                      .map((s) => (
-                        <option key={s} value={s} />
-                      ))}
+                    {Array.from(
+                      new Set([
+                        ...categories
+                          .filter((c) => c.parentId && draft.categoryIds.includes(c.parentId))
+                          .map((c) => c.name),
+                        ...categories
+                          .filter((c) => draft.categoryIds.includes(c.id))
+                          .flatMap((c) => c.subcategories),
+                      ]),
+                    ).map((s) => (
+                      <option key={s} value={s} />
+                    ))}
                   </datalist>
                 </Field>
                 <Field label="Form" htmlFor="p-form">
@@ -548,16 +589,24 @@ export function ProductEditor({ initial, mode }: Props) {
                 {err('categoryIds')}
               </p>
             )}
+            {/* WordPress gibi: alt kategoriler üstlerinin altında girintili. */}
             <div className="flex flex-col gap-1">
-              {categories.map((c) => (
-                <label key={c.id} className="flex items-center gap-2 text-sm">
+              {categoryTree(categories).map(({ category: c, depth }) => (
+                <label
+                  key={c.id}
+                  className="flex items-center gap-2 text-sm"
+                  style={{ paddingLeft: depth * 14 }}
+                >
                   <input
                     type="checkbox"
                     checked={draft.categoryIds.includes(c.id)}
                     disabled={readOnly}
                     onChange={() => set({ categoryIds: toggleInArray(draft.categoryIds, c.id) })}
                   />
-                  {c.name}
+                  <span className={depth > 0 ? 'text-[var(--admin-ink-soft)]' : undefined}>
+                    {depth > 0 && <span aria-hidden="true">— </span>}
+                    {c.name}
+                  </span>
                 </label>
               ))}
             </div>

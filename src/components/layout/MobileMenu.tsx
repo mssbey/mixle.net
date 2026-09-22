@@ -7,7 +7,7 @@ import { ChevronDown, Phone, MessageCircle } from 'lucide-react';
 import { Drawer } from '@/components/ui/Drawer';
 import { Logo } from './Logo';
 import { useTaxonomy } from '@/components/catalog/CatalogProvider';
-import { mobileMenuLinks } from '@/data/nav';
+import { flattenCategoryTree, mobileMenuLinks } from '@/data/nav';
 import type { StorefrontContact } from '@/lib/storefront';
 
 export function MobileMenu({
@@ -55,13 +55,16 @@ export function MobileMenu({
                 transition={{ duration: 0.25 }}
                 className="overflow-hidden pl-3"
               >
-                {categories.map((c) => (
+                {/* Alt kategoriler üstlerinin hemen altında girintili listelenir. */}
+                {flattenCategoryTree(categories).map(({ category: c, depth }) => (
                   <li key={c.slug}>
                     <Link
                       href={`/kategori/${c.slug}`}
                       onClick={onClose}
                       className="block rounded-md px-3 py-2.5 text-sm text-ink-soft hover:bg-mist hover:text-brand-500"
+                      style={{ paddingLeft: 12 + depth * 14 }}
                     >
+                      {depth > 0 && <span aria-hidden="true" className="mr-1 text-line">└</span>}
                       {c.name}
                     </Link>
                   </li>

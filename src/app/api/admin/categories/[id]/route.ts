@@ -37,7 +37,8 @@ export function DELETE(_req: Request, { params }: Ctx): Promise<Response> {
     const current = catalog.categories.find((c) => c.id === id);
     // Saf mutasyon "bu kategoriye bağlı ürün var" gibi kuralları uygular.
     deleteCategory(catalog, id);
-    await removeCategory(id);
+    // Altındaki kategoriler silinmez, bir üst seviyeye taşınır (WordPress gibi).
+    await removeCategory(id, current?.parentId ?? null);
     await auditChange({
       user,
       action: 'sil',

@@ -100,6 +100,7 @@ export const legacyCatalogSchema = z.object({
       cover: z.string().default(''),
       icon: z.string().default(''),
       subcategories: z.array(z.string()).default([]),
+      parentId: z.string().nullish().transform((v) => v ?? null),
       accent: z.string().default('purple'),
       order: z.number().default(0),
     }),

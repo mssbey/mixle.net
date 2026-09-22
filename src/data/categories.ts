@@ -9,9 +9,29 @@ import type { Category, Collection } from '@/types';
 import { getAdminCategories, getAdminCollections } from '@/server/catalog/queries';
 import { toStorefrontCategory, toStorefrontCollection } from './catalog-adapter';
 
-export const getCategories = cache(async (): Promise<Category[]> =>
-  (await getAdminCategories()).map(toStorefrontCategory),
-);
+export const getCategories = cache(async (): Promise<Category[]> => {
+  const rows = await getAdminCategories();
+  return rows.map((c) => toStorefrontCategory(c, rows));
+});
+
+/** Bir kategorinin doğrudan alt kategorileri (panel sırasına göre). */
+export const getChildCategories = async (slug: string): Promise<Category[]> =>
+  (await getCategories()).filter((c) => c.parentSlug === slug);
+
+/**
+ * Kategori ve tüm alt ağacının slug'ları. WordPress arşivlerinde olduğu gibi
+ * üst kategori sayfası alt kategorilerdeki ürünleri de listeler.
+ */
+export const getCategoryTreeSlugs = async (slug: string): Promise<string[]> => {
+  const all = await getCategories();
+  const out = [slug];
+  for (let i = 0; i < out.length; i += 1) {
+    for (const c of all) {
+      if (c.parentSlug === out[i] && !out.includes(c.slug)) out.push(c.slug);
+    }
+  }
+  return out;
+};
 
 export const getCollections = cache(async (): Promise<Collection[]> =>
   (await getAdminCollections()).map(toStorefrontCollection),

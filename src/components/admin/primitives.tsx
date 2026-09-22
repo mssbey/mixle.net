@@ -49,7 +49,8 @@ export function TableSkeleton({ rows = 6 }: { rows?: number }) {
 
 interface FieldProps {
   label: string;
-  htmlFor: string;
+  /** Tek bir form kontrolü sarmalanmıyorsa (ör. görsel seçici) boş bırakılabilir. */
+  htmlFor?: string;
   hint?: string;
   error?: string;
   required?: boolean;

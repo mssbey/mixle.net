@@ -136,6 +136,7 @@ export interface CategoryRow {
   cover: string;
   icon: string;
   subcategories: unknown;
+  parentId: string | null;
   accent: string;
   sortOrder: number;
 }
@@ -246,6 +247,7 @@ export function rowToCategory(row: CategoryRow): AdminCategory {
     cover: row.cover,
     icon: row.icon,
     subcategories: jsonArray<string>(row.subcategories),
+    parentId: row.parentId ?? null,
     accent: row.accent as AdminCategory['accent'],
     order: row.sortOrder,
   };
@@ -307,6 +309,7 @@ export function categoryScalars(c: AdminCategory) {
     cover: c.cover,
     icon: c.icon,
     subcategories: asJson(c.subcategories),
+    parentId: c.parentId ?? null,
     accent: c.accent,
     sortOrder: c.order,
   };

@@ -15,7 +15,7 @@ import {
   adminProductSchema,
   fieldErrors,
 } from './schema';
-import { ensureSingleDefault, generateMatrix } from './variants';
+import { comboKeyOf, ensureSingleDefault, generateMatrix, localId } from './variants';
 
 export class AdminError extends Error {
   constructor(
@@ -76,6 +76,93 @@ export function createProduct(catalog: CatalogFile, input: AdminProduct): {
   assertCategoriesExist(next, candidate);
 
   const product = validateProduct(candidate);
+  next.products.push(product);
+  return { catalog: next, product };
+}
+
+/**
+ * "Çoğalt" için aday slug listesi: `x-kopya`, `x-kopya-2`, … Yalnızca bu
+ * slug'lar veritabanından okunur, tüm katalog çekilmez.
+ */
+export function duplicateSlugCandidates(slug: string, count = 30): string[] {
+  const base = `${slug}-kopya`;
+  return Array.from({ length: count }, (_, i) => (i === 0 ? base : `${base}-${i + 1}`));
+}
+
+/**
+ * WordPress'teki "Çoğalt" / "Kopyala" davranışı: kaynağın tüm alanları
+ * kopyalanır, kopya HER ZAMAN taslak olarak açılır ve adı/slug'ı çakışmayacak
+ * şekilde numaralandırılır. Görseller, seçenekler ve varyantlar yeni kimlik
+ * alır; varyant eşleşmeleri (comboKey/optionValues) yeni kimliklere göre
+ * yeniden kurulur.
+ */
+export function duplicateProduct(
+  catalog: CatalogFile,
+  id: string,
+): { catalog: CatalogFile; product: AdminProduct } {
+  const next = clone(catalog);
+  const source = next.products.find((p) => p.id === id);
+  if (!source) throw new AdminError('Ürün bulunamadı', 404);
+
+  const taken = new Set(next.products.map((p) => p.slug));
+  const candidates = duplicateSlugCandidates(source.slug);
+  const index = candidates.findIndex((c) => !taken.has(c));
+  if (index === -1) {
+    throw new AdminError('Çok fazla kopya var; önce eski kopyaları temizleyin', 409);
+  }
+  const slug = candidates[index];
+  const suffix = index === 0 ? '(Kopya)' : `(Kopya ${index + 1})`;
+
+  // Seçenek/değer kimlikleri yeniden üretilir; varyantlar bunlara göre eşlenir.
+  const optionIdMap = new Map<string, string>();
+  const valueIdMap = new Map<string, string>();
+  const options = source.options.map((o) => {
+    const newOptionId = localId('opt');
+    optionIdMap.set(o.id, newOptionId);
+    return {
+      ...o,
+      id: newOptionId,
+      values: o.values.map((v) => {
+        const newValueId = localId('val');
+        valueIdMap.set(v.id, newValueId);
+        return { ...v, id: newValueId };
+      }),
+    };
+  });
+
+  const variants = source.variants.map((v) => {
+    const optionValues: Record<string, string> = {};
+    for (const [optionId, valueId] of Object.entries(v.optionValues)) {
+      optionValues[optionIdMap.get(optionId) ?? optionId] = valueIdMap.get(valueId) ?? valueId;
+    }
+    return {
+      ...v,
+      id: localId('var'),
+      optionValues,
+      comboKey: comboKeyOf(options, optionValues),
+      // SKU'lar stok raporlarında karışmasın diye işaretlenir.
+      sku: v.sku ? `${v.sku}-KOPYA` : '',
+      barcode: null,
+    };
+  });
+
+  const stamp = now();
+  const copy: AdminProduct = {
+    ...clone(source),
+    id: localId('prd'),
+    slug,
+    name: `${source.name} ${suffix}`,
+    // WordPress kopyayı her zaman taslak olarak açar.
+    status: 'taslak',
+    seo: { ...source.seo, title: source.seo.title ? `${source.seo.title} ${suffix}` : '' },
+    images: source.images.map((img) => ({ ...img, id: localId('img') })),
+    options,
+    variants,
+    createdAt: stamp,
+    updatedAt: stamp,
+  };
+
+  const product = validateProduct(normalizeProduct(copy));
   next.products.push(product);
   return { catalog: next, product };
 }
@@ -183,9 +270,13 @@ export function listProducts(catalog: CatalogFile, query: ProductQuery): Product
   } = query;
 
   const term = search.trim().toLocaleLowerCase('tr');
+  // WordPress'te olduğu gibi üst kategori filtresi alt kategorileri de kapsar.
+  const categoryIds = categoryId
+    ? new Set(categoryDescendantIds(catalog.categories, categoryId))
+    : null;
   let items = catalog.products.filter((p) => {
     if (status !== 'all' && p.status !== status) return false;
-    if (categoryId && !p.categoryIds.includes(categoryId)) return false;
+    if (categoryIds && !p.categoryIds.some((id) => categoryIds.has(id))) return false;
     if (collectionId && !p.collectionIds.includes(collectionId)) return false;
     if (term) {
       const haystack = [
@@ -239,6 +330,49 @@ export function listProducts(catalog: CatalogFile, query: ProductQuery): Product
 
 // ----------------------------------------------------------- kategoriler ----
 
+/**
+ * Bir kategorinin tüm alt ağacı (kendisi dahil). Üst kategori seçiminde
+ * döngüyü engellemek ve silmede çocukları taşımak için kullanılır.
+ */
+export function categoryDescendantIds(categories: AdminCategory[], rootId: string): string[] {
+  const out = [rootId];
+  for (let i = 0; i < out.length; i += 1) {
+    for (const c of categories) {
+      if (c.parentId === out[i] && !out.includes(c.id)) out.push(c.id);
+    }
+  }
+  return out;
+}
+
+/**
+ * Kategori ağacını "önce üst, hemen ardından altları" sırasında düzleştirir.
+ * Panel listeleri WordPress gibi girintili göstermek için `depth` kullanır.
+ */
+export function categoryTree(
+  categories: AdminCategory[],
+  parentId: string | null = null,
+  depth = 0,
+): { category: AdminCategory; depth: number }[] {
+  return categories
+    .filter((c) => (c.parentId ?? null) === parentId)
+    .flatMap((c) => [{ category: c, depth }, ...categoryTree(categories, c.id, depth + 1)]);
+}
+
+/** Kök → yaprak derinliği (kök = 0). Döngüye karşı korumalıdır. */
+export function categoryDepth(categories: AdminCategory[], id: string): number {
+  let depth = 0;
+  let current = categories.find((c) => c.id === id);
+  const seen = new Set<string>([id]);
+  while (current?.parentId) {
+    const parent = categories.find((c) => c.id === current?.parentId);
+    if (!parent || seen.has(parent.id)) break;
+    seen.add(parent.id);
+    current = parent;
+    depth += 1;
+  }
+  return depth;
+}
+
 export function upsertCategory(
   catalog: CatalogFile,
   input: AdminCategory,
@@ -253,6 +387,25 @@ export function upsertCategory(
 
   if (next.categories.some((c) => c.slug === category.slug && c.id !== category.id)) {
     throw new AdminError('Bu slug zaten kullanımda', 409, { slug: 'Bu slug zaten kullanımda' });
+  }
+
+  // Üst kategori: var olmalı, kendisi olmamalı ve kendi alt ağacından seçilmemeli.
+  if (category.parentId) {
+    if (category.parentId === category.id) {
+      throw new AdminError('Kategori kendi üst kategorisi olamaz', 422, {
+        parentId: 'Kategori kendi üst kategorisi olamaz',
+      });
+    }
+    if (!next.categories.some((c) => c.id === category.parentId)) {
+      throw new AdminError('Üst kategori bulunamadı', 422, {
+        parentId: 'Üst kategori bulunamadı',
+      });
+    }
+    if (index !== -1 && categoryDescendantIds(next.categories, category.id).includes(category.parentId)) {
+      throw new AdminError('Üst kategori kendi alt kategorilerinden biri olamaz', 422, {
+        parentId: 'Üst kategori kendi alt kategorilerinden biri olamaz',
+      });
+    }
   }
 
   if (index === -1) {
@@ -278,6 +431,10 @@ export function deleteCategory(catalog: CatalogFile, id: string): CatalogFile {
     );
   }
   next.categories = next.categories.filter((c) => c.id !== id);
+  // WordPress davranışı: silinen kategorinin altları bir üst seviyeye taşınır.
+  next.categories = next.categories.map((c) =>
+    c.parentId === id ? { ...c, parentId: target.parentId ?? null } : c,
+  );
   next.products = next.products.map((p) =>
     p.categoryIds.includes(id)
       ? { ...p, categoryIds: p.categoryIds.filter((cid) => cid !== id) }

@@ -44,13 +44,25 @@ export function ReorderableList<T>({
           <li
             key={id}
             draggable={!disabled}
-            onDragStart={() => setDragId(id)}
-            onDragEnter={() => {
+            // stopPropagation: iç içe listelerde (kategori ağacı) çocuk sürüklemesi
+            // üst satırı sürüklemeye başlatmasın.
+            onDragStart={(e) => {
+              e.stopPropagation();
+              setDragId(id);
+            }}
+            onDragEnter={(e) => {
+              e.stopPropagation();
               overId.current = id;
             }}
             onDragOver={(e) => e.preventDefault()}
-            onDragEnd={commit}
-            onDrop={commit}
+            onDragEnd={(e) => {
+              e.stopPropagation();
+              commit();
+            }}
+            onDrop={(e) => {
+              e.stopPropagation();
+              commit();
+            }}
             className={`flex items-center gap-2 rounded-xl border border-[var(--admin-line)] bg-white p-2.5 ${
               dragId === id ? 'admin-row-dragging' : ''
             }`}

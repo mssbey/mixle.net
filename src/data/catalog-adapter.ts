@@ -164,7 +164,8 @@ export function toStorefrontProduct(p: AdminProduct): Product {
   };
 }
 
-export function toStorefrontCategory(c: AdminCategory): Category {
+export function toStorefrontCategory(c: AdminCategory, all: AdminCategory[] = []): Category {
+  const parent = c.parentId ? all.find((x) => x.id === c.parentId) : undefined;
   return {
     slug: c.slug as CategorySlug,
     name: c.name,
@@ -174,6 +175,7 @@ export function toStorefrontCategory(c: AdminCategory): Category {
     cover: c.cover || categoryArtwork[c.slug] || storefrontLogo,
     icon: c.icon || categoryArtwork[c.slug] || storefrontLogo,
     subcategories: c.subcategories,
+    parentSlug: (parent?.slug as CategorySlug | undefined) ?? null,
     accent: c.accent,
   };
 }

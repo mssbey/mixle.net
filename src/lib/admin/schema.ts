@@ -152,6 +152,13 @@ export const adminCategorySchema = z.object({
   cover: z.string().trim().max(300),
   icon: z.string().trim().max(300),
   subcategories: z.array(z.string().trim().min(1).max(80)).max(40),
+  // Eski kayıtlar/istemciler alanı hiç göndermeyebilir; yokluk = kök kategori.
+  parentId: z
+    .string()
+    .trim()
+    .min(1)
+    .nullish()
+    .transform((v) => v ?? null),
   accent: accentSchema,
   order: z.number().int().min(0),
 });

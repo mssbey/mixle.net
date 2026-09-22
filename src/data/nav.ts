@@ -30,22 +30,51 @@ export const mobileMenuLinks: NavLink[] = [
   { label: 'Hesabım', href: '/hesabim' },
 ];
 
+/**
+ * Kategori ağacını "önce üst, hemen ardından altları" sırasında düzleştirir.
+ * Menülerde alt kategorileri üstlerinin altında girintili göstermek için.
+ */
+export function flattenCategoryTree(
+  categories: Category[],
+  parentSlug: string | null = null,
+  depth = 0,
+): { category: Category; depth: number }[] {
+  return categories
+    .filter((c) => (c.parentSlug ?? null) === parentSlug)
+    .flatMap((c) => [
+      { category: c, depth },
+      ...flattenCategoryTree(categories, c.slug, depth + 1),
+    ]);
+}
+
 // Kategoriler artık veritabanından geldiği için mega menü modül yüklenirken
 // değil, taksonomi elde edildiğinde kurulur (bkz. `useTaxonomy()`).
 export function buildMegaMenuColumns(categories: Category[]) {
+  // Menüde de ağaç sırası korunur; alt kategoriler `depth` ile girintilenir.
+  const tree = flattenCategoryTree(categories);
   return [
     {
       heading: 'Tat Aileleri',
-      links: categories
-        .filter((c) => !['diy-kitler', 'nbase'].includes(c.slug))
-        .map((c) => ({ label: c.name, href: `/kategori/${c.slug}`, hint: c.tagline })),
+      links: tree
+        .filter(({ category: c }) => !['diy-kitler', 'nbase'].includes(c.slug))
+        .map(({ category: c, depth }) => ({
+          label: c.name,
+          href: `/kategori/${c.slug}`,
+          hint: c.tagline,
+          depth,
+        })),
     },
     {
       heading: 'Set & Baz',
       links: [
-        ...categories
-          .filter((c) => ['diy-kitler', 'nbase'].includes(c.slug))
-          .map((c) => ({ label: c.name, href: `/kategori/${c.slug}`, hint: c.tagline })),
+        ...tree
+          .filter(({ category: c }) => ['diy-kitler', 'nbase'].includes(c.slug))
+          .map(({ category: c, depth }) => ({
+            label: c.name,
+            href: `/kategori/${c.slug}`,
+            hint: c.tagline,
+            depth,
+          })),
         { label: 'Aroma Rehberi', href: '/aroma-rehberi', hint: 'Oran, karışım ve saklama' },
         { label: 'Aroma Bulucu', href: '/aroma-rehberi#bulucu', hint: 'Sana uygun profili keşfet' },
       ],

@@ -43,6 +43,8 @@ interface AdminDataValue {
   productBySlug: (slug: string) => AdminProduct | undefined;
   createProduct: (product: AdminProduct) => Promise<AdminProduct | null>;
   updateProduct: (id: string, patch: Partial<AdminProduct>) => Promise<boolean>;
+  /** WordPress "Çoğalt": taslak kopya üretir, kopyayı döndürür. */
+  duplicateProduct: (id: string) => Promise<AdminProduct | null>;
   deleteProduct: (id: string) => Promise<boolean>;
   bulkProducts: (op: BulkAction) => Promise<boolean>;
   saveCategory: (category: AdminCategory) => Promise<boolean>;
@@ -155,6 +157,18 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           reportError(err, 'Kaydedilemedi');
           return false;
+        }
+      },
+
+      duplicateProduct: async (id) => {
+        try {
+          const { product: copy } = await adminApi.duplicateProduct(id);
+          applyProduct(copy);
+          toast.success('Kopya oluşturuldu', `${copy.name} · taslak`);
+          return copy;
+        } catch (err) {
+          reportError(err, 'Kopyalanamadı');
+          return null;
         }
       },
 

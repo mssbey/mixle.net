@@ -237,8 +237,15 @@ export async function saveCategory(category: AdminCategory): Promise<void> {
   revalidateCatalog();
 }
 
-export async function removeCategory(id: string): Promise<void> {
-  await db.category.delete({ where: { id } });
+/**
+ * Kategoriyi siler. WordPress gibi, altındaki kategoriler silinmez; silinen
+ * kategorinin üstüne (yoksa köke) taşınır.
+ */
+export async function removeCategory(id: string, newParentId: string | null = null): Promise<void> {
+  await db.$transaction([
+    db.category.updateMany({ where: { parentId: id }, data: { parentId: newParentId } }),
+    db.category.delete({ where: { id } }),
+  ]);
   revalidateCatalog();
 }
 
@@ -276,6 +283,25 @@ export async function saveCollectionOrder(collections: AdminCollection[]): Promi
   revalidateCatalog();
 }
 
+/** Ebeveynleri çocuklarından önce sıralar (FK sırası). Döngüye karşı korumalı. */
+function sortCategoriesParentsFirst(categories: AdminCategory[]): AdminCategory[] {
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const out: AdminCategory[] = [];
+  const done = new Set<string>();
+  const visit = (c: AdminCategory, seen: Set<string>) => {
+    if (done.has(c.id) || seen.has(c.id)) return;
+    seen.add(c.id);
+    const parent = c.parentId ? byId.get(c.parentId) : undefined;
+    if (parent) visit(parent, seen);
+    if (!done.has(c.id)) {
+      done.add(c.id);
+      out.push(c);
+    }
+  };
+  for (const c of categories) visit(c, new Set());
+  return out;
+}
+
 /**
  * Tüm kataloğu yazar — YALNIZCA içe aktarma (JSON yükleme) için.
  * Ürünlerin alt kayıtları kimliğe göre eşleştirilir; kaynakta olmayanlar silinir.
@@ -285,7 +311,8 @@ export async function replaceCatalog(next: CatalogFile): Promise<void> {
   const keepCategories = next.categories.map((c) => c.id);
   const keepCollections = next.collections.map((c) => c.id);
 
-  for (const c of next.categories) await saveCategory(c);
+  // Üst kategori yabancı anahtarı için ebeveynler çocuklarından önce yazılmalı.
+  for (const c of sortCategoriesParentsFirst(next.categories)) await saveCategory(c);
   for (const c of next.collections) await saveCollection(c);
   for (const p of next.products) await saveProduct(p);
 

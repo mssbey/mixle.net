@@ -115,6 +115,8 @@ export interface Category {
   cover: string;
   icon: string;
   subcategories: string[];
+  /** Üst kategorinin slug'ı; kök kategorilerde null. */
+  parentSlug: CategorySlug | null;
   accent: 'purple' | 'gold' | 'fresh' | 'dark';
 }
 

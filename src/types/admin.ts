@@ -112,7 +112,10 @@ export interface AdminCategory {
   description: string;
   cover: string;
   icon: string;
+  /** Serbest metin alt kategori etiketleri (ürün filtresi) — kategori ağacından ayrıdır. */
   subcategories: string[];
+  /** Üst kategori kimliği; kök kategorilerde null. */
+  parentId: string | null;
   accent: 'purple' | 'gold' | 'fresh' | 'dark';
   order: number;
 }

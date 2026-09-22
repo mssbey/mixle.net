@@ -34,8 +34,22 @@ export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
                       href={l.href}
                       onClick={onNavigate}
                       className="group flex flex-col rounded-md px-2 py-1.5 transition-colors hover:bg-mist"
+                      style={
+                        'depth' in l && l.depth ? { paddingLeft: 8 + l.depth * 12 } : undefined
+                      }
                     >
-                      <span className="text-sm font-semibold text-ink group-hover:text-brand-500">
+                      <span
+                        className={
+                          'depth' in l && l.depth
+                            ? 'text-sm font-medium text-ink-soft group-hover:text-brand-500'
+                            : 'text-sm font-semibold text-ink group-hover:text-brand-500'
+                        }
+                      >
+                        {'depth' in l && l.depth ? (
+                          <span aria-hidden="true" className="mr-1 text-line">
+                            └
+                          </span>
+                        ) : null}
                         {l.label}
                       </span>
                       {'hint' in l && l.hint && (

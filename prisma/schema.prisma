@@ -34,9 +34,14 @@ model Category {
   description   String  @default("")
   cover         String  @default("")
   icon          String  @default("")
-  subcategories Json // string[]
+  subcategories Json // string[] — eski serbest metin etiketleri (ürün filtresi)
   accent        String  @default("purple") // purple|gold|fresh|dark
   sortOrder     Int     @default(0)
+
+  /** WordPress'teki "üst kategori": boşsa kök kategori. */
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
 
   version   Int      @default(0)
   createdAt DateTime @default(now())
@@ -45,6 +50,7 @@ model Category {
   products ProductCategory[]
 
   @@index([sortOrder])
+  @@index([parentId])
 }
 
 model Collection {

@@ -2,7 +2,8 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { getCategories, getCategoryBySlug } from '@/data/categories';
+import Link from 'next/link';
+import { getCategories, getCategoryBySlug, getChildCategories } from '@/data/categories';
 import { getProductsByCategory } from '@/data/products';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
@@ -31,14 +32,29 @@ export default async function CategoryPage({ params }: { params: Params }) {
   const { slug } = await params;
   const cat = await getCategoryBySlug(slug);
   if (!cat) notFound();
-  const list = await getProductsByCategory(cat.slug);
+  const [list, children, parent] = await Promise.all([
+    getProductsByCategory(cat.slug),
+    getChildCategories(cat.slug),
+    cat.parentSlug ? getCategoryBySlug(cat.parentSlug) : Promise.resolve(undefined),
+  ]);
 
   return (
     <div>
-      <JsonLd data={breadcrumbJsonLd([{ name: cat.name, href: `/kategori/${cat.slug}` }])} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          ...(parent ? [{ name: parent.name, href: `/kategori/${parent.slug}` }] : []),
+          { name: cat.name, href: `/kategori/${cat.slug}` },
+        ])}
+      />
       <div className="border-b border-line bg-mist">
         <div className="container-page py-6">
-          <Breadcrumbs items={[{ label: cat.name }]} />
+          <Breadcrumbs
+            items={
+              parent
+                ? [{ label: parent.name, href: `/kategori/${parent.slug}` }, { label: cat.name }]
+                : [{ label: cat.name }]
+            }
+          />
           <div className="mt-3 grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               {cat.tagline && (
@@ -50,17 +66,33 @@ export default async function CategoryPage({ params }: { params: Params }) {
               {cat.description && (
                 <p className="mt-2 max-w-2xl text-sm text-ink-soft">{cat.description}</p>
               )}
-              {cat.subcategories.length > 0 && (
+              {/* Alt kategoriler ayrı kategorilerdir; kendi sayfalarına bağlanır.
+                  Ağaç kurulmamış eski kayıtlarda serbest metin etiketleri gösterilir. */}
+              {children.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {cat.subcategories.map((s) => (
-                    <span
-                      key={s}
-                      className="rounded-full border border-line bg-white px-2.5 py-1 text-xs text-ink-soft"
+                  {children.map((c) => (
+                    <Link
+                      key={c.slug}
+                      href={`/kategori/${c.slug}`}
+                      className="rounded-full border border-line bg-white px-2.5 py-1 text-xs text-ink-soft transition-colors hover:border-brand-500 hover:text-brand-500"
                     >
-                      {s}
-                    </span>
+                      {c.name}
+                    </Link>
                   ))}
                 </div>
+              ) : (
+                cat.subcategories.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {cat.subcategories.map((s) => (
+                      <span
+                        key={s}
+                        className="rounded-full border border-line bg-white px-2.5 py-1 text-xs text-ink-soft"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )
               )}
             </div>
             {cat.cover && (

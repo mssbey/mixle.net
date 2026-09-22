@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ExternalLink, Eye, Plus, X } from 'lucide-react';
+import { Copy, ExternalLink, Eye, Plus, X } from 'lucide-react';
 import type { ProductStatus } from '@/types/admin';
 import { productStatuses, statusLabels } from '@/types/admin';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EmptyState, StatusBadge, TableSkeleton } from '@/components/admin/primitives';
-import { listProducts, type ProductQuery } from '@/lib/admin/mutations';
+import { categoryTree, listProducts, type ProductQuery } from '@/lib/admin/mutations';
 import { priceRangeOf } from '@/lib/admin/variants';
 import { formatMinor } from '@/lib/admin/format';
 import { useDebounced } from '@/lib/hooks';
@@ -19,8 +19,25 @@ const PAGE_SIZE = 20;
 
 function ProductsView() {
   const params = useSearchParams();
-  const { status, catalog, categories, collections, categoryName, bulkProducts, canWrite } =
-    useAdminData();
+  const {
+    status,
+    catalog,
+    categories,
+    collections,
+    categoryName,
+    bulkProducts,
+    duplicateProduct,
+    canWrite,
+  } = useAdminData();
+
+  // Aynı satıra iki kez basılmasın diye çoğaltılan ürün kilitlenir.
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+
+  const duplicate = async (id: string) => {
+    setDuplicatingId(id);
+    await duplicateProduct(id);
+    setDuplicatingId(null);
+  };
 
   const [search, setSearch] = useState(params.get('search') ?? '');
   const [categoryId, setCategoryId] = useState('');
@@ -148,8 +165,9 @@ function ProductsView() {
             onChange={(e) => setCategoryId(e.target.value)}
           >
             <option value="">Tümü</option>
-            {categories.map((c) => (
+            {categoryTree(categories).map(({ category: c, depth }) => (
               <option key={c.id} value={c.id}>
+                {'— '.repeat(depth)}
                 {c.name}
               </option>
             ))}
@@ -288,8 +306,9 @@ function ProductsView() {
               onChange={(e) => setBulkCategory(e.target.value)}
             >
               <option value="">Kategori değiştir…</option>
-              {categories.map((c) => (
+              {categoryTree(categories).map(({ category: c, depth }) => (
                 <option key={c.id} value={c.id}>
+                  {'— '.repeat(depth)}
                   {c.name}
                 </option>
               ))}
@@ -419,6 +438,16 @@ function ProductsView() {
                           >
                             {p.status === 'yayında' ? <ExternalLink size={13} /> : <Eye size={13} />}
                           </a>
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn-ghost admin-btn-sm"
+                            disabled={!canWrite || duplicatingId === p.id}
+                            onClick={() => void duplicate(p.id)}
+                            aria-label={`${p.name} ürününü çoğalt`}
+                            title="Taslak kopya oluştur"
+                          >
+                            <Copy size={13} />
+                          </button>
                           <Link
                             href={`/admin/urunler/${p.slug}`}
                             className="admin-btn admin-btn-ghost admin-btn-sm"
@@ -463,6 +492,15 @@ function ProductsView() {
                             ? formatMinor(range.min)
                             : `${formatMinor(range.min)}–${formatMinor(range.max)}`}
                         </span>
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn-ghost admin-btn-sm ml-auto"
+                          disabled={!canWrite || duplicatingId === p.id}
+                          onClick={() => void duplicate(p.id)}
+                          aria-label={`${p.name} ürününü çoğalt`}
+                        >
+                          <Copy size={13} /> Çoğalt
+                        </button>
                       </div>
                     </div>
                   </div>

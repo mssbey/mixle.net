@@ -2,23 +2,25 @@
 
 import { createPortal } from 'react-dom';
 import { useMemo, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { CornerDownRight, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { AdminCategory, AdminCollection } from '@/types/admin';
 import { useAdminData } from './AdminDataProvider';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ImagePicker } from './ImagePicker';
 import { EmptyState, Field, TableSkeleton } from './primitives';
 import { ReorderableList } from './ReorderableList';
 import { UnsavedGuard } from './UnsavedGuard';
 import { useDialog, useMounted, useScrollLock } from '@/lib/hooks';
 import { slugify } from '@/lib/utils';
 import { localId } from '@/lib/admin/variants';
+import { categoryDescendantIds } from '@/lib/admin/mutations';
 
 type Kind = 'category' | 'collection';
 type Item = AdminCategory | AdminCollection;
 
 const ACCENTS = ['purple', 'gold', 'fresh', 'dark'] as const;
 
-function blankCategory(): AdminCategory {
+function blankCategory(parentId: string | null = null): AdminCategory {
   return {
     id: localId('cat'),
     slug: '',
@@ -28,6 +30,7 @@ function blankCategory(): AdminCategory {
     cover: '',
     icon: '',
     subcategories: [],
+    parentId,
     accent: 'purple',
     order: 999,
   };
@@ -46,58 +49,180 @@ function blankCollection(): AdminCollection {
   };
 }
 
+/** Bir üst kategorinin doğrudan çocukları, panel sırasına göre. */
+function childrenOf(categories: AdminCategory[], parentId: string | null): AdminCategory[] {
+  return categories.filter((c) => (c.parentId ?? null) === parentId);
+}
+
+/**
+ * Ağacı derinlik-öncelikli düz listeye indirger: sunucuya gönderilen
+ * `orderedIds` her zaman "önce üst, hemen ardından altları" sırasındadır.
+ */
+function flattenTree(categories: AdminCategory[], parentId: string | null = null): string[] {
+  return childrenOf(categories, parentId).flatMap((c) => [c.id, ...flattenTree(categories, c.id)]);
+}
+
 export function TaxonomyManager({ kind }: { kind: Kind }) {
   const data = useAdminData();
   const mounted = useMounted();
 
-  const list: Item[] = kind === 'category' ? data.categories : data.collections;
+  const isCategory = kind === 'category';
+  const list: Item[] = isCategory ? data.categories : data.collections;
+  const categories = data.categories;
+
   const usageCount = useMemo(() => {
     const map = new Map<string, number>();
     for (const p of data.products) {
-      const ids = kind === 'category' ? p.categoryIds : p.collectionIds;
+      const ids = isCategory ? p.categoryIds : p.collectionIds;
       for (const id of ids) map.set(id, (map.get(id) ?? 0) + 1);
     }
     return map;
-  }, [data.products, kind]);
+  }, [data.products, isCategory]);
 
   const [editing, setEditing] = useState<Item | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const openNew = () => {
-    setEditing(kind === 'category' ? blankCategory() : blankCollection());
+  const openNew = (parentId: string | null = null) => {
+    setEditing(isCategory ? blankCategory(parentId) : blankCollection());
     setCreating(true);
   };
 
-  const reorder = (orderedIds: string[]) => {
-    if (kind === 'category') void data.reorderCategories(orderedIds);
-    else void data.reorderCollections(orderedIds);
+  const openEdit = (item: Item) => {
+    setEditing(item);
+    setCreating(false);
   };
 
   const remove = async (id: string) => {
     setConfirmId(null);
-    if (kind === 'category') await data.deleteCategory(id);
+    if (isCategory) await data.deleteCategory(id);
     else await data.deleteCollection(id);
   };
 
-  const title = kind === 'category' ? 'Kategoriler' : 'Koleksiyonlar';
+  /**
+   * Kardeş grubu içinde sıralama. Ağacın geri kalanı korunur; sunucuya
+   * yeniden hesaplanmış tam DFS sırası gider.
+   */
+  const reorderSiblings = (parentId: string | null, orderedIds: string[]) => {
+    // Grubun elindeki sıra değerleri (slotlar) sabit kalır, yalnızca hangi
+    // kaydın hangi slota düştüğü değişir — ağacın geri kalanı yerinde kalır.
+    const slots = childrenOf(categories, parentId)
+      .map((c) => c.order)
+      .sort((a, b) => a - b);
+    const orderById = new Map(categories.map((c) => [c.id, c.order]));
+    orderedIds.forEach((id, i) => orderById.set(id, slots[i] ?? i));
+    const next = [...categories].sort(
+      (a, b) => (orderById.get(a.id) ?? 0) - (orderById.get(b.id) ?? 0),
+    );
+    void data.reorderCategories(flattenTree(next));
+  };
+
+  const rootCount = isCategory ? childrenOf(categories, null).length : list.length;
+  const title = isCategory ? 'Kategoriler' : 'Koleksiyonlar';
+  const confirmTarget = list.find((i) => i.id === confirmId);
+  const childCount = isCategory && confirmTarget
+    ? childrenOf(categories, confirmTarget.id).length
+    : 0;
 
   if (data.status === 'loading') return <TableSkeleton rows={5} />;
+
+  const row = (item: Item, depth: number) => (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="flex items-center gap-1 truncate text-sm font-medium text-[var(--brand-purple-deep)]">
+          {depth > 0 && (
+            <CornerDownRight
+              size={13}
+              className="shrink-0 text-[var(--admin-ink-soft)]"
+              aria-hidden="true"
+            />
+          )}
+          {item.name || <span className="italic text-[var(--admin-ink-soft)]">(adsız)</span>}
+        </p>
+        <p className="admin-hint truncate">
+          /{item.slug} · {usageCount.get(item.id) ?? 0} ürün
+          {isCategory && childrenOf(categories, item.id).length > 0
+            ? ` · ${childrenOf(categories, item.id).length} alt kategori`
+            : ''}
+        </p>
+      </div>
+      <div className="flex shrink-0 gap-1.5">
+        {isCategory && (
+          <button
+            type="button"
+            className="admin-btn admin-btn-ghost admin-btn-sm"
+            disabled={!data.canWrite}
+            onClick={() => openNew(item.id)}
+            aria-label={`${item.name} altına alt kategori ekle`}
+            title="Alt kategori ekle"
+          >
+            <Plus size={13} />
+          </button>
+        )}
+        <button
+          type="button"
+          className="admin-btn admin-btn-ghost admin-btn-sm"
+          onClick={() => openEdit(item)}
+          aria-label={`${item.name} düzenle`}
+        >
+          <Pencil size={13} />
+        </button>
+        <button
+          type="button"
+          className="admin-btn admin-btn-danger admin-btn-sm"
+          disabled={!data.canWrite}
+          onClick={() => setConfirmId(item.id)}
+          aria-label={`${item.name} sil`}
+        >
+          <Trash2 size={13} />
+        </button>
+      </div>
+    </div>
+  );
+
+  /** Bir seviyeyi çizer; alt seviyeler kendi sürükle-bırak listesinde iç içe gelir. */
+  const branch = (parentId: string | null, depth: number) => {
+    const items = childrenOf(categories, parentId);
+    if (items.length === 0) return null;
+    return (
+      <ReorderableList
+        items={items}
+        getId={(item) => item.id}
+        disabled={!data.canWrite}
+        onReorder={(ids) => reorderSiblings(parentId, ids)}
+        renderItem={(item) => (
+          <div className="flex flex-col gap-1.5">
+            {row(item, depth)}
+            {childrenOf(categories, item.id).length > 0 && (
+              <div className="ml-3 border-l-2 border-[var(--admin-line)] pl-3">
+                {branch(item.id, depth + 1)}
+              </div>
+            )}
+          </div>
+        )}
+      />
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-[var(--brand-purple-deep)]">{title}</h1>
-          <p className="admin-hint mt-0.5">Sürükleyerek sıralayın · {list.length} kayıt</p>
+          <p className="admin-hint mt-0.5">
+            Sürükleyerek sıralayın · {list.length} kayıt
+            {isCategory && list.length !== rootCount
+              ? ` (${rootCount} ana, ${list.length - rootCount} alt)`
+              : ''}
+          </p>
         </div>
         <button
           type="button"
           className="admin-btn admin-btn-primary"
-          onClick={openNew}
+          onClick={() => openNew(null)}
           disabled={!data.canWrite}
         >
-          <Plus size={15} aria-hidden="true" /> Yeni {kind === 'category' ? 'kategori' : 'koleksiyon'}
+          <Plus size={15} aria-hidden="true" /> Yeni {isCategory ? 'kategori' : 'koleksiyon'}
         </button>
       </header>
 
@@ -105,47 +230,24 @@ export function TaxonomyManager({ kind }: { kind: Kind }) {
         <div className="admin-card">
           <EmptyState title="Kayıt yok" hint="İlk kaydı ekleyin." />
         </div>
+      ) : isCategory ? (
+        branch(null, 0)
       ) : (
         <ReorderableList
           items={list}
           getId={(item) => item.id}
           disabled={!data.canWrite}
-          onReorder={reorder}
-          renderItem={(item) => (
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-[var(--brand-purple-deep)]">
-                  {item.name || <span className="italic text-[var(--admin-ink-soft)]">(adsız)</span>}
-                </p>
-                <p className="admin-hint truncate">
-                  /{item.slug} · {usageCount.get(item.id) ?? 0} ürün
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-1.5">
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-ghost admin-btn-sm"
-                  onClick={() => {
-                    setEditing(item);
-                    setCreating(false);
-                  }}
-                  aria-label={`${item.name} düzenle`}
-                >
-                  <Pencil size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-danger admin-btn-sm"
-                  disabled={!data.canWrite}
-                  onClick={() => setConfirmId(item.id)}
-                  aria-label={`${item.name} sil`}
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </div>
-          )}
+          onReorder={(ids) => void data.reorderCollections(ids)}
+          renderItem={(item) => row(item, 0)}
         />
+      )}
+
+      {isCategory && (
+        <p className="admin-hint">
+          Alt kategoriler üst kategorinin altında girintili görünür. Sürükleme yalnızca aynı
+          seviyedeki kardeşler arasında çalışır; seviyeyi değiştirmek için kaydı düzenleyip
+          <strong> Üst kategori</strong> alanını değiştirin.
+        </p>
       )}
 
       {mounted &&
@@ -164,8 +266,12 @@ export function TaxonomyManager({ kind }: { kind: Kind }) {
 
       <ConfirmDialog
         open={confirmId !== null}
-        title={`${kind === 'category' ? 'Kategoriyi' : 'Koleksiyonu'} sil?`}
-        description="Bağlı ürünlerden bu bağ kaldırılır. Bir kategoriye tek bağlı ürün varsa silme engellenir."
+        title={`${isCategory ? 'Kategoriyi' : 'Koleksiyonu'} sil?`}
+        description={
+          childCount > 0
+            ? `Bağlı ürünlerden bu bağ kaldırılır. ${childCount} alt kategori silinmez, bir üst seviyeye taşınır. Bir kategoriye tek bağlı ürün varsa silme engellenir.`
+            : 'Bağlı ürünlerden bu bağ kaldırılır. Bir kategoriye tek bağlı ürün varsa silme engellenir.'
+        }
         confirmLabel="Sil"
         destructive
         onConfirm={() => confirmId && remove(confirmId)}
@@ -202,6 +308,28 @@ function TaxonomyDrawer({
   const isCategory = kind === 'category';
   const cat = draft as AdminCategory;
   const col = draft as AdminCollection;
+
+  // Üst kategori seçenekleri: kendisi ve kendi alt ağacı hariç (döngü olmasın).
+  const parentOptions = useMemo(() => {
+    if (!isCategory) return [];
+    const blocked = new Set(creating ? [cat.id] : categoryDescendantIds(data.categories, cat.id));
+    const depth = new Map<string, number>();
+    const walk = (parentId: string | null, level: number) => {
+      for (const c of data.categories.filter((x) => (x.parentId ?? null) === parentId)) {
+        depth.set(c.id, level);
+        walk(c.id, level + 1);
+      }
+    };
+    walk(null, 0);
+    return data.categories
+      .filter((c) => !blocked.has(c.id))
+      .sort((a, b) => a.order - b.order)
+      .map((c) => ({ id: c.id, label: `${'— '.repeat(depth.get(c.id) ?? 0)}${c.name || c.slug}` }));
+  }, [isCategory, creating, cat.id, data.categories]);
+
+  const children = isCategory
+    ? data.categories.filter((c) => c.parentId === cat.id && c.id !== cat.id)
+    : [];
 
   const set = (patch: Partial<AdminCategory> & Partial<AdminCollection>) =>
     setDraft((d) => ({ ...d, ...patch }) as Item);
@@ -269,6 +397,45 @@ function TaxonomyDrawer({
 
           {isCategory ? (
             <>
+              <Field
+                label="Üst kategori"
+                htmlFor="tx-parent"
+                hint="Boş bırakılırsa ana kategori olur. Seçilirse bu kategori seçilenin altında listelenir."
+              >
+                <select
+                  id="tx-parent"
+                  className="admin-select"
+                  value={cat.parentId ?? ''}
+                  disabled={readOnly}
+                  onChange={(e) => set({ parentId: e.target.value || null })}
+                >
+                  <option value="">Yok (ana kategori)</option>
+                  {parentOptions.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              {children.length > 0 && (
+                <Field label="Alt kategoriler" htmlFor="tx-children">
+                  <ul id="tx-children" className="flex flex-wrap gap-1.5">
+                    {children.map((c) => (
+                      <li
+                        key={c.id}
+                        className="rounded-full border border-[var(--admin-line)] px-2.5 py-1 text-xs text-[var(--admin-ink-soft)]"
+                      >
+                        {c.name || c.slug}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="admin-hint">
+                    Alt kategoriler ayrı birer kategoridir; kendi sayfalarından düzenlenir.
+                  </p>
+                </Field>
+              )}
+
               <Field label="Slogan" htmlFor="tx-tagline">
                 <input
                   id="tx-tagline"
@@ -293,33 +460,13 @@ function TaxonomyDrawer({
                   ))}
                 </select>
               </Field>
-              <Field label="İkon (yol)" htmlFor="tx-icon">
-                <input
-                  id="tx-icon"
-                  className="admin-input"
+              <Field label="İkon">
+                <ImagePicker
+                  label="İkon"
+                  shape="square"
                   value={cat.icon}
                   disabled={readOnly}
-                  onChange={(e) => set({ icon: e.target.value })}
-                />
-              </Field>
-              <Field
-                label="Alt kategoriler"
-                htmlFor="tx-subs"
-                hint="Virgülle ayırın"
-              >
-                <input
-                  id="tx-subs"
-                  className="admin-input"
-                  value={cat.subcategories.join(', ')}
-                  disabled={readOnly}
-                  onChange={(e) =>
-                    set({
-                      subcategories: e.target.value
-                        .split(',')
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    })
-                  }
+                  onChange={(src) => set({ icon: src })}
                 />
               </Field>
             </>
@@ -346,13 +493,12 @@ function TaxonomyDrawer({
             </>
           )}
 
-          <Field label="Kapak görseli (yol)" htmlFor="tx-cover">
-            <input
-              id="tx-cover"
-              className="admin-input"
+          <Field label="Kapak görseli">
+            <ImagePicker
+              label="Kapak görseli"
               value={draft.cover}
               disabled={readOnly}
-              onChange={(e) => set({ cover: e.target.value })}
+              onChange={(src) => set({ cover: src })}
             />
           </Field>
           <Field label="Açıklama" htmlFor="tx-desc">
