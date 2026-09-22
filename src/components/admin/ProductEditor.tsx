@@ -8,6 +8,7 @@ import type { BadgeKind, FlavorNote, FlavorProfile, ProductForm } from '@/types'
 import { productStatuses, statusLabels } from '@/types/admin';
 import { adminProductSchema, fieldErrors } from '@/lib/admin/schema';
 import { categoryTree } from '@/lib/admin/mutations';
+import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
 import { hiddenDefaultVariant, localId } from '@/lib/admin/variants';
 import { slugify } from '@/lib/utils';
 import { formatDateTime } from '@/lib/admin/format';
@@ -611,24 +612,28 @@ export function ProductEditor({ initial, mode }: Props) {
               ))}
             </div>
 
-            <h2 className="mb-2 mt-4 text-sm font-semibold text-[var(--brand-purple-deep)]">
-              Koleksiyonlar
-            </h2>
-            <div className="flex flex-col gap-1">
-              {collections.map((c) => (
-                <label key={c.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={draft.collectionIds.includes(c.id)}
-                    disabled={readOnly}
-                    onChange={() =>
-                      set({ collectionIds: toggleInArray(draft.collectionIds, c.id) })
-                    }
-                  />
-                  {c.name}
-                </label>
-              ))}
-            </div>
+            {COLLECTIONS_ENABLED && (
+              <>
+                <h2 className="mb-2 mt-4 text-sm font-semibold text-[var(--brand-purple-deep)]">
+                  Koleksiyonlar
+                </h2>
+                <div className="flex flex-col gap-1">
+                  {collections.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={draft.collectionIds.includes(c.id)}
+                        disabled={readOnly}
+                        onChange={() =>
+                          set({ collectionIds: toggleInArray(draft.collectionIds, c.id) })
+                        }
+                      />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
           </section>
 
           <section className="admin-card" style={{ padding: 16 }}>

@@ -19,6 +19,7 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { TableSkeleton } from '@/components/admin/primitives';
 import { adminApi, ApiError } from '@/lib/admin/client';
 import { formatDateTime } from '@/lib/admin/format';
+import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
 import { toast } from '@/store/toast';
 import type { Permission } from '@/server/auth/rbac';
 
@@ -112,12 +113,16 @@ export default function AdminSettingsPage() {
         <div className="admin-stat" style={{ padding: 0 }}>
           <span className="admin-stat-value">
             {categories.length}
-            <span className="text-base font-medium text-[var(--admin-ink-soft)]">
-              {' '}
-              / {collections.length}
-            </span>
+            {COLLECTIONS_ENABLED && (
+              <span className="text-base font-medium text-[var(--admin-ink-soft)]">
+                {' '}
+                / {collections.length}
+              </span>
+            )}
           </span>
-          <span className="admin-stat-label">Kategori / Koleksiyon</span>
+          <span className="admin-stat-label">
+            {COLLECTIONS_ENABLED ? 'Kategori / Koleksiyon' : 'Kategori'}
+          </span>
         </div>
         <div className="admin-stat" style={{ padding: 0 }}>
           <span className="text-sm font-semibold text-[var(--brand-purple-deep)]">

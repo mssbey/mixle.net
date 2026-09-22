@@ -160,7 +160,9 @@ export const adminCategorySchema = z.object({
     .nullish()
     .transform((v) => v ?? null),
   accent: accentSchema,
-  order: z.number().int().min(0),
+  // Sıra negatif olabilir: bir kaydı listenin başına sabitlemek için -1 gibi
+  // değerler kullanılıyor (ör. puff-aromalar). min(0) kaydetmeyi engelliyordu.
+  order: z.number().int(),
 });
 
 export const adminCollectionSchema = z.object({
@@ -171,7 +173,7 @@ export const adminCollectionSchema = z.object({
   description: z.string().trim().max(600),
   cover: z.string().trim().max(300),
   atmosphere: z.string().trim().max(200),
-  order: z.number().int().min(0),
+  order: z.number().int(),
 });
 
 export const catalogFileSchema = z.object({

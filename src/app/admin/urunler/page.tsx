@@ -10,6 +10,7 @@ import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EmptyState, StatusBadge, TableSkeleton } from '@/components/admin/primitives';
 import { categoryTree, listProducts, type ProductQuery } from '@/lib/admin/mutations';
+import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
 import { priceRangeOf } from '@/lib/admin/variants';
 import { formatMinor } from '@/lib/admin/format';
 import { useDebounced } from '@/lib/hooks';
@@ -173,24 +174,26 @@ function ProductsView() {
             ))}
           </select>
         </div>
-        <div className="admin-field">
-          <label className="admin-label" htmlFor="flt-col">
-            Koleksiyon
-          </label>
-          <select
-            id="flt-col"
-            className="admin-select"
-            value={collectionId}
-            onChange={(e) => setCollectionId(e.target.value)}
-          >
-            <option value="">Tümü</option>
-            {collections.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {COLLECTIONS_ENABLED && (
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="flt-col">
+              Koleksiyon
+            </label>
+            <select
+              id="flt-col"
+              className="admin-select"
+              value={collectionId}
+              onChange={(e) => setCollectionId(e.target.value)}
+            >
+              <option value="">Tümü</option>
+              {collections.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="admin-field">
           <label className="admin-label" htmlFor="flt-status">
             Durum

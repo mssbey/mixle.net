@@ -11,7 +11,6 @@ import {
   Truck,
   Package,
   FolderTree,
-  Layers,
   Users,
   RotateCcw,
   Tag,
@@ -44,7 +43,6 @@ const NAV = [
   { href: '/admin/urunler', label: 'Ürünler', icon: Package, exact: false },
   { href: '/admin/gorseller', label: 'Görseller', icon: ImageIcon, exact: false },
   { href: '/admin/kategoriler', label: 'Kategoriler', icon: FolderTree, exact: false },
-  { href: '/admin/koleksiyonlar', label: 'Koleksiyonlar', icon: Layers, exact: false },
   { href: '/admin/kuponlar', label: 'Kuponlar', icon: Tag, exact: false },
   { href: '/admin/indirimler', label: 'İndirimler', icon: BadgePercent, exact: false },
   { href: '/admin/stok', label: 'Stok', icon: Boxes, exact: false },
@@ -52,6 +50,8 @@ const NAV = [
   { href: '/admin/ayarlar', label: 'Ayarlar', icon: Settings, exact: false },
 ];
 
+// Koleksiyonlar panelde gizli (bkz. features.ts); rota yerinde durduğu için
+// kırıntı etiketi listede kalır.
 const CRUMB_LABELS: Record<string, string> = {
   admin: 'Panel',
   siparisler: 'Siparişler',
