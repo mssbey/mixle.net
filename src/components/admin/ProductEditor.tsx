@@ -95,7 +95,6 @@ export function ProductEditor({ initial, mode }: Props) {
   const [draft, setDraft] = useState<AdminProduct>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [slugTouched, setSlugTouched] = useState(mode === 'edit');
   const [duplicating, setDuplicating] = useState(false);
 
   const dirty = useMemo(() => JSON.stringify(draft) !== baseline, [draft, baseline]);
@@ -106,13 +105,9 @@ export function ProductEditor({ initial, mode }: Props) {
 
   const set = (patch: Partial<AdminProduct>) => setDraft((d) => ({ ...d, ...patch }));
 
-  const onName = (name: string) => {
-    set(
-      slugTouched
-        ? { name }
-        : { name, slug: slugify(name) },
-    );
-  };
+  // Slug her zaman ürün adını izler (kopyada da); slug alanı elle düzeltilebilir
+  // ama ad yeniden değiştiğinde addan tekrar üretilir.
+  const onName = (name: string) => set({ name, slug: slugify(name) });
 
   const toggleInArray = <T,>(list: T[], value: T): T[] =>
     list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
@@ -144,6 +139,8 @@ export function ProductEditor({ initial, mode }: Props) {
         const synced = { ...(parsed.data as AdminProduct) };
         setBaseline(JSON.stringify(synced));
         setDraft(synced);
+        // Ad değişince slug da değişir; editör adresi yeni slug'a taşınmalı.
+        if (synced.slug !== saved.slug) router.replace(`/admin/urunler/${synced.slug}`);
       }
     }
   };
@@ -234,10 +231,7 @@ export function ProductEditor({ initial, mode }: Props) {
                     value={draft.slug}
                     disabled={readOnly}
                     aria-invalid={err('slug') ? 'true' : undefined}
-                    onChange={(e) => {
-                      setSlugTouched(true);
-                      set({ slug: e.target.value });
-                    }}
+                    onChange={(e) => set({ slug: e.target.value })}
                   />
                 </Field>
                 <Field label="Seri" htmlFor="p-series" error={err('series')}>

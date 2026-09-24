@@ -38,6 +38,9 @@ export function cartesian(options: ProductOption[]): Record<string, string>[] {
   );
 }
 
+/** Yeni ürün/varyant açıldığında önerilen stok; editörde elle değiştirilebilir. */
+export const DEFAULT_NEW_STOCK = 6000;
+
 export function emptyVariant(overrides: Partial<AdminVariant> = {}): AdminVariant {
   return {
     id: localId('var'),
@@ -46,7 +49,7 @@ export function emptyVariant(overrides: Partial<AdminVariant> = {}): AdminVarian
     sku: '',
     priceMinor: 0,
     compareAtPriceMinor: null,
-    stock: 0,
+    stock: DEFAULT_NEW_STOCK,
     barcode: null,
     image: null,
     isDefault: false,
