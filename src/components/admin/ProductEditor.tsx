@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Copy, CopyPlus, ExternalLink, Eye, Plus, Trash2 } from 'lucide-react';
+import { Copy, ExternalLink, Eye, Plus, Trash2 } from 'lucide-react';
 import type { AdminProduct, ProductStatus } from '@/types/admin';
 import type { BadgeKind, FlavorNote, FlavorProfile } from '@/types';
 import { productStatuses, statusLabels } from '@/types/admin';
@@ -148,15 +148,12 @@ export function ProductEditor({ initial, mode }: Props) {
     }
   };
 
-  /**
-   * WordPress "Kopyala" / "Yeni bir taslak kopyalayın": tek bir çoğaltma
-   * işlemi, iki giriş noktası — `open` kopyanın düzenleme ekranını açar.
-   */
-  const duplicate = async (open: boolean) => {
+  /** WordPress "Kopyala": taslak kopya oluşturur ve kopyanın düzenleme ekranını açar. */
+  const duplicate = async () => {
     setDuplicating(true);
     const copy = await duplicateProduct(saved.id);
     setDuplicating(false);
-    if (copy && open) router.push(`/admin/urunler/${copy.slug}`);
+    if (copy) router.push(`/admin/urunler/${copy.slug}`);
   };
 
   const discard = () => {
@@ -203,19 +200,10 @@ export function ProductEditor({ initial, mode }: Props) {
               type="button"
               className="admin-btn admin-btn-ghost"
               disabled={readOnly || duplicating}
-              onClick={() => void duplicate(false)}
-              title="Bu ürünün taslak bir kopyasını oluştur, bu ekranda kal"
-            >
-              <Copy size={14} /> {duplicating ? 'Kopyalanıyor…' : 'Kopyala'}
-            </button>
-            <button
-              type="button"
-              className="admin-btn admin-btn-ghost"
-              disabled={readOnly || duplicating}
-              onClick={() => void duplicate(true)}
+              onClick={() => void duplicate()}
               title="Taslak kopya oluştur ve kopyayı düzenlemeye aç"
             >
-              <CopyPlus size={14} /> Yeni bir taslak kopyala
+              <Copy size={14} /> {duplicating ? 'Kopyalanıyor…' : 'Kopyala'}
             </button>
           </div>
         )}

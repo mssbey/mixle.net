@@ -130,6 +130,20 @@ model Product {
   @@index([newArrival])
 }
 
+/// Çöp kutusu: silinen ürünün tam anlık görüntüsü (AdminProduct JSON).
+/// Silme işlemi ürünü katalogdan kaldırır, buraya kopyalar; geri yükleme
+/// anlık görüntüyü aynı kimliklerle yeniden yazar. 30 gün sonra kalıcı silinir.
+model ProductTrash {
+  id        String   @id
+  slug      String
+  name      String
+  snapshot  Json
+  deletedBy String?
+  deletedAt DateTime @default(now())
+
+  @@index([deletedAt])
+}
+
 /// Ürün ↔ kategori. `position` sırayı korur: vitrin birincil kategori olarak
 /// position=0 olanı kullanır (eski `categoryIds[0]` davranışı).
 model ProductCategory {

@@ -1,6 +1,7 @@
 import { handle, readJson } from '@/lib/admin/http';
 import { bulkProducts, type BulkAction } from '@/lib/admin/mutations';
-import { readCatalog, removeProduct, saveProducts } from '@/server/catalog/persist';
+import { readCatalog, saveProducts } from '@/server/catalog/persist';
+import { trashProducts } from '@/server/catalog/trash';
 import { writeAudit } from '@/server/audit';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,8 @@ export function POST(request: Request): Promise<Response> {
 
       const remaining = new Set(next.products.map((p) => p.id));
       const removed = catalog.products.filter((p) => !remaining.has(p.id));
-      for (const p of removed) await removeProduct(p.id);
+      // Kalıcı silme yok: çöp kutusuna taşınır.
+      await trashProducts(removed, user.email);
       await writeAudit({
         user,
         action: 'sil',

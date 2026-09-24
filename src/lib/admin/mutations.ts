@@ -96,6 +96,24 @@ export function duplicateSlugCandidates(slug: string, count = 30): string[] {
  * alır; varyant eşleşmeleri (comboKey/optionValues) yeni kimliklere göre
  * yeniden kurulur.
  */
+/**
+ * Metni `max` karaktere sığdırır (mümkünse kelime sınırında). İçe aktarılmış
+ * eski ürünlerde alanlar bugünkü doğrulama sınırlarını aşabiliyor; kopya bu
+ * yüzden reddedilmemeli.
+ */
+function fit(text: string, max: number): string {
+  const t = text.trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const space = cut.lastIndexOf(' ');
+  return (space > max * 0.6 ? cut.slice(0, space) : cut).trim();
+}
+
+/** Ek sona sığsın diye tabanı kısaltır: "Uzun ad… (Kopya)". */
+function withSuffix(base: string, suffix: string, max: number): string {
+  return `${fit(base, max - suffix.length - 1)} ${suffix}`;
+}
+
 export function duplicateProduct(
   catalog: CatalogFile,
   id: string,
@@ -141,7 +159,7 @@ export function duplicateProduct(
       optionValues,
       comboKey: comboKeyOf(options, optionValues),
       // SKU'lar stok raporlarında karışmasın diye işaretlenir.
-      sku: v.sku ? `${v.sku}-KOPYA` : '',
+      sku: v.sku ? `${fit(v.sku, 58)}-KOPYA` : '',
       barcode: null,
     };
   });
@@ -151,10 +169,20 @@ export function duplicateProduct(
     ...clone(source),
     id: localId('prd'),
     slug,
-    name: `${source.name} ${suffix}`,
+    name: withSuffix(source.name, suffix, 120),
+    series: fit(source.series, 80),
+    subcategory: fit(source.subcategory, 80),
+    shortDescription: fit(source.shortDescription || source.name, 280),
+    description: fit(source.description, 6000),
+    usageRate: fit(source.usageRate, 160),
+    steepTime: fit(source.steepTime, 160),
+    origin: fit(source.origin, 200),
     // WordPress kopyayı her zaman taslak olarak açar.
     status: 'taslak',
-    seo: { ...source.seo, title: source.seo.title ? `${source.seo.title} ${suffix}` : '' },
+    seo: {
+      title: source.seo.title ? withSuffix(source.seo.title, suffix, 70) : '',
+      description: fit(source.seo.description, 180),
+    },
     images: source.images.map((img) => ({ ...img, id: localId('img') })),
     options,
     variants,

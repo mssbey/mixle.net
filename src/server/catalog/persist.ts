@@ -219,12 +219,6 @@ export async function saveProducts(products: AdminProduct[]): Promise<void> {
   for (const p of products) await saveProduct(p);
 }
 
-export async function removeProduct(id: string): Promise<void> {
-  // Alt kayıtlar `onDelete: Cascade` ile birlikte silinir.
-  await db.product.delete({ where: { id } });
-  revalidateCatalog();
-}
-
 // -------------------------------------------------------------- taksonomi ---
 
 export async function saveCategory(category: AdminCategory): Promise<void> {

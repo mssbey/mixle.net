@@ -68,6 +68,8 @@ export const ordersApi = {
       body: JSON.stringify({ to, note, visibleToCustomer }),
     }),
 
+  setPaymentStatus: (id: string, to: 'ödendi' | 'bekliyor' | 'başarısız', note?: string) =>
+    request<{ order: AdminOrderView }>(`/api/admin/orders/${encodeURIComponent(id)}/odeme`, { method: 'PATCH', body: JSON.stringify({ to, note }) }),
   recordPayment: (id: string, body: { amountMinor: number; method: string; reference?: string; note?: string }) =>
     request<{ order: AdminOrderView }>(`/api/admin/orders/${encodeURIComponent(id)}/odeme`, { method: 'POST', body: JSON.stringify(body) }),
 

@@ -26,6 +26,7 @@ import {
   LogOut,
   Store,
   UserRound,
+  Trash2,
 } from 'lucide-react';
 import { adminApi } from '@/lib/admin/client';
 import { toast } from '@/store/toast';
@@ -41,6 +42,7 @@ const NAV = [
   { href: '/admin/iadeler', label: 'İadeler', icon: RotateCcw, exact: false },
   { href: '/admin/musteriler', label: 'Müşteriler', icon: Users, exact: false },
   { href: '/admin/urunler', label: 'Ürünler', icon: Package, exact: false },
+  { href: '/admin/urunler/cop-kutusu', label: 'Çöp kutusu', icon: Trash2, exact: false },
   { href: '/admin/gorseller', label: 'Görseller', icon: ImageIcon, exact: false },
   { href: '/admin/kategoriler', label: 'Kategoriler', icon: FolderTree, exact: false },
   { href: '/admin/kuponlar', label: 'Kuponlar', icon: Tag, exact: false },
@@ -75,6 +77,7 @@ const CRUMB_LABELS: Record<string, string> = {
   kullanicilar: 'Kullanıcılar',
   ayarlar: 'Ayarlar',
   yeni: 'Yeni',
+  'cop-kutusu': 'Çöp kutusu',
 };
 
 const COLLAPSE_KEY = 'na-admin-sidebar-collapsed';
@@ -166,7 +169,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
         <nav className="flex flex-col gap-1">
           {NAV.map((item) => {
-            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+            // En uzun eşleşen bağlantı etkin: /admin/urunler/cop-kutusu'da "Ürünler" yanmaz.
+            const matches = (href: string, exact: boolean) => (exact ? pathname === href : pathname.startsWith(href));
+            const active = matches(item.href, item.exact) && !NAV.some((o) => o.href.length > item.href.length && o.href.startsWith(item.href) && matches(o.href, o.exact));
             const Icon = item.icon;
             return (
               <Link

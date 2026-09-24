@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Download, Plus, ChevronLeft, ChevronRight, Filter, X } from 'lucide-react';
+import { Search, Download, Plus, ChevronLeft, ChevronRight, Filter, X, Printer, FileText } from 'lucide-react';
 import { ordersApi, type OrderListParams } from '@/lib/admin/orders-client';
 import { ApiError } from '@/lib/admin/client';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
@@ -17,8 +17,11 @@ import type { OrderListResult } from '@/server/orders/admin-view';
 import { ORDER_TABS, type OrderTab } from '@/server/orders/order-tabs';
 import { ORDER_STATUSES, orderStatusLabels, type OrderStatus } from '@/server/orders/state-machine';
 import { CARRIERS, carrierLabels } from '@/server/shipping/carriers';
-import { OrderStatusChip, SmallChip, dateTime, paymentStatusLabels } from './status';
+import { OrderStatusChip, dateTime } from './status';
+import { PaymentStatusMenu } from './PaymentStatusMenu';
 import { cn } from '@/lib/utils';
+
+const printUrl = (ids: string[], tip: 'irsaliye' | 'fatura') => `/admin/siparisler/yazdir?tip=${tip}&ids=${ids.join(',')}`;
 
 const PAYMENT_METHODS = [
   { id: 'kart', label: 'Kart' },
@@ -117,6 +120,25 @@ export function OrderList() {
     }
   };
 
+  const runBulkPayment = async (to: 'ödendi' | 'bekliyor') => {
+    if (!data) return;
+    setBulkBusy(true);
+    const targets = data.items.filter((o) => selected.has(o.id) && o.paymentStatus !== to);
+    const failed: string[] = [];
+    for (const o of targets) {
+      try {
+        await ordersApi.setPaymentStatus(o.id, to);
+      } catch (err) {
+        failed.push(`${o.orderNumber}: ${err instanceof ApiError ? err.message : 'Hata'}`);
+      }
+    }
+    setBulkBusy(false);
+    const ok = targets.length - failed.length;
+    if (failed.length === 0) toast.success(`${ok} siparişin ödeme durumu güncellendi`);
+    else toast.error(`${ok} başarılı, ${failed.length} başarısız`, failed.join(' · '));
+    load();
+  };
+
   const sortBy = (col: NonNullable<OrderListParams['sort']>) =>
     setParams({ sort: col, dir: params.sort === col && params.dir === 'desc' ? 'asc' : 'desc' }, false);
   const sortMark = (col: string) => (params.sort === col ? (params.dir === 'desc' ? ' ↓' : ' ↑') : '');
@@ -129,6 +151,17 @@ export function OrderList() {
           <p className="admin-hint">{data ? `${data.total} sipariş` : '…'}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {data && data.items.length > 0 && (
+            <a
+              className="admin-btn admin-btn-ghost"
+              href={printUrl(data.items.map((o) => o.id), 'irsaliye')}
+              target="_blank"
+              rel="noreferrer"
+              title="Bu sayfadaki tüm siparişlerin irsaliyesini yazdır / PDF"
+            >
+              <Printer size={14} /> İrsaliyeler ({data.items.length})
+            </a>
+          )}
           <a className="admin-btn admin-btn-ghost" href={ordersApi.exportUrl(params)}>
             <Download size={14} /> CSV
           </a>
@@ -235,9 +268,10 @@ export function OrderList() {
       </div>
 
       {/* Toplu işlem */}
-      {selected.size > 0 && canWrite && (
+      {selected.size > 0 && (
         <div className="admin-card flex flex-wrap items-center gap-2" style={{ padding: 10, borderColor: 'var(--brand-purple)' }} role="region" aria-label="Toplu işlemler">
           <span className="text-xs font-semibold text-[var(--brand-purple-deep)]">{selected.size} seçili</span>
+          {canWrite && <>
           <select className="admin-select admin-btn-sm" style={{ width: 'auto' }} defaultValue="" disabled={bulkBusy} aria-label="Toplu durum"
             onChange={(e) => { const to = e.target.value as OrderStatus; e.currentTarget.value = ''; if (to) void runBulk({ action: 'durum', ids: [...selected], to }); }}>
             <option value="" disabled>Durum değiştir…</option>
@@ -248,8 +282,18 @@ export function OrderList() {
             <option value="" disabled>Kargoya ver…</option>
             {CARRIERS.map((c) => <option key={c} value={c}>{carrierLabels[c]}</option>)}
           </select>
-          <a className="admin-btn admin-btn-ghost admin-btn-sm" href={`/admin/siparisler/yazdir?ids=${[...selected].join(',')}`} target="_blank" rel="noreferrer">
-            Fatura / irsaliye yazdır
+          <select className="admin-select admin-btn-sm" style={{ width: 'auto' }} defaultValue="" disabled={bulkBusy} aria-label="Toplu ödeme durumu"
+            onChange={(e) => { const to = e.target.value as 'ödendi' | 'bekliyor'; e.currentTarget.value = ''; if (to) void runBulkPayment(to); }}>
+            <option value="" disabled>Ödeme durumu…</option>
+            <option value="ödendi">Ödendi olarak işaretle</option>
+            <option value="bekliyor">Ödeme bekliyor yap</option>
+          </select>
+          </>}
+          <a className="admin-btn admin-btn-primary admin-btn-sm" href={printUrl([...selected], 'irsaliye')} target="_blank" rel="noreferrer">
+            <Printer size={13} /> İrsaliye yazdır
+          </a>
+          <a className="admin-btn admin-btn-ghost admin-btn-sm" href={printUrl([...selected], 'fatura')} target="_blank" rel="noreferrer">
+            <FileText size={13} /> Bilgi fişi
           </a>
           <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" onClick={() => setSelected(new Set())}>Seçimi kaldır</button>
         </div>
@@ -276,6 +320,7 @@ export function OrderList() {
                   <th>Ödeme</th>
                   <th>Kargo</th>
                   <th className="text-right"><button type="button" className="font-semibold" onClick={() => sortBy('grandTotalMinor')}>Toplam{sortMark('grandTotalMinor')}</button></th>
+                  <th style={{ width: 44 }}><span className="sr-only">İrsaliye</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -294,7 +339,9 @@ export function OrderList() {
                     <td><OrderStatusChip status={o.status} /></td>
                     <td>
                       <div className="text-xs">{o.paymentMethodLabel}</div>
-                      <SmallChip tone={o.paymentStatus === 'ödendi' ? 'ok' : o.paymentStatus === 'bekliyor' ? 'warn' : 'neutral'}>{paymentStatusLabels[o.paymentStatus] ?? o.paymentStatus}</SmallChip>
+                      <div className="mt-0.5">
+                        <PaymentStatusMenu orderId={o.id} orderNumber={o.orderNumber} paymentStatus={o.paymentStatus} orderStatus={o.status} canWrite={canWrite} onChanged={load} />
+                      </div>
                     </td>
                     <td className="text-xs">
                       {o.carrier ? <>{carrierLabels[o.carrier as keyof typeof carrierLabels] ?? o.carrier}<div className="text-[11px] text-[var(--admin-ink-soft)]">{o.trackingNumber ?? '—'}</div></> : <span className="text-[var(--admin-ink-soft)]">—</span>}
@@ -302,6 +349,18 @@ export function OrderList() {
                     <td className="text-right font-semibold whitespace-nowrap">
                       {formatMinor(o.grandTotalMinor)}
                       {o.refundedTotalMinor > 0 && <div className="text-[11px] font-normal text-[#b42318]">−{formatMinor(o.refundedTotalMinor)} iade</div>}
+                    </td>
+                    <td className="text-right">
+                      <a
+                        href={printUrl([o.id], 'irsaliye')}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--admin-ink-soft)] transition-colors hover:bg-[#f5f0f7] hover:text-[var(--brand-purple)]"
+                        title="İrsaliye yazdır"
+                        aria-label={`${o.orderNumber} irsaliye yazdır`}
+                      >
+                        <Printer size={15} />
+                      </a>
                     </td>
                   </tr>
                 ))}
@@ -321,6 +380,12 @@ export function OrderList() {
                     </div>
                     <p className="text-xs text-[var(--admin-ink-soft)]">{dateTime.format(new Date(o.placedAt))} · {o.customerName || o.customerEmail}</p>
                     <p className="mt-1 text-sm font-semibold">{formatMinor(o.grandTotalMinor)} <span className="text-xs font-normal text-[var(--admin-ink-soft)]">· {o.paymentMethodLabel}</span></p>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <PaymentStatusMenu orderId={o.id} orderNumber={o.orderNumber} paymentStatus={o.paymentStatus} orderStatus={o.status} canWrite={canWrite} onChanged={load} />
+                      <a href={printUrl([o.id], 'irsaliye')} target="_blank" rel="noreferrer" className="admin-btn admin-btn-ghost admin-btn-sm">
+                        <Printer size={13} /> İrsaliye
+                      </a>
+                    </div>
                   </div>
                 </div>
               </article>

@@ -19,7 +19,8 @@ import { formatPhoneTR } from '@/lib/validators/phone';
 import { carrierLabels, type Carrier } from '@/server/shipping/carriers';
 import { toast } from '@/store/toast';
 import { TableSkeleton } from '@/components/admin/primitives';
-import { OrderStatusChip, SmallChip, dateTime, paymentStatusLabels, fulfillmentLabels } from './status';
+import { OrderStatusChip, SmallChip, dateTime, fulfillmentLabels } from './status';
+import { PaymentStatusMenu } from './PaymentStatusMenu';
 import { StatusDialog, PaymentDialog, ShipmentDialog, ShipmentUpdateDialog, NoteDialog, ResendEmailDialog } from './ActionDialogs';
 import { RefundDialog } from './RefundDialog';
 import { ItemsEditorDialog } from './ItemsEditorDialog';
@@ -82,7 +83,14 @@ export function OrderDetail({ id }: { id: string }) {
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-lg font-semibold text-[var(--brand-purple-deep)]">{o.orderNumber}</h1>
             <OrderStatusChip status={o.status} />
-            <SmallChip tone={o.paymentStatus === 'ödendi' ? 'ok' : o.paymentStatus === 'bekliyor' ? 'warn' : 'neutral'}>{paymentStatusLabels[o.paymentStatus] ?? o.paymentStatus}</SmallChip>
+            <PaymentStatusMenu
+              orderId={o.id}
+              orderNumber={o.orderNumber}
+              paymentStatus={o.paymentStatus}
+              orderStatus={o.status}
+              canWrite={canWrite}
+              onChanged={() => void ordersApi.get(o.id).then((r) => setOrder(r.order))}
+            />
             <SmallChip>{fulfillmentLabels[o.fulfillmentStatus] ?? o.fulfillmentStatus}</SmallChip>
           </div>
           <p className="admin-hint mt-1">{dateTime.format(new Date(o.placedAt))} · kaynak: {o.source} · {o.paymentMethodLabel}{o.ipAddress ? ` · IP ${o.ipAddress}` : ''}</p>
@@ -93,7 +101,7 @@ export function OrderDetail({ id }: { id: string }) {
           {canShip && canCreateShipment && <Action icon={Truck} label="Kargo oluştur" onClick={() => setDialog('shipment')} />}
           {canRefund && refundable && <Action icon={RotateCcw} label="İade" onClick={() => setDialog('refund')} />}
           {canWrite && <Action icon={Mail} label="E-posta" onClick={() => setDialog('email')} />}
-          <Action icon={Printer} label="Fatura" href={`/admin/siparisler/${o.id}/yazdir?tip=fatura`} />
+          <Action icon={Printer} label="Bilgi fişi" href={`/admin/siparisler/${o.id}/yazdir?tip=fatura`} />
           <Action icon={Printer} label="İrsaliye" href={`/admin/siparisler/${o.id}/yazdir?tip=irsaliye`} />
           {canWrite && <Action icon={Copy} label="Kopyala" href={`/admin/siparisler/yeni?kopya=${o.id}`} title="Aynı kalemlerle yeni sipariş" />}
           {canWrite && cancellable && <Action icon={XCircle} label="İptal" danger onClick={() => setDialog('status')} />}

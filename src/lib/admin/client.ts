@@ -10,6 +10,9 @@ import type {
 } from '@/types/admin';
 import type { Permission, Role } from '@/server/auth/rbac';
 import type { BulkAction } from './mutations';
+import type { TrashItemView as TrashItem } from '@/server/catalog/trash';
+
+export type { TrashItem };
 
 export interface AdminSessionUser {
   id: string;
@@ -75,6 +78,16 @@ export const adminApi = {
 
   deleteProduct: (id: string) =>
     request<{ ok: true }>(`/api/admin/products/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  listTrash: () => request<{ items: TrashItem[] }>('/api/admin/cop-kutusu', { cache: 'no-store' }),
+
+  restoreFromTrash: (id: string) =>
+    request<{ product: AdminProduct }>(`/api/admin/cop-kutusu/${encodeURIComponent(id)}`, { method: 'POST' }),
+
+  purgeFromTrash: (id: string) =>
+    request<{ ok: true }>(`/api/admin/cop-kutusu/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  emptyTrash: () => request<{ ok: true; count: number }>('/api/admin/cop-kutusu', { method: 'DELETE' }),
 
   bulkProducts: (op: BulkAction) =>
     request<{ ok: true }>('/api/admin/products/bulk', {

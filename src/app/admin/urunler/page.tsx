@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Copy, ExternalLink, Eye, Plus, X } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Copy, ExternalLink, Eye, Plus, Trash2, X } from 'lucide-react';
 import type { ProductStatus } from '@/types/admin';
 import { productStatuses, statusLabels } from '@/types/admin';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
@@ -20,6 +20,7 @@ const PAGE_SIZE = 20;
 
 function ProductsView() {
   const params = useSearchParams();
+  const router = useRouter();
   const {
     status,
     catalog,
@@ -34,10 +35,12 @@ function ProductsView() {
   // Aynı satıra iki kez basılmasın diye çoğaltılan ürün kilitlenir.
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
+  // WordPress "Kopyala": taslak kopya oluşturulur ve kopyanın düzenleme ekranı açılır.
   const duplicate = async (id: string) => {
     setDuplicatingId(id);
-    await duplicateProduct(id);
-    setDuplicatingId(null);
+    const copy = await duplicateProduct(id);
+    if (copy) router.push(`/admin/urunler/${copy.slug}`);
+    else setDuplicatingId(null);
   };
 
   const [search, setSearch] = useState(params.get('search') ?? '');
@@ -135,9 +138,14 @@ function ProductsView() {
             {hasFilters ? ' (filtreli)' : ''}
           </p>
         </div>
-        <Link href="/admin/urunler/yeni" className="admin-btn admin-btn-primary">
-          <Plus size={15} aria-hidden="true" /> Yeni ürün
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/urunler/cop-kutusu" className="admin-btn admin-btn-ghost">
+            <Trash2 size={15} aria-hidden="true" /> Çöp kutusu
+          </Link>
+          <Link href="/admin/urunler/yeni" className="admin-btn admin-btn-primary">
+            <Plus size={15} aria-hidden="true" /> Yeni ürün
+          </Link>
+        </div>
       </header>
 
       {/* Filtreler */}
@@ -331,7 +339,7 @@ function ProductsView() {
             disabled={!canWrite}
             onClick={() => setConfirmDelete(true)}
           >
-            Sil
+            <Trash2 size={13} aria-hidden="true" /> Çöpe taşı
           </button>
           <button
             type="button"
@@ -446,8 +454,8 @@ function ProductsView() {
                             className="admin-btn admin-btn-ghost admin-btn-sm"
                             disabled={!canWrite || duplicatingId === p.id}
                             onClick={() => void duplicate(p.id)}
-                            aria-label={`${p.name} ürününü çoğalt`}
-                            title="Taslak kopya oluştur"
+                            aria-label={`${p.name} ürününü kopyala`}
+                            title="Kopyala — taslak kopya oluşturup düzenlemeye aç"
                           >
                             <Copy size={13} />
                           </button>
@@ -500,9 +508,9 @@ function ProductsView() {
                           className="admin-btn admin-btn-ghost admin-btn-sm ml-auto"
                           disabled={!canWrite || duplicatingId === p.id}
                           onClick={() => void duplicate(p.id)}
-                          aria-label={`${p.name} ürününü çoğalt`}
+                          aria-label={`${p.name} ürününü kopyala`}
                         >
-                          <Copy size={13} /> Çoğalt
+                          <Copy size={13} /> Kopyala
                         </button>
                       </div>
                     </div>
@@ -541,9 +549,9 @@ function ProductsView() {
 
       <ConfirmDialog
         open={confirmDelete}
-        title={`${selected.size} ürünü sil?`}
-        description="Bu işlem geri alınamaz. Ürünler katalogdan kaldırılır."
-        confirmLabel="Sil"
+        title={`${selected.size} ürün çöp kutusuna taşınsın mı?`}
+        description="Ürünler vitrinden kaldırılır. 30 gün boyunca Çöp kutusundan geri yükleyebilirsiniz."
+        confirmLabel="Çöpe taşı"
         destructive
         onConfirm={runBulkDelete}
         onCancel={() => setConfirmDelete(false)}

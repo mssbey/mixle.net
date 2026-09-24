@@ -47,6 +47,8 @@ interface AdminDataValue {
   duplicateProduct: (id: string) => Promise<AdminProduct | null>;
   deleteProduct: (id: string) => Promise<boolean>;
   bulkProducts: (op: BulkAction) => Promise<boolean>;
+  /** Çöp kutusundan geri yüklenen ürünü katalog durumuna ekler. */
+  applyProduct: (product: AdminProduct) => void;
   saveCategory: (category: AdminCategory) => Promise<boolean>;
   updateCategory: (id: string, patch: Partial<AdminCategory>) => Promise<boolean>;
   deleteCategory: (id: string) => Promise<boolean>;
@@ -89,6 +91,13 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       setStatus('ready');
       setError(null);
     } catch (err) {
+      // Oturum kapatılmış/süresi dolmuş: çerez imzası geçerli olsa da sunucu
+      // reddeder — hata ekranında kalmak yerine giriş sayfasına dön.
+      if (err instanceof ApiError && err.status === 401) {
+        const next = window.location.pathname + window.location.search;
+        window.location.replace(`/admin/giris?next=${encodeURIComponent(next)}`);
+        return;
+      }
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Katalog yüklenemedi');
     }
@@ -135,6 +144,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       collectionName: (id) => collections.find((c) => c.id === id)?.name ?? id,
       productById: (id) => products.find((p) => p.id === id),
       productBySlug: (slug) => products.find((p) => p.slug === slug),
+      applyProduct,
 
       createProduct: async (product) => {
         try {
@@ -179,7 +189,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
         );
         try {
           await adminApi.deleteProduct(id);
-          toast.success('Ürün silindi');
+          toast.success('Çöp kutusuna taşındı', '30 gün içinde geri yükleyebilirsiniz.');
           return true;
         } catch (err) {
           setCatalog(snapshot);
@@ -192,7 +202,10 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
         try {
           await adminApi.bulkProducts(op);
           await reload();
-          toast.success('Toplu işlem uygulandı', `${op.ids.length} ürün`);
+          toast.success(
+            op.action === 'delete' ? 'Çöp kutusuna taşındı' : 'Toplu işlem uygulandı',
+            op.action === 'delete' ? `${op.ids.length} ürün · 30 gün içinde geri yüklenebilir` : `${op.ids.length} ürün`,
+          );
           return true;
         } catch (err) {
           reportError(err, 'Toplu işlem başarısız');

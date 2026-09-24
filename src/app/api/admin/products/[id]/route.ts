@@ -1,7 +1,8 @@
 import type { AdminProduct } from '@/types/admin';
 import { handle, readJson } from '@/lib/admin/http';
 import { AdminError, deleteProduct, updateProduct } from '@/lib/admin/mutations';
-import { readCatalogSlice, removeProduct, saveProduct } from '@/server/catalog/persist';
+import { readCatalogSlice, saveProduct } from '@/server/catalog/persist';
+import { trashProducts } from '@/server/catalog/trash';
 import { auditChange } from '@/server/audit';
 
 export const dynamic = 'force-dynamic';
@@ -55,14 +56,15 @@ export function DELETE(_req: Request, { params }: Ctx): Promise<Response> {
 
     // Saf mutasyon var olmayan kimlikte hata fırlatır — sözleşme korunur.
     deleteProduct(catalog, current.id);
-    await removeProduct(current.id);
+    // Kalıcı silme yok: ürün çöp kutusuna taşınır (30 gün geri yüklenebilir).
+    await trashProducts([current], user.email);
     await auditChange({
       user,
       action: 'sil',
       entityType: 'Product',
       entityId: current.id,
       before: { slug: current.slug, name: current.name, status: current.status },
-      after: null,
+      after: { copKutusu: true },
     });
     return Response.json({ ok: true });
   });
