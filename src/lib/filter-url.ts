@@ -1,6 +1,7 @@
 import type { FilterState, SortKey } from '@/lib/filters';
 import { defaultFilters } from '@/lib/filters';
 import type { FlavorProfile } from '@/types';
+import { flavorProfileIdSchema } from '@/lib/flavor-profiles';
 
 const LIST_KEYS: (keyof FilterState)[] = ['categories', 'subcategories', 'series', 'profiles', 'forms', 'volumes'];
 const BOOL_KEYS: (keyof FilterState)[] = ['inStockOnly', 'onSaleOnly', 'newOnly', 'bestSellerOnly'];
@@ -88,7 +89,5 @@ export function countActive(f: FilterState, priceMin: number, priceMax: number):
   return c;
 }
 
-export const profileFromParam = (v: string): FlavorProfile | null => {
-  const valid: FlavorProfile[] = ['meyveli', 'ferah', 'tatli', 'eksi', 'kremsi', 'tutun', 'icecek', 'mentollu'];
-  return valid.includes(v as FlavorProfile) ? (v as FlavorProfile) : null;
-};
+export const profileFromParam = (v: string): FlavorProfile | null =>
+  flavorProfileIdSchema.safeParse(v).success ? v : null;

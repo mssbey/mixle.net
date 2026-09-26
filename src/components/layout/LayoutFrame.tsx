@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useIsHome } from '@/lib/hooks';
 import type { Category, Collection } from '@/types';
 import type { StorefrontContact } from '@/lib/storefront';
+import type { FlavorProfileDef } from '@/lib/flavor-profiles';
 import { CatalogProvider } from '@/components/catalog/CatalogProvider';
 import { Header } from '@/components/layout/Header';
 import { HomeFooter } from '@/components/layout/HomeFooter';
@@ -22,11 +23,13 @@ import { WhatsAppFab } from '@/components/layout/WhatsAppFab';
 export function LayoutFrame({
   categories,
   collections,
+  flavorProfiles,
   contact,
   children,
 }: {
   categories: Category[];
   collections: Collection[];
+  flavorProfiles: FlavorProfileDef[];
   contact: StorefrontContact;
   children: ReactNode;
 }) {
@@ -39,7 +42,7 @@ export function LayoutFrame({
   }
 
   return (
-    <CatalogProvider categories={categories} collections={collections}>
+    <CatalogProvider categories={categories} collections={collections} flavorProfiles={flavorProfiles}>
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:text-white"

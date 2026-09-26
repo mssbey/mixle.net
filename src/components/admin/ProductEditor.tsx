@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Copy, ExternalLink, Eye, Plus, Trash2 } from 'lucide-react';
+import { Copy, ExternalLink, Eye, Plus, Trash2, Wand2 } from 'lucide-react';
 import type { AdminProduct, ProductStatus } from '@/types/admin';
-import type { BadgeKind, FlavorNote, FlavorProfile } from '@/types';
+import type { BadgeKind, FlavorNote } from '@/types';
 import { productStatuses, statusLabels } from '@/types/admin';
 import { adminProductSchema, fieldErrors } from '@/lib/admin/schema';
 import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
@@ -12,6 +12,8 @@ import { hiddenDefaultVariant, localId } from '@/lib/admin/variants';
 import { slugify } from '@/lib/utils';
 import { formatDateTime } from '@/lib/admin/format';
 import { openInStorefrontPath } from '@/lib/admin/preview';
+import { buildProductSeo } from '@/lib/admin/seo-autofill';
+import { flavorProfileLabel } from '@/lib/flavor-profiles';
 import { useAdminData } from './AdminDataProvider';
 import { Field } from './primitives';
 import { ImageListEditor } from './ImageListEditor';
@@ -20,17 +22,7 @@ import { OptionEditor } from './OptionEditor';
 import { VariantTable } from './VariantTable';
 import { UnsavedGuard } from './UnsavedGuard';
 import { ProductPreviewCard } from './ProductPreviewCard';
-
-const FLAVOR_PROFILES: { id: FlavorProfile; label: string }[] = [
-  { id: 'meyveli', label: 'Meyveli' },
-  { id: 'ferah', label: 'Ferah' },
-  { id: 'tatli', label: 'Tatlı' },
-  { id: 'eksi', label: 'Ekşi' },
-  { id: 'kremsi', label: 'Kremsi' },
-  { id: 'tutun', label: 'Tütün' },
-  { id: 'icecek', label: 'İçecek' },
-  { id: 'mentollu', label: 'Mentollü' },
-];
+import { ProductFlavorProfileBox, useAdminFlavorProfiles } from './ProductFlavorProfileBox';
 
 const BADGES: { id: BadgeKind; label: string }[] = [
   { id: 'yeni', label: 'Yeni' },
@@ -89,7 +81,9 @@ interface Props {
 
 export function ProductEditor({ initial, mode }: Props) {
   const router = useRouter();
-  const { collections, canWrite, createProduct, updateProduct, duplicateProduct } = useAdminData();
+  const { collections, canWrite, createProduct, updateProduct, duplicateProduct, categoryName } =
+    useAdminData();
+  const { profiles: flavorProfiles } = useAdminFlavorProfiles();
 
   const [baseline, setBaseline] = useState(() => JSON.stringify(initial));
   const [draft, setDraft] = useState<AdminProduct>(initial);
@@ -103,7 +97,47 @@ export function ProductEditor({ initial, mode }: Props) {
   const saved = useMemo(() => JSON.parse(baseline) as AdminProduct, [baseline]);
   const readOnly = !canWrite;
 
-  const set = (patch: Partial<AdminProduct>) => setDraft((d) => ({ ...d, ...patch }));
+  // SEO alanları, elle yazılana dek ürünün adını/kategorisini/profillerini izler.
+  // Boş alan (veya "Otomatik doldur") otomatik moda geri döner.
+  const seoOf = (p: AdminProduct) =>
+    buildProductSeo(p, {
+      categoryName,
+      profileLabel: (id) => flavorProfileLabel(flavorProfiles, id),
+    });
+  const initialSeoAuto = () => {
+    const gen = seoOf(initial);
+    return {
+      title: !initial.seo.title.trim() || initial.seo.title === gen.title,
+      description: !initial.seo.description.trim() || initial.seo.description === gen.description,
+    };
+  };
+  const [seoAuto, setSeoAuto] = useState(initialSeoAuto);
+
+  const withAutoSeo = (p: AdminProduct, auto = seoAuto): AdminProduct => {
+    if (!auto.title && !auto.description) return p;
+    const gen = seoOf(p);
+    return {
+      ...p,
+      seo: {
+        title: auto.title ? gen.title : p.seo.title,
+        description: auto.description ? gen.description : p.seo.description,
+      },
+    };
+  };
+
+  const set = (patch: Partial<AdminProduct>) => setDraft((d) => withAutoSeo({ ...d, ...patch }));
+
+  const setSeoField = (field: 'title' | 'description', value: string) => {
+    const auto = { ...seoAuto, [field]: value.trim() === '' };
+    setSeoAuto(auto);
+    setDraft((d) => withAutoSeo({ ...d, seo: { ...d.seo, [field]: value } }, auto));
+  };
+
+  const fillSeo = () => {
+    const auto = { title: true, description: true };
+    setSeoAuto(auto);
+    setDraft((d) => withAutoSeo(d, auto));
+  };
 
   // Slug her zaman ürün adını izler (kopyada da); slug alanı elle düzeltilebilir
   // ama ad yeniden değiştiğinde addan tekrar üretilir.
@@ -155,6 +189,7 @@ export function ProductEditor({ initial, mode }: Props) {
 
   const discard = () => {
     setDraft(JSON.parse(baseline) as AdminProduct);
+    setSeoAuto(initialSeoAuto());
     setErrors({});
   };
 
@@ -371,16 +406,19 @@ export function ProductEditor({ initial, mode }: Props) {
                       onChange={(e) =>
                         set({
                           flavorNotes: draft.flavorNotes.map((n, j) =>
-                            j === i ? { ...n, profile: e.target.value as FlavorProfile } : n,
+                            j === i ? { ...n, profile: e.target.value } : n,
                           ),
                         })
                       }
                     >
-                      {FLAVOR_PROFILES.map((p) => (
+                      {flavorProfiles.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.label}
                         </option>
                       ))}
+                      {!flavorProfiles.some((p) => p.id === note.profile) && (
+                        <option value={note.profile}>{note.profile}</option>
+                      )}
                     </select>
                     <button
                       type="button"
@@ -403,7 +441,7 @@ export function ProductEditor({ initial, mode }: Props) {
                     set({
                       flavorNotes: [
                         ...draft.flavorNotes,
-                        { label: '', profile: 'meyveli' } as FlavorNote,
+                        { label: '', profile: flavorProfiles[0]?.id ?? 'meyveli' } as FlavorNote,
                       ],
                     })
                   }
@@ -520,27 +558,11 @@ export function ProductEditor({ initial, mode }: Props) {
 
           <section className="admin-card" style={{ padding: 16 }}>
             <h2 className="mb-2 text-sm font-semibold text-[var(--brand-purple-deep)]">Profiller</h2>
-            <div className="flex flex-wrap gap-1.5">
-              {FLAVOR_PROFILES.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="admin-chip"
-                  disabled={readOnly}
-                  aria-pressed={draft.flavorProfiles.includes(p.id)}
-                  style={
-                    draft.flavorProfiles.includes(p.id)
-                      ? { background: 'var(--brand-gold)', color: 'var(--brand-purple-deep)', borderColor: 'transparent' }
-                      : undefined
-                  }
-                  onClick={() =>
-                    set({ flavorProfiles: toggleInArray(draft.flavorProfiles, p.id) })
-                  }
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            <ProductFlavorProfileBox
+              selected={draft.flavorProfiles}
+              disabled={readOnly}
+              onChange={(ids) => set({ flavorProfiles: ids })}
+            />
           </section>
 
           <TagEditor
@@ -550,26 +572,37 @@ export function ProductEditor({ initial, mode }: Props) {
           />
 
           <section className="admin-card" style={{ padding: 16 }}>
-            <h2 className="mb-3 text-sm font-semibold text-[var(--brand-purple-deep)]">SEO</h2>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">SEO</h2>
+              <button
+                type="button"
+                className="admin-btn admin-btn-ghost admin-btn-sm"
+                disabled={readOnly || !draft.name.trim()}
+                onClick={fillSeo}
+                title="Ürün adı, kategori, profiller ve seçeneklerden yeniden üret"
+              >
+                <Wand2 size={12} /> Otomatik doldur
+              </button>
+            </div>
             <Field
               label="SEO başlığı"
               htmlFor="p-seo-title"
               error={err('seo.title')}
-              hint={`${draft.seo.title.length}/70`}
+              hint={`${seoAuto.title ? 'Otomatik · ' : ''}${draft.seo.title.length}/70`}
             >
               <input
                 id="p-seo-title"
                 className="admin-input"
                 value={draft.seo.title}
                 disabled={readOnly}
-                onChange={(e) => set({ seo: { ...draft.seo, title: e.target.value } })}
+                onChange={(e) => setSeoField('title', e.target.value)}
               />
             </Field>
             <Field
               label="SEO açıklaması"
               htmlFor="p-seo-desc"
               error={err('seo.description')}
-              hint={`${draft.seo.description.length}/180`}
+              hint={`${seoAuto.description ? 'Otomatik · ' : ''}${draft.seo.description.length}/180`}
               className="mt-3"
             >
               <textarea
@@ -577,7 +610,7 @@ export function ProductEditor({ initial, mode }: Props) {
                 className="admin-textarea"
                 value={draft.seo.description}
                 disabled={readOnly}
-                onChange={(e) => set({ seo: { ...draft.seo, description: e.target.value } })}
+                onChange={(e) => setSeoField('description', e.target.value)}
               />
             </Field>
           </section>

@@ -1,7 +1,10 @@
 import { cn } from '@/lib/utils';
 import type { FlavorProfile } from '@/types';
 
-export const flavorMeta: Record<FlavorProfile, { label: string; dot: string; chip: string }> = {
+type FlavorMeta = { label: string; dot: string; chip: string };
+
+/** Varsayılan profillerin renkleri; panelden eklenen profiller nötr renk alır. */
+export const flavorMeta: Record<string, FlavorMeta> = {
   meyveli: { label: 'Meyveli', dot: 'bg-gold-400', chip: 'bg-gold-50 text-gold-700 ring-gold-200' },
   ferah: { label: 'Ferah', dot: 'bg-sky-400', chip: 'bg-sky-50 text-sky-700 ring-sky-200' },
   tatli: { label: 'Tatlı', dot: 'bg-rose-400', chip: 'bg-rose-50 text-rose-700 ring-rose-200' },
@@ -12,6 +15,14 @@ export const flavorMeta: Record<FlavorProfile, { label: string; dot: string; chi
   mentollu: { label: 'Mentollü', dot: 'bg-emerald-400', chip: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
 };
 
+const neutralMeta = (profile: FlavorProfile): FlavorMeta => ({
+  label: profile,
+  dot: 'bg-violet-400',
+  chip: 'bg-violet-50 text-violet-700 ring-violet-200',
+});
+
+const metaOf = (profile: FlavorProfile): FlavorMeta => flavorMeta[profile] ?? neutralMeta(profile);
+
 export function FlavorTag({
   profile,
   label,
@@ -21,7 +32,7 @@ export function FlavorTag({
   label?: string;
   className?: string;
 }) {
-  const m = flavorMeta[profile];
+  const m = metaOf(profile);
   return (
     <span
       className={cn(
@@ -40,7 +51,7 @@ export function FlavorDots({ profiles, className }: { profiles: FlavorProfile[];
   return (
     <div className={cn('flex items-center gap-1', className)} aria-hidden>
       {profiles.slice(0, 4).map((p) => (
-        <span key={p} className={cn('h-2 w-2 rounded-full ring-2 ring-white', flavorMeta[p].dot)} />
+        <span key={p} className={cn('h-2 w-2 rounded-full ring-2 ring-white', metaOf(p).dot)} />
       ))}
     </div>
   );

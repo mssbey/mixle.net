@@ -43,17 +43,6 @@ export const formLabels: Record<string, string> = {
   baz: 'Baz / Nbase',
 };
 
-export const profileLabels: Record<FlavorProfile, string> = {
-  meyveli: 'Meyveli',
-  ferah: 'Ferah',
-  tatli: 'Tatlı',
-  eksi: 'Ekşi',
-  kremsi: 'Kremsi',
-  tutun: 'Tütün',
-  icecek: 'İçecek',
-  mentollu: 'Mentollü',
-};
-
 function minVariantPrice(p: Product) {
   return Math.min(...p.variants.map((v) => v.price));
 }

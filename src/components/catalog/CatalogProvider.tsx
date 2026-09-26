@@ -13,21 +13,29 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Category, Collection, Product } from '@/types';
+import { DEFAULT_FLAVOR_PROFILES, type FlavorProfileDef } from '@/lib/flavor-profiles';
 
 interface Taxonomy {
   categories: Category[];
   collections: Collection[];
+  /** Panelden yönetilen tat profilleri (filtre paneli). */
+  flavorProfiles: FlavorProfileDef[];
 }
 
-const TaxonomyContext = createContext<Taxonomy>({ categories: [], collections: [] });
+const TaxonomyContext = createContext<Taxonomy>({
+  categories: [],
+  collections: [],
+  flavorProfiles: DEFAULT_FLAVOR_PROFILES,
+});
 
 export function CatalogProvider({
   categories,
   collections,
+  flavorProfiles,
   children,
 }: Taxonomy & { children: ReactNode }) {
   return (
-    <TaxonomyContext.Provider value={{ categories, collections }}>
+    <TaxonomyContext.Provider value={{ categories, collections, flavorProfiles }}>
       {children}
     </TaxonomyContext.Provider>
   );
@@ -44,6 +52,10 @@ export function useCategories(): Category[] {
 
 export function useCollections(): Collection[] {
   return useContext(TaxonomyContext).collections;
+}
+
+export function useFlavorProfiles(): FlavorProfileDef[] {
+  return useContext(TaxonomyContext).flavorProfiles;
 }
 
 // --------------------------------------------------------- ürün listesi ----

@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { FilterState } from '@/lib/filters';
-import { profileLabels, formLabels } from '@/lib/filters';
+import { formLabels } from '@/lib/filters';
 import { RangeSlider } from '@/components/ui/RangeSlider';
-import { useCategories } from '@/components/catalog/CatalogProvider';
+import { useCategories, useFlavorProfiles } from '@/components/catalog/CatalogProvider';
 import { currency } from '@/lib/site';
 import { cn } from '@/lib/utils';
 import type { FlavorProfile } from '@/types';
@@ -81,6 +81,7 @@ export function FilterPanel({
   lockCategory,
 }: Props) {
   const categories = useCategories();
+  const flavorProfiles = useFlavorProfiles();
 
   return (
     <div>
@@ -125,7 +126,7 @@ export function FilterPanel({
 
       <Group title="Tat profili">
         <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(profileLabels) as FlavorProfile[]).map((p) => (
+          {flavorProfiles.map(({ id: p, label }) => (
             <button
               key={p}
               type="button"
@@ -137,7 +138,7 @@ export function FilterPanel({
                   : 'border-line text-ink hover:border-ink/30',
               )}
             >
-              {profileLabels[p]}
+              {label}
             </button>
           ))}
         </div>

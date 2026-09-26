@@ -10,6 +10,7 @@ import type {
 } from '@/types/admin';
 import type { Permission, Role } from '@/server/auth/rbac';
 import type { BulkAction } from './mutations';
+import type { FlavorProfileDef } from '@/lib/flavor-profiles';
 import type { TrashItemView as TrashItem } from '@/server/catalog/trash';
 
 export type { TrashItem };
@@ -151,6 +152,15 @@ export const adminApi = {
       '/api/admin/auth',
       { method: 'POST', body: JSON.stringify({ email, password, remember }) },
     ),
+
+  loadFlavorProfiles: () =>
+    request<{ profiles: FlavorProfileDef[] }>('/api/admin/flavor-profiles', { cache: 'no-store' }),
+
+  saveFlavorProfiles: (profiles: FlavorProfileDef[]) =>
+    request<{ profiles: FlavorProfileDef[] }>('/api/admin/flavor-profiles', {
+      method: 'PUT',
+      body: JSON.stringify({ profiles }),
+    }),
 
   logout: () => request<{ ok: true }>('/api/admin/auth', { method: 'DELETE' }),
 

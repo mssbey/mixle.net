@@ -2,17 +2,10 @@
 
 import { z } from 'zod';
 import { CATALOG_SCHEMA_VERSION } from '@/types/admin';
+import { flavorProfileIdSchema } from '@/lib/flavor-profiles';
 
-const flavorProfileSchema = z.enum([
-  'meyveli',
-  'ferah',
-  'tatli',
-  'eksi',
-  'kremsi',
-  'tutun',
-  'icecek',
-  'mentollu',
-]);
+// Tat profilleri panelden yönetilir; burada yalnız kimlik biçimi doğrulanır.
+const flavorProfileSchema = flavorProfileIdSchema;
 
 const badgeSchema = z.enum(['yeni', 'cok-satan', 'sinirli-seri', 'indirim']);
 const formSchema = z.enum(['konsantre', 'shortfill', 'diy-kit', 'baz']);
@@ -97,7 +90,7 @@ export const adminProductSchema = z
     status: statusSchema,
     seo: seoSchema,
     flavorNotes: z.array(flavorNoteSchema).max(12),
-    flavorProfiles: z.array(flavorProfileSchema).max(8),
+    flavorProfiles: z.array(flavorProfileSchema).max(20),
     badges: z.array(badgeSchema).max(4),
     featured: z.boolean(),
     bestSeller: z.boolean(),

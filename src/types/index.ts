@@ -6,15 +6,8 @@ export type CategorySlug = string;
 
 export type CollectionSlug = string;
 
-export type FlavorProfile =
-  | 'meyveli'
-  | 'ferah'
-  | 'tatli'
-  | 'eksi'
-  | 'kremsi'
-  | 'tutun'
-  | 'icecek'
-  | 'mentollu';
+/** Tat profili kimliği (slug) — liste panelden yönetilir, bkz. `lib/flavor-profiles.ts`. */
+export type FlavorProfile = string;
 
 export type ProductForm = 'konsantre' | 'shortfill' | 'diy-kit' | 'baz';
 
