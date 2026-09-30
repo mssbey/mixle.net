@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Copy, ExternalLink, Eye, Plus, Trash2, Wand2 } from 'lucide-react';
 import type { AdminProduct, ProductStatus } from '@/types/admin';
@@ -97,6 +97,8 @@ export function ProductEditor({ initial, mode }: Props) {
     categoryName,
   } = useAdminData();
   const { profiles: flavorProfiles } = useAdminFlavorProfiles();
+  const [profileEditSignal, setProfileEditSignal] = useState(0);
+  const profileBoxRef = useRef<HTMLElement>(null);
 
   const [baseline, setBaseline] = useState(() => JSON.stringify(initial));
   const [draft, setDraft] = useState<AdminProduct>(initial);
@@ -457,7 +459,21 @@ export function ProductEditor({ initial, mode }: Props) {
             </div>
 
             <div className="mt-4">
-              <span className="admin-label">Tat notaları</span>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="admin-label">Tat notaları</span>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="admin-termbox-link"
+                    onClick={() => {
+                      setProfileEditSignal((n) => n + 1);
+                      profileBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }}
+                  >
+                    Profil seçeneklerini düzenle
+                  </button>
+                )}
+              </div>
               <div className="mt-1 flex flex-col gap-1.5">
                 {draft.flavorNotes.map((note, i) => (
                   <div key={i} className="flex gap-1.5">
@@ -640,11 +656,12 @@ export function ProductEditor({ initial, mode }: Props) {
             )}
           </section>
 
-          <section className="admin-card" style={{ padding: 16 }}>
+          <section ref={profileBoxRef} className="admin-card" style={{ padding: 16 }}>
             <h2 className="mb-2 text-sm font-semibold text-[var(--brand-purple-deep)]">Profiller</h2>
             <ProductFlavorProfileBox
               selected={draft.flavorProfiles}
               disabled={readOnly}
+              editSignal={profileEditSignal}
               onChange={(ids) => set({ flavorProfiles: ids })}
             />
           </section>

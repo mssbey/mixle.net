@@ -55,7 +55,7 @@ function maxDiscount(p: Product) {
 
 export function applyFilters(source: Product[], f: FilterState): Product[] {
   let list = source.filter((p) => {
-    if (f.categories.length && !f.categories.includes(p.category)) return false;
+    if (f.categories.length && !p.categories.some((c) => f.categories.includes(c))) return false;
     if (f.subcategories.length && !f.subcategories.includes(p.subcategory)) return false;
     if (f.series.length && !f.series.includes(p.series)) return false;
     if (f.profiles.length && !f.profiles.some((pr) => p.flavorProfiles.includes(pr))) return false;

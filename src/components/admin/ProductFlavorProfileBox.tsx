@@ -69,6 +69,8 @@ interface Props {
   selected: string[];
   onChange: (ids: string[]) => void;
   disabled?: boolean;
+  /** Her artışında kutu düzenleme modunda açılır (ör. "Tat notaları" bağlantısından). */
+  editSignal?: number;
 }
 
 /**
@@ -76,7 +78,7 @@ interface Props {
  * bağlantılarla sayfadan ayrılmadan yeni profil açılır ya da mevcutlar
  * yeniden adlandırılıp silinir (liste tüm ürünler için ortaktır).
  */
-export function ProductFlavorProfileBox({ selected, onChange, disabled }: Props) {
+export function ProductFlavorProfileBox({ selected, onChange, disabled, editSignal = 0 }: Props) {
   const { products, canWrite } = useAdminData();
   const { profiles, save } = useAdminFlavorProfiles();
   const [mode, setMode] = useState<'view' | 'add' | 'edit'>('view');
@@ -122,6 +124,12 @@ export function ProductFlavorProfileBox({ selected, onChange, disabled }: Props)
     setRows(profiles.map((p) => ({ ...p })));
     setMode('edit');
   };
+
+  useEffect(() => {
+    if (editSignal > 0 && !readOnly) startEdit();
+    // Yalnız sinyal değişince açılır; profil listesi değişimi düzenlemeyi sıfırlamasın.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editSignal]);
 
   const saveEdit = async () => {
     if (rows.some((r) => !r.label.trim())) {

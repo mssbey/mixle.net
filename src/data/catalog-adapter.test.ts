@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AdminProduct } from '@/types/admin';
-import { toStorefrontProduct } from './catalog-adapter';
+import { taxonomySlugMap, toStorefrontProduct } from './catalog-adapter';
 
 function product(patch: Partial<AdminProduct>): AdminProduct {
   return {
@@ -46,5 +46,30 @@ describe('"Yeni" damgası tarih aralığı (vitrin)', () => {
     const p = toStorefrontProduct(product({ newFrom: '2026-10-01', newUntil: '2026-10-07', badges: ['yeni'], newArrival: true }));
     expect(p.badges).toEqual([]);
     expect(p.newArrival).toBe(false);
+  });
+});
+
+describe('kategori/koleksiyon bağları (vitrin)', () => {
+  const cat = (id: string, slug: string) => ({ id, slug }) as never;
+
+  it('ürün bağlı olduğu tüm kategorileri slug olarak taşır', () => {
+    const slugs = taxonomySlugMap([cat('mix-aromalar', 'mix-aromalar'), cat('cat-x1', 'pastane')], []);
+    const p = toStorefrontProduct(product({ categoryIds: ['mix-aromalar', 'cat-x1'] }), slugs);
+    expect(p.category).toBe('mix-aromalar');
+    expect(p.categories).toEqual(['mix-aromalar', 'pastane']);
+  });
+
+  it('silinmiş kategoriye kalan bağı atlar', () => {
+    const slugs = taxonomySlugMap([cat('c2', 'c2')], []);
+    const p = toStorefrontProduct(product({ categoryIds: ['yok', 'c2'] }), slugs);
+    expect(p.categories).toEqual(['c2']);
+    expect(p.category).toBe('c2');
+  });
+
+  it('tüm koleksiyonları slug olarak taşır', () => {
+    const slugs = taxonomySlugMap([], [cat('col-1', 'yaz'), cat('col-2', 'kis')]);
+    const p = toStorefrontProduct(product({ collectionIds: ['col-1', 'col-2'] }), slugs);
+    expect(p.collection).toBe('yaz');
+    expect(p.collections).toEqual(['yaz', 'kis']);
   });
 });

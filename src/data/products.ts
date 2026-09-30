@@ -10,10 +10,15 @@
 
 import 'server-only';
 import { cache } from 'react';
-import type { FlavorProfile, Product } from '@/types';
+import type { CollectionSlug, FlavorProfile, Product } from '@/types';
 import type { ProductStatus } from '@/types/admin';
-import { getAdminProductBySlugFresh, getAdminProducts } from '@/server/catalog/queries';
-import { toStorefrontProduct } from './catalog-adapter';
+import {
+  getAdminCategories,
+  getAdminCollections,
+  getAdminProductBySlugFresh,
+  getAdminProducts,
+} from '@/server/catalog/queries';
+import { taxonomySlugMap, toStorefrontProduct } from './catalog-adapter';
 import { getCategoryTreeSlugs } from './categories';
 
 /**
@@ -21,8 +26,13 @@ import { getCategoryTreeSlugs } from './categories';
  * `cache()` sayesinde bir istek içinde birden çok kez çağrılsa da tek kez hesaplanır.
  */
 export const getProducts = cache(async (): Promise<Product[]> => {
-  const admin = await getAdminProducts();
-  const products = admin.filter((p) => p.status === 'yayında').map(toStorefrontProduct);
+  const [admin, categories, collections] = await Promise.all([
+    getAdminProducts(),
+    getAdminCategories(),
+    getAdminCollections(),
+  ]);
+  const slugs = taxonomySlugMap(categories, collections);
+  const products = admin.filter((p) => p.status === 'yayında').map((p) => toStorefrontProduct(p, slugs));
 
   // İlgili ürünleri kategori + profil yakınlığına göre doldur (önceki davranışla aynı).
   for (const p of products) {
@@ -54,7 +64,8 @@ export const getProductPreview = cache(
     // Önbelleksiz okuma: yeni eklenen ürün de anında önizlenebilsin.
     const admin = await getAdminProductBySlugFresh(slug);
     if (!admin) return undefined;
-    const product = toStorefrontProduct(admin);
+    const [categories, collections] = await Promise.all([getAdminCategories(), getAdminCollections()]);
+    const product = toStorefrontProduct(admin, taxonomySlugMap(categories, collections));
     const published = await getProducts();
     product.relatedProductIds = published
       .filter((o) => o.id !== product.id)
@@ -83,11 +94,11 @@ export const getProductBySlug = async (slug: string): Promise<Product | undefine
  */
 export const getProductsByCategory = async (slug: string): Promise<Product[]> => {
   const slugs = new Set(await getCategoryTreeSlugs(slug));
-  return (await getProducts()).filter((p) => slugs.has(p.category));
+  return (await getProducts()).filter((p) => p.categories.some((c) => slugs.has(c)));
 };
 
 export const getProductsByCollection = async (slug: string): Promise<Product[]> =>
-  (await getProducts()).filter((p) => p.collection === slug);
+  (await getProducts()).filter((p) => p.collections.includes(slug as CollectionSlug));
 
 export const getBestSellers = async (): Promise<Product[]> =>
   (await getProducts()).filter((p) => p.bestSeller);

@@ -70,9 +70,14 @@ export interface Product {
   longDescription: string;
   /** Arama motoru başlığı/açıklaması (panelden; boşsa açıklamadan üretilir). */
   seo?: { title: string; description: string };
+  /** Birincil kategori (paneldeki ilk sıradaki). */
   category: CategorySlug;
+  /** Ürünün bağlı olduğu tüm kategoriler (birincil dahil). */
+  categories: CategorySlug[];
   subcategory: string;
   collection?: CollectionSlug;
+  /** Ürünün bağlı olduğu tüm koleksiyonlar. */
+  collections: CollectionSlug[];
   flavorNotes: FlavorNote[];
   flavorProfiles: FlavorProfile[];
   badges: BadgeKind[];

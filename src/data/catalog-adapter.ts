@@ -116,7 +116,27 @@ function seoOf(p: AdminProduct): { title: string; description: string } {
   return { title: title || gen.title, description: description || gen.description };
 }
 
-export function toStorefrontProduct(p: AdminProduct): Product {
+/**
+ * Ürün kategori/koleksiyon kimliklerini vitrin slug'ına çevirmek için sözlük.
+ * Panelden açılan kategorilerin kimliği slug'dan farklıdır ("cat-…"); sözlük
+ * verilmezse kimlik slug kabul edilir (eski içe aktarılan kayıtlar böyleydi).
+ */
+export interface TaxonomySlugMap {
+  categories: Map<string, string>;
+  collections: Map<string, string>;
+}
+
+export function taxonomySlugMap(
+  categories: AdminCategory[],
+  collections: AdminCollection[],
+): TaxonomySlugMap {
+  return {
+    categories: new Map(categories.map((c) => [c.id, c.slug])),
+    collections: new Map(collections.map((c) => [c.id, c.slug])),
+  };
+}
+
+export function toStorefrontProduct(p: AdminProduct, slugs?: TaxonomySlugMap): Product {
   const activeVariants = p.variants.filter((v) => v.isActive);
   const usable = activeVariants.length > 0 ? activeVariants : p.variants;
   const variants = usable.map((v) => toStorefrontVariant(p, v));
@@ -140,6 +160,15 @@ export function toStorefrontProduct(p: AdminProduct): Product {
   // "Yeni" rozeti tek kaynaktan gelir: paneldeki "Yeni gelen" işareti. Tarih
   // aralığı girilmişse işaret yerine aralık belirler. Rozet listesine elle
   // eklenmiş eski 'yeni' kayıtları yok sayılır (işaretsiz ürün "Yeni" görünmesin).
+  // Ürün bağlı olduğu TÜM kategorilerde listelenir; ilk sıradaki birincildir.
+  // Silinmiş kategoriye kalan bağlar (sözlükte yoksa) atlanır.
+  const categorySlugs = p.categoryIds
+    .map((id) => (slugs ? slugs.categories.get(id) : id))
+    .filter((s): s is string => Boolean(s)) as CategorySlug[];
+  const collectionSlugs = p.collectionIds
+    .map((id) => (slugs ? slugs.collections.get(id) : id))
+    .filter((s): s is string => Boolean(s)) as CollectionSlug[];
+
   const newArrival = hasNewWindow(p) ? isInNewWindow(p) : p.newArrival;
   const rest = p.badges.filter((b) => b !== 'yeni');
   const badges: BadgeKind[] = newArrival ? ['yeni', ...rest] : rest;
@@ -152,9 +181,11 @@ export function toStorefrontProduct(p: AdminProduct): Product {
     shortDescription: p.shortDescription,
     longDescription: p.description,
     seo: seoOf(p),
-    category: (p.categoryIds[0] ?? 'meyveli') as CategorySlug,
+    category: categorySlugs[0] ?? ('meyveli' as CategorySlug),
+    categories: categorySlugs,
     subcategory: p.subcategory,
-    collection: p.collectionIds[0] as CollectionSlug | undefined,
+    collection: collectionSlugs[0],
+    collections: collectionSlugs,
     flavorNotes: p.flavorNotes,
     flavorProfiles: p.flavorProfiles,
     badges,
