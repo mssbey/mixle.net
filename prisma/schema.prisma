@@ -96,6 +96,9 @@ model Product {
   featured   Boolean @default(false)
   bestSeller Boolean @default(false)
   newArrival Boolean @default(false)
+  /// "Yeni" damgası tarih aralığı. İkisi de boşsa `newArrival` / rozet süresiz geçerlidir.
+  newFrom    DateTime?
+  newUntil   DateTime?
 
   // Tat radarı — 0-10 arası tam sayı (sorgulanabilir olsun diye ayrı sütunlar).
   tasteSweetness Int @default(0)

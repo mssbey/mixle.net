@@ -33,7 +33,14 @@ export function CartDrawer() {
   );
 
   return (
-    <Drawer open={cartOpen} onClose={closeCart} label="Sepetiniz" side="right" title={`Sepetiniz${detailed.length ? ` (${summary.itemCount})` : ''}`}>
+    <Drawer open={cartOpen} onClose={closeCart} label="Sepetiniz" side="right" title={
+        <span className="flex items-baseline gap-2">
+          Sepetiniz
+          {detailed.length > 0 && (
+            <span className="text-sm font-medium text-ink-soft">{summary.itemCount} ürün</span>
+          )}
+        </span>
+      }>
       {detailed.length === 0 ? (
         <div className="flex flex-1 items-center p-5">
           <EmptyState
@@ -49,10 +56,10 @@ export function CartDrawer() {
         </div>
       ) : (
         <>
-          <div className="border-b border-purple-100 px-5 py-3">
+          <div className="border-b border-line px-5 py-3">
             {summary.freeShippingRemaining > 0 ? (
               <p className="text-xs text-ink-soft">
-                Ücretsiz kargoya <strong className="text-purple-800">{currency(summary.freeShippingRemaining)}</strong> kaldı
+                Ücretsiz kargoya <strong className="font-semibold text-ink">{currency(summary.freeShippingRemaining)}</strong> kaldı
               </p>
             ) : (
               <p className="text-xs font-semibold text-emerald-600">Ücretsiz kargo kazandınız.</p>
@@ -62,7 +69,7 @@ export function CartDrawer() {
             </div>
           </div>
 
-          <ul className="flex-1 divide-y divide-purple-100 overflow-y-auto px-5">
+          <ul className="flex-1 divide-y divide-line overflow-y-auto px-5">
             {detailed.map((line) => (
               <li key={line.key} className="flex gap-3 py-4">
                 <Link href={`/urun/${line.product.slug}`} onClick={closeCart} className="shrink-0">
@@ -71,7 +78,7 @@ export function CartDrawer() {
                     alt={line.product.name}
                     width={72}
                     height={72}
-                    className="h-18 w-18 rounded-xl object-cover"
+                    className="h-18 w-18 rounded-lg border border-line bg-white object-contain"
                     style={{ height: 72, width: 72 }}
                   />
                 </Link>
@@ -80,7 +87,7 @@ export function CartDrawer() {
                     <Link
                       href={`/urun/${line.product.slug}`}
                       onClick={closeCart}
-                      className="line-clamp-1 text-sm font-semibold text-purple-900 hover:text-purple-600"
+                      className="line-clamp-2 text-sm font-semibold leading-snug text-ink hover:text-brand-500"
                     >
                       {line.product.name}
                     </Link>
@@ -88,7 +95,7 @@ export function CartDrawer() {
                       type="button"
                       onClick={() => remove(line.key)}
                       aria-label="Ürünü sepetten çıkar"
-                      className="shrink-0 rounded p-1 text-purple-300 hover:text-rose-500"
+                      className="shrink-0 rounded p-1 text-ink-soft/60 hover:text-brand-500"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -97,7 +104,7 @@ export function CartDrawer() {
                     value={line.variantId}
                     onChange={(e) => changeVariant(line.key, e.target.value)}
                     aria-label="Varyasyon seç"
-                    className="mt-1 max-w-full rounded-lg border border-purple-200 bg-white px-2 py-1 text-xs text-ink-soft"
+                    className="mt-1.5 max-w-full rounded-md border border-line bg-white px-2 py-1 text-xs font-medium text-ink-soft focus:border-ink/30 focus:outline-none"
                   >
                     {line.product.variants.map((v) => (
                       <option key={v.id} value={v.id} disabled={v.stock === 'out-of-stock'}>
@@ -113,17 +120,17 @@ export function CartDrawer() {
                       size="sm"
                       max={Math.max(1, line.variant.stockCount || 99)}
                     />
-                    <span className="text-sm font-semibold text-purple-800">{currency(line.lineTotal)}</span>
+                    <span className="text-sm font-bold tabular-nums text-ink">{currency(line.lineTotal)}</span>
                   </div>
                 </div>
               </li>
             ))}
           </ul>
 
-          <div className="space-y-3 border-t border-purple-100 bg-white/60 p-5">
+          <div className="space-y-3 border-t border-line bg-white/60 p-5">
             <div className="flex items-center justify-between text-sm">
               <span className="text-ink-soft">Ara toplam</span>
-              <span className="font-semibold text-purple-900">{currency(summary.subtotal)}</span>
+              <span className="font-semibold tabular-nums text-ink">{currency(summary.subtotal)}</span>
             </div>
             {summary.promoDiscount > 0 && (
               <div className="flex items-center justify-between text-sm text-emerald-600">
@@ -133,13 +140,13 @@ export function CartDrawer() {
             )}
             <div className="flex items-center justify-between text-sm">
               <span className="text-ink-soft">Kargo</span>
-              <span className="font-semibold text-purple-900">
+              <span className="font-semibold tabular-nums text-ink">
                 {summary.shipping === 0 ? 'Ücretsiz' : currency(summary.shipping)}
               </span>
             </div>
-            <div className="flex items-center justify-between border-t border-purple-100 pt-3 text-base">
-              <span className="font-semibold text-purple-900">Toplam</span>
-              <span className="font-display text-lg font-bold text-purple-900">{currency(summary.total)}</span>
+            <div className="flex items-center justify-between border-t border-line pt-3 text-base">
+              <span className="font-bold text-ink">Toplam</span>
+              <span className="text-xl font-extrabold tracking-tight tabular-nums text-ink">{currency(summary.total)}</span>
             </div>
             <ButtonLink href="/sepet" onClick={closeCart} variant="primary" className="w-full">
               Sepete git <ArrowRight size={16} />
@@ -147,7 +154,7 @@ export function CartDrawer() {
             <button
               type="button"
               onClick={closeCart}
-              className="w-full text-center text-xs font-medium text-purple-500 hover:text-purple-700"
+              className="w-full text-center text-xs font-medium text-ink-soft hover:text-ink"
             >
               Alışverişe devam et
             </button>

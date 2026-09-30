@@ -90,6 +90,9 @@ export interface AdminProduct {
   featured: boolean;
   bestSeller: boolean;
   newArrival: boolean;
+  /** "Yeni" damgası başlangıç/bitiş günü ('YYYY-MM-DD', TR takvimi). Boşsa süresiz. */
+  newFrom: string | null;
+  newUntil: string | null;
   taste: TasteRadar;
   form: ProductForm;
   /** Vitrinde placeholder gösterilir; admin tarafında düzenlenebilir bilgi olarak tutulur. */

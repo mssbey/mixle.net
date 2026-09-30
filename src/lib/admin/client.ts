@@ -10,6 +10,7 @@ import type {
 } from '@/types/admin';
 import type { Permission, Role } from '@/server/auth/rbac';
 import type { BulkAction } from './mutations';
+import type { PriceAdjustInput } from './pricing';
 import type { FlavorProfileDef } from '@/lib/flavor-profiles';
 import type { TrashItemView as TrashItem } from '@/server/catalog/trash';
 
@@ -89,6 +90,12 @@ export const adminApi = {
     request<{ ok: true }>(`/api/admin/cop-kutusu/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   emptyTrash: () => request<{ ok: true; count: number }>('/api/admin/cop-kutusu', { method: 'DELETE' }),
+
+  adjustPrices: (input: PriceAdjustInput) =>
+    request<{ ok: true; products: number; variants: number }>('/api/admin/products/fiyat', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
 
   bulkProducts: (op: BulkAction) =>
     request<{ ok: true }>('/api/admin/products/bulk', {

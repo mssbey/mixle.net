@@ -68,6 +68,8 @@ export interface Product {
   series: string; // marka/seri adı, ör. "Signature", "Lab Serisi"
   shortDescription: string;
   longDescription: string;
+  /** Arama motoru başlığı/açıklaması (panelden; boşsa açıklamadan üretilir). */
+  seo?: { title: string; description: string };
   category: CategorySlug;
   subcategory: string;
   collection?: CollectionSlug;

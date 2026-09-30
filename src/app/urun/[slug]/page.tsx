@@ -29,13 +29,15 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       ? { title: `${preview.product.name} (önizleme)`, robots: { index: false, follow: false } }
       : {};
   }
+  const title = product.seo?.title || product.name;
+  const description = product.seo?.description || product.shortDescription;
   return {
-    title: product.name,
-    description: product.shortDescription,
+    title,
+    description,
     alternates: { canonical: `/urun/${product.slug}` },
     openGraph: {
-      title: product.name,
-      description: product.shortDescription,
+      title,
+      description,
       images: product.images.map((i) => ({ url: i.src })),
     },
   };

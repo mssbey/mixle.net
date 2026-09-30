@@ -60,6 +60,8 @@ const legacyProductSchema = z.object({
   featured: z.boolean().default(false),
   bestSeller: z.boolean().default(false),
   newArrival: z.boolean().default(false),
+  newFrom: z.string().nullable().default(null),
+  newUntil: z.string().nullable().default(null),
   taste: z.object({
     sweetness: z.number().default(0),
     freshness: z.number().default(0),

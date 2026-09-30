@@ -16,6 +16,7 @@ export function toSlimProduct(p: Product): Product {
   return {
     ...p,
     longDescription: '',
+    seo: undefined,
     ingredientsNote: '',
     usageRate: '',
     steepTime: '',

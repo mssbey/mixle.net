@@ -109,6 +109,7 @@ export function Header({ contact }: { contact: StorefrontContact }) {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName) || el?.isContentEditable;
+      if (e.key === 'Escape') setMegaOpen(false);
       if (e.key === '/' && !typing) {
         e.preventDefault();
         setSearch(true);
@@ -310,8 +311,11 @@ export function Header({ contact }: { contact: StorefrontContact }) {
               <button
                 type="button"
                 onMouseEnter={openMega}
+                // İmleç kırmızı butondan çıkınca menü kapanır; alt paneldeki
+                // ürünlere geçerken kısa gecikme sayesinde açık kalır.
+                onMouseLeave={closeMega}
                 onFocus={openMega}
-                onClick={() => setMegaOpen((v) => !v)}
+                onClick={openMega}
                 aria-expanded={megaOpen}
                 className="mr-2 flex items-center gap-2 bg-brand-500 px-4 text-[13px] font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-600"
               >

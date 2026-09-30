@@ -3,6 +3,7 @@
 // kalsın. Kuruş → TL dönüşümü de burada, tek noktada yapılır.
 
 import type {
+  BadgeKind,
   Category,
   CategorySlug,
   Collection,
@@ -21,6 +22,8 @@ import type {
   AdminVariant,
 } from '@/types/admin';
 import { fromMinor } from '@/lib/money';
+import { hasNewWindow, isInNewWindow } from '@/lib/new-badge';
+import { buildProductSeo } from '@/lib/admin/seo-autofill';
 import {
   noPhotoPlaceholder,
   catalogPhotos,
@@ -104,6 +107,15 @@ function toStorefrontVariant(product: AdminProduct, v: AdminVariant): ProductVar
   };
 }
 
+/** Panelde boş bırakılan SEO alanları açıklamadan üretilir. */
+function seoOf(p: AdminProduct): { title: string; description: string } {
+  const title = p.seo.title.trim();
+  const description = p.seo.description.trim();
+  if (title && description) return { title, description };
+  const gen = buildProductSeo(p);
+  return { title: title || gen.title, description: description || gen.description };
+}
+
 export function toStorefrontProduct(p: AdminProduct): Product {
   const activeVariants = p.variants.filter((v) => v.isActive);
   const usable = activeVariants.length > 0 ? activeVariants : p.variants;
@@ -125,6 +137,13 @@ export function toStorefrontProduct(p: AdminProduct): Product {
     ? [{ src: noPhotoPlaceholder, alt: `${p.name} — görsel yok` }]
     : photos.map((img) => ({ src: img.src, alt: img.alt || p.name }));
 
+  // "Yeni" rozeti tek kaynaktan gelir: paneldeki "Yeni gelen" işareti. Tarih
+  // aralığı girilmişse işaret yerine aralık belirler. Rozet listesine elle
+  // eklenmiş eski 'yeni' kayıtları yok sayılır (işaretsiz ürün "Yeni" görünmesin).
+  const newArrival = hasNewWindow(p) ? isInNewWindow(p) : p.newArrival;
+  const rest = p.badges.filter((b) => b !== 'yeni');
+  const badges: BadgeKind[] = newArrival ? ['yeni', ...rest] : rest;
+
   return {
     id: p.id,
     slug: p.slug,
@@ -132,12 +151,13 @@ export function toStorefrontProduct(p: AdminProduct): Product {
     series: p.series,
     shortDescription: p.shortDescription,
     longDescription: p.description,
+    seo: seoOf(p),
     category: (p.categoryIds[0] ?? 'meyveli') as CategorySlug,
     subcategory: p.subcategory,
     collection: p.collectionIds[0] as CollectionSlug | undefined,
     flavorNotes: p.flavorNotes,
     flavorProfiles: p.flavorProfiles,
-    badges: p.badges,
+    badges,
     images: gallery.slice(0, 2),
     gallery,
     noPhoto,
@@ -157,7 +177,7 @@ export function toStorefrontProduct(p: AdminProduct): Product {
     form: p.form,
     featured: p.featured,
     bestSeller: p.bestSeller,
-    newArrival: p.newArrival,
+    newArrival,
     variants,
     relatedProductIds: [],
     faq: p.faq,

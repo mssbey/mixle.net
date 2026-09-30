@@ -12,6 +12,7 @@ import { priceRangeOf } from '@/lib/admin/variants';
 import { catalogPhotos } from '@/lib/storefront-images';
 import { openInStorefrontPath, storefrontPath } from '@/lib/admin/preview';
 import { toast } from '@/store/toast';
+import { hasNewWindow, isInNewWindow } from '@/lib/new-badge';
 import { StatusBadge } from './primitives';
 
 const BADGE_LABELS: Record<BadgeKind, string> = {
@@ -68,6 +69,12 @@ export function ProductPreviewCard({ product, saved, dirty }: Props) {
     .map((v) => v.compareAtPriceMinor)
     .filter((c): c is number => typeof c === 'number' && c > range.min);
   const strike = compareAt.length ? Math.min(...compareAt) : null;
+  // Vitrindeki kural: "Yeni" rozeti yalnızca "Yeni gelen" işaretinden (veya tarih aralığından) gelir.
+  const isNew = hasNewWindow(product) ? isInNewWindow(product) : product.newArrival;
+  const badges: BadgeKind[] = [
+    ...(isNew ? (['yeni'] as const) : []),
+    ...product.badges.filter((b) => b !== 'yeni'),
+  ];
 
   const copy = async () => {
     const absolute = `${site.domain.replace(/\/$/, '')}${path}`;
@@ -101,9 +108,9 @@ export function ProductPreviewCard({ product, saved, dirty }: Props) {
                 Görsel yüklenmedi
               </div>
             )}
-            {product.badges.length > 0 && (
+            {badges.length > 0 && (
               <div className="absolute left-2 top-2 flex flex-wrap gap-1">
-                {product.badges.map((b) => (
+                {badges.map((b) => (
                   <span key={b} className="admin-preview-badge">
                     {BADGE_LABELS[b]}
                   </span>

@@ -62,7 +62,7 @@ export function Drawer({ open, onClose, children, label, side = 'right', classNa
             )}
             {title && (
               <header className="flex items-center justify-between gap-3 border-b border-purple-100 px-5 py-4">
-                <div className="font-display text-lg font-semibold text-purple-800">{title}</div>
+                <div className="text-base font-bold tracking-tight text-ink">{title}</div>
                 <button
                   type="button"
                   onClick={onClose}

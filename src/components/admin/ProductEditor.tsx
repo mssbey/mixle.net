@@ -23,9 +23,12 @@ import { VariantTable } from './VariantTable';
 import { UnsavedGuard } from './UnsavedGuard';
 import { ProductPreviewCard } from './ProductPreviewCard';
 import { ProductFlavorProfileBox, useAdminFlavorProfiles } from './ProductFlavorProfileBox';
+import { NewWindowBox } from './NewWindowBox';
+import { RichTextArea } from './RichTextArea';
+import { ConfirmDialog } from './ConfirmDialog';
 
+// "Yeni" burada yok: vitrindeki "Yeni" rozeti yalnızca "Yeni gelen" işaretinden gelir.
 const BADGES: { id: BadgeKind; label: string }[] = [
-  { id: 'yeni', label: 'Yeni' },
   { id: 'cok-satan', label: 'Çok satan' },
   { id: 'sinirli-seri', label: 'Sınırlı seri' },
   { id: 'indirim', label: 'İndirim' },
@@ -61,6 +64,8 @@ export function blankProduct(firstCategoryId?: string): AdminProduct {
     featured: false,
     bestSeller: false,
     newArrival: false,
+    newFrom: null,
+    newUntil: null,
     taste: { sweetness: 5, freshness: 5, intensity: 5, sourness: 3, creaminess: 3 },
     form: 'konsantre',
     usageRate: '',
@@ -81,8 +86,16 @@ interface Props {
 
 export function ProductEditor({ initial, mode }: Props) {
   const router = useRouter();
-  const { collections, canWrite, createProduct, updateProduct, duplicateProduct, categoryName } =
-    useAdminData();
+  const {
+    collections,
+    canWrite,
+    can,
+    createProduct,
+    updateProduct,
+    duplicateProduct,
+    deleteProduct,
+    categoryName,
+  } = useAdminData();
   const { profiles: flavorProfiles } = useAdminFlavorProfiles();
 
   const [baseline, setBaseline] = useState(() => JSON.stringify(initial));
@@ -90,6 +103,8 @@ export function ProductEditor({ initial, mode }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [confirmTrash, setConfirmTrash] = useState(false);
+  const [trashing, setTrashing] = useState(false);
 
   const dirty = useMemo(() => JSON.stringify(draft) !== baseline, [draft, baseline]);
   // Vitrin bağlantıları KAYITLI slug/duruma göre kurulur; formdaki henüz
@@ -187,6 +202,15 @@ export function ProductEditor({ initial, mode }: Props) {
     if (copy) router.push(`/admin/urunler/${copy.slug}`);
   };
 
+  /** Ürünü çöp kutusuna taşır (30 gün geri yüklenebilir) ve listeye döner. */
+  const trash = async () => {
+    setConfirmTrash(false);
+    setTrashing(true);
+    const ok = await deleteProduct(saved.id);
+    if (ok) router.push('/admin/urunler');
+    else setTrashing(false);
+  };
+
   const discard = () => {
     setDraft(JSON.parse(baseline) as AdminProduct);
     setSeoAuto(initialSeoAuto());
@@ -197,7 +221,7 @@ export function ProductEditor({ initial, mode }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <UnsavedGuard when={dirty && !saving} />
+      <UnsavedGuard when={dirty && !saving && !trashing} />
 
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -236,6 +260,15 @@ export function ProductEditor({ initial, mode }: Props) {
               title="Taslak kopya oluştur ve kopyayı düzenlemeye aç"
             >
               <Copy size={14} /> {duplicating ? 'Kopyalanıyor…' : 'Kopyala'}
+            </button>
+            <button
+              type="button"
+              className="admin-btn admin-btn-danger"
+              disabled={readOnly || !can('katalog:sil') || trashing}
+              onClick={() => setConfirmTrash(true)}
+              title="Ürünü çöp kutusuna taşı (30 gün içinde geri yüklenebilir)"
+            >
+              <Trash2 size={14} /> {trashing ? 'Taşınıyor…' : 'Çöpe at'}
             </button>
           </div>
         )}
@@ -298,17 +331,61 @@ export function ProductEditor({ initial, mode }: Props) {
               </Field>
 
               <Field label="Uzun açıklama" htmlFor="p-desc" error={err('description')}>
-                <textarea
+                <RichTextArea
                   id="p-desc"
-                  className="admin-textarea"
-                  style={{ minHeight: 140 }}
                   value={draft.description}
                   disabled={readOnly}
-                  onChange={(e) => set({ description: e.target.value })}
+                  invalid={Boolean(err('description'))}
+                  onChange={(description) => set({ description })}
                 />
               </Field>
 
             </div>
+          </section>
+
+          <section className="admin-card" style={{ padding: 16 }}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">SEO</h2>
+              <button
+                type="button"
+                className="admin-btn admin-btn-ghost admin-btn-sm"
+                disabled={readOnly || !draft.name.trim()}
+                onClick={fillSeo}
+                title="Başlığı ürün adından, açıklamayı uzun açıklamanın giriş cümlelerinden yeniden üret"
+              >
+                <Wand2 size={12} /> Açıklamadan doldur
+              </button>
+            </div>
+            <Field
+              label="SEO başlığı"
+              htmlFor="p-seo-title"
+              error={err('seo.title')}
+              hint={`${seoAuto.title ? 'Otomatik · ' : ''}${draft.seo.title.length}/70`}
+            >
+              <input
+                id="p-seo-title"
+                className="admin-input"
+                value={draft.seo.title}
+                disabled={readOnly}
+                onChange={(e) => setSeoField('title', e.target.value)}
+              />
+            </Field>
+            <Field
+              label="SEO açıklaması"
+              htmlFor="p-seo-desc"
+              error={err('seo.description')}
+              hint={`${seoAuto.description ? 'Otomatik · ' : ''}${draft.seo.description.length}/180`}
+              className="mt-3"
+            >
+              <textarea
+                id="p-seo-desc"
+                className="admin-textarea"
+                style={{ minHeight: 72 }}
+                value={draft.seo.description}
+                disabled={readOnly}
+                onChange={(e) => setSeoField('description', e.target.value)}
+              />
+            </Field>
           </section>
 
           <section className="admin-card" style={{ padding: 16 }}>
@@ -483,7 +560,7 @@ export function ProductEditor({ initial, mode }: Props) {
                 [
                   ['featured', 'Öne çıkan'],
                   ['bestSeller', 'Çok satan'],
-                  ['newArrival', 'Yeni gelen'],
+                  ['newArrival', 'Yeni gelen ("Yeni" rozeti)'],
                 ] as const
               ).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2 text-sm">
@@ -497,6 +574,13 @@ export function ProductEditor({ initial, mode }: Props) {
                 </label>
               ))}
             </div>
+            <NewWindowBox
+              newFrom={draft.newFrom}
+              newUntil={draft.newUntil}
+              disabled={readOnly}
+              error={err('newUntil') ?? err('newFrom')}
+              onChange={(patch) => set(patch)}
+            />
             <div className="mt-3">
               <span className="admin-label">Rozetler</span>
               <div className="mt-1 flex flex-wrap gap-1.5">
@@ -570,50 +654,6 @@ export function ProductEditor({ initial, mode }: Props) {
             disabled={readOnly}
             onChange={(tags) => set({ tags })}
           />
-
-          <section className="admin-card" style={{ padding: 16 }}>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">SEO</h2>
-              <button
-                type="button"
-                className="admin-btn admin-btn-ghost admin-btn-sm"
-                disabled={readOnly || !draft.name.trim()}
-                onClick={fillSeo}
-                title="Ürün adı, kategori, profiller ve seçeneklerden yeniden üret"
-              >
-                <Wand2 size={12} /> Otomatik doldur
-              </button>
-            </div>
-            <Field
-              label="SEO başlığı"
-              htmlFor="p-seo-title"
-              error={err('seo.title')}
-              hint={`${seoAuto.title ? 'Otomatik · ' : ''}${draft.seo.title.length}/70`}
-            >
-              <input
-                id="p-seo-title"
-                className="admin-input"
-                value={draft.seo.title}
-                disabled={readOnly}
-                onChange={(e) => setSeoField('title', e.target.value)}
-              />
-            </Field>
-            <Field
-              label="SEO açıklaması"
-              htmlFor="p-seo-desc"
-              error={err('seo.description')}
-              hint={`${seoAuto.description ? 'Otomatik · ' : ''}${draft.seo.description.length}/180`}
-              className="mt-3"
-            >
-              <textarea
-                id="p-seo-desc"
-                className="admin-textarea"
-                value={draft.seo.description}
-                disabled={readOnly}
-                onChange={(e) => setSeoField('description', e.target.value)}
-              />
-            </Field>
-          </section>
         </aside>
       </div>
 
@@ -649,6 +689,18 @@ export function ProductEditor({ initial, mode }: Props) {
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmTrash}
+        title={`"${saved.name}" çöp kutusuna taşınsın mı?`}
+        description={`Ürün vitrinden kaldırılır. 30 gün boyunca Çöp kutusundan geri yükleyebilirsiniz.${
+          dirty ? ' Kaydedilmemiş değişiklikler kaybolur.' : ''
+        }`}
+        confirmLabel="Çöpe at"
+        destructive
+        onConfirm={() => void trash()}
+        onCancel={() => setConfirmTrash(false)}
+      />
     </div>
   );
 }

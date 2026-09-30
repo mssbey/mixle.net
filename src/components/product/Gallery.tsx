@@ -20,7 +20,6 @@ export function Gallery({
   activeHint?: string;
 }) {
   const [active, setActive] = useState(0);
-  const [zoom, setZoom] = useState({ x: 50, y: 50, on: false });
   const [fullscreen, setFullscreen] = useState(false);
   const [emblaRef, embla] = useEmblaCarousel({ align: 'start' });
 
@@ -56,14 +55,7 @@ export function Gallery({
           ))}
         </div>
 
-        <div
-          className="group relative flex-1 overflow-hidden rounded-lg border border-line bg-mist"
-          onMouseMove={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            setZoom({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100, on: true });
-          }}
-          onMouseLeave={() => setZoom((z) => ({ ...z, on: false }))}
-        >
+        <div className="relative flex-1 overflow-hidden rounded-lg border border-line bg-mist">
           <div className="relative aspect-square w-full">
             <Image
               src={images[active].src}
@@ -71,12 +63,7 @@ export function Gallery({
               fill
               sizes="(max-width:1024px) 100vw, 50vw"
               loading="eager"
-              className="object-contain bg-white transition-transform duration-200"
-              style={
-                zoom.on
-                  ? { transform: 'scale(1.9)', transformOrigin: `${zoom.x}% ${zoom.y}%` }
-                  : undefined
-              }
+              className="object-contain bg-white"
             />
           </div>
           <button

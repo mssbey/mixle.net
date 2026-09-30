@@ -47,6 +47,9 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
   const sel = { volume, intensity };
   const soldOut = variant.stock === 'out-of-stock';
   const stock = stockLabel[product.stockStatus];
+  const prices = product.variants.map((v) => v.price);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
 
   const handleAdd = () => {
     add(product.id, variant.id, qty);
@@ -80,7 +83,17 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
       </div>
 
       <div className="mt-5 flex flex-wrap items-end justify-between gap-3 rounded-lg border border-line bg-mist p-4">
-        <Price price={variant.price} oldPrice={variant.oldPrice} size="lg" />
+        <div>
+          <Price price={variant.price} oldPrice={variant.oldPrice} size="lg" />
+          {maxPrice > minPrice && (
+            <p className="mt-1.5 text-xs text-ink-soft">
+              Fiyat aralığı:{' '}
+              <span className="font-semibold text-ink">
+                {currency(minPrice)} – {currency(maxPrice)}
+              </span>
+            </p>
+          )}
+        </div>
         <p className="max-w-[12rem] text-right text-[11px] leading-snug text-ink-soft">
           Fiyata KDV dahildir.
         </p>

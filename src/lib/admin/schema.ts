@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { CATALOG_SCHEMA_VERSION } from '@/types/admin';
 import { flavorProfileIdSchema } from '@/lib/flavor-profiles';
+import { DATE_ONLY } from '@/lib/new-badge';
 
 // Tat profilleri panelden yönetilir; burada yalnız kimlik biçimi doğrulanır.
 const flavorProfileSchema = flavorProfileIdSchema;
@@ -95,6 +96,8 @@ export const adminProductSchema = z
     featured: z.boolean(),
     bestSeller: z.boolean(),
     newArrival: z.boolean(),
+    newFrom: z.string().regex(DATE_ONLY, 'Geçersiz tarih').nullable().default(null),
+    newUntil: z.string().regex(DATE_ONLY, 'Geçersiz tarih').nullable().default(null),
     taste: tasteSchema,
     form: formSchema,
     usageRate: z.string().trim().max(160),
@@ -107,6 +110,13 @@ export const adminProductSchema = z
     updatedAt: z.string().min(1),
   })
   .superRefine((product, ctx) => {
+    if (product.newFrom && product.newUntil && product.newUntil < product.newFrom) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Bitiş tarihi başlangıçtan önce olamaz',
+        path: ['newUntil'],
+      });
+    }
     const defaults = product.variants.filter((v) => v.isDefault);
     if (defaults.length !== 1) {
       ctx.addIssue({

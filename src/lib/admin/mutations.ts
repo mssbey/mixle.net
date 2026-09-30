@@ -16,6 +16,7 @@ import {
   fieldErrors,
 } from './schema';
 import { comboKeyOf, ensureSingleDefault, generateMatrix, localId } from './variants';
+import { buildProductSeo } from './seo-autofill';
 
 export class AdminError extends Error {
   constructor(
@@ -238,7 +239,8 @@ export type BulkAction =
   | { action: 'deactivate'; ids: string[] }
   | { action: 'status'; ids: string[]; status: ProductStatus }
   | { action: 'category'; ids: string[]; categoryIds: string[] }
-  | { action: 'delete'; ids: string[] };
+  | { action: 'delete'; ids: string[] }
+  | { action: 'seo'; ids: string[] };
 
 export function bulkProducts(catalog: CatalogFile, op: BulkAction): CatalogFile {
   const next = clone(catalog);
@@ -255,6 +257,14 @@ export function bulkProducts(catalog: CatalogFile, op: BulkAction): CatalogFile 
     if (op.action === 'activate') return { ...p, status: 'yayında', updatedAt: stamp };
     if (op.action === 'deactivate') return { ...p, status: 'taslak', updatedAt: stamp };
     if (op.action === 'status') return { ...p, status: op.status, updatedAt: stamp };
+    if (op.action === 'seo') {
+      const seo = buildProductSeo(p, {
+        categoryName: (cid) => next.categories.find((c) => c.id === cid)?.name ?? '',
+      });
+      // Değişmeyen ürün yeniden yazılmasın (rota yalnız farklı olanları kaydeder).
+      if (seo.title === p.seo.title && seo.description === p.seo.description) return p;
+      return { ...p, seo, updatedAt: stamp };
+    }
     if (op.action === 'category') {
       const valid = op.categoryIds.filter((cid) => next.categories.some((c) => c.id === cid));
       if (valid.length === 0) throw new AdminError('Geçerli kategori seçilmedi', 422);

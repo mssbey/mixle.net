@@ -33,7 +33,7 @@ export function productJsonLd(product: Product, categoryName?: string) {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    description: product.shortDescription,
+    description: product.seo?.description || product.shortDescription,
     category: catName,
     sku: product.variants[0]?.sku,
     brand: { '@type': 'Brand', name: site.name },

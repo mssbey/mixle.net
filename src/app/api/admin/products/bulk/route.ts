@@ -1,6 +1,6 @@
 import { handle, readJson } from '@/lib/admin/http';
 import { bulkProducts, type BulkAction } from '@/lib/admin/mutations';
-import { readCatalog, saveProducts } from '@/server/catalog/persist';
+import { readCatalog, saveProductSeo, saveProducts } from '@/server/catalog/persist';
 import { trashProducts } from '@/server/catalog/trash';
 import { writeAudit } from '@/server/audit';
 
@@ -32,7 +32,8 @@ export function POST(request: Request): Promise<Response> {
       // Yalnızca gerçekten değişen ürünleri yaz.
       const before = new Map(catalog.products.map((p) => [p.id, JSON.stringify(p)]));
       const changed = next.products.filter((p) => before.get(p.id) !== JSON.stringify(p));
-      await saveProducts(changed);
+      if (op.action === 'seo') await saveProductSeo(changed);
+      else await saveProducts(changed);
       await writeAudit({
         user,
         action: 'guncelle',

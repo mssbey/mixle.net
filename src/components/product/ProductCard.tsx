@@ -87,13 +87,14 @@ export function ProductCard({
           />
         </Link>
 
-        <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-1.5">
+        {/* Rozet sağ altta: sol üstteki ürün görseli yazılarını (ör. marka adı) kapatmasın. */}
+        <div className="pointer-events-none absolute bottom-2.5 right-2.5 z-10 flex flex-col items-end gap-1.5">
           {pct > 0 ? (
-            <span className="rounded bg-brand-500 px-1.5 py-0.5 text-[11px] font-bold text-white">
+            <span className="rounded bg-brand-500 px-2.5 py-1 text-[13px] font-bold text-white shadow-card">
               %{pct} İndirim
             </span>
           ) : (
-            badge && <Badge kind={badge} />
+            badge && <Badge kind={badge} className="px-2.5 py-1 text-[13px] shadow-card" />
           )}
         </div>
 

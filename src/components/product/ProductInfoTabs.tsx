@@ -4,6 +4,7 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Accordion } from '@/components/ui/Accordion';
 import { TasteRadar, TasteBars } from './TasteRadar';
 import { FlavorTag } from '@/components/ui/FlavorTag';
+import { RichText } from '@/components/ui/RichText';
 import type { Product } from '@/types';
 
 export function ProductInfoTabs({ product }: { product: Product }) {
@@ -15,7 +16,7 @@ export function ProductInfoTabs({ product }: { product: Product }) {
           label: 'Ürün Açıklaması',
           content: (
             <div className="max-w-2xl space-y-4">
-              <p className="whitespace-pre-line">{product.longDescription}</p>
+              <RichText text={product.longDescription} />
               <div className="flex flex-wrap gap-2">
                 {product.flavorNotes.map((n) => (
                   <FlavorTag key={n.label} profile={n.profile} label={n.label} />

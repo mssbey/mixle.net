@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Copy, ExternalLink, Eye, Plus, Trash2, X } from 'lucide-react';
-import type { ProductStatus } from '@/types/admin';
+import { Copy, ExternalLink, Eye, ImageOff, Percent, Plus, Trash2, Wand2, X } from 'lucide-react';
+import type { AdminProduct, ProductStatus } from '@/types/admin';
 import { productStatuses, statusLabels } from '@/types/admin';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { PriceAdjustDialog } from '@/components/admin/PriceAdjustDialog';
 import { EmptyState, StatusBadge, TableSkeleton } from '@/components/admin/primitives';
 import { categoryTree, listProducts, type ProductQuery } from '@/lib/admin/mutations';
 import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
@@ -15,8 +17,29 @@ import { priceRangeOf } from '@/lib/admin/variants';
 import { formatMinor } from '@/lib/admin/format';
 import { useDebounced } from '@/lib/hooks';
 import { openInStorefrontPath } from '@/lib/admin/preview';
+import { catalogPhotos } from '@/lib/storefront-images';
 
 const PAGE_SIZE = 20;
+
+/** Listede ürünü tanımayı kolaylaştıran küçük ön izleme görseli. */
+function ProductThumb({ product, size = 48 }: { product: AdminProduct; size?: number }) {
+  const src = catalogPhotos(product.images)[0]?.src;
+  return (
+    <Link
+      href={`/admin/urunler/${product.slug}`}
+      className="relative grid shrink-0 place-items-center overflow-hidden rounded border border-[var(--admin-line)] bg-white text-[var(--admin-ink-soft)]"
+      style={{ width: size, height: size }}
+      tabIndex={-1}
+      aria-hidden="true"
+    >
+      {src ? (
+        <Image src={src} alt="" fill sizes={`${size}px`} className="object-contain" />
+      ) : (
+        <ImageOff size={16} />
+      )}
+    </Link>
+  );
+}
 
 function ProductsView() {
   const params = useSearchParams();
@@ -30,7 +53,9 @@ function ProductsView() {
     bulkProducts,
     duplicateProduct,
     canWrite,
+    reload,
   } = useAdminData();
+  const [priceOpen, setPriceOpen] = useState(false);
 
   // Aynı satıra iki kez basılmasın diye çoğaltılan ürün kilitlenir.
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
@@ -53,6 +78,8 @@ function ProductsView() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Toplu SEO: seçili ürünler veya tüm katalog.
+  const [seoTarget, setSeoTarget] = useState<'selected' | 'all' | null>(null);
 
   const debouncedSearch = useDebounced(search, 200);
 
@@ -125,6 +152,15 @@ function ProductsView() {
     if (ok) setSelected(new Set());
   };
 
+  const seoIds = seoTarget === 'all' ? (catalog?.products.map((p) => p.id) ?? []) : ids;
+  const runBulkSeo = async () => {
+    const target = seoTarget;
+    setSeoTarget(null);
+    if (!seoIds.length) return;
+    const ok = await bulkProducts({ action: 'seo', ids: seoIds });
+    if (ok && target === 'selected') setSelected(new Set());
+  };
+
   const hasFilters =
     debouncedSearch || categoryId || collectionId || statusFilter !== 'all';
 
@@ -139,6 +175,23 @@ function ProductsView() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="admin-btn admin-btn-ghost"
+            disabled={!canWrite}
+            onClick={() => setPriceOpen(true)}
+          >
+            <Percent size={15} aria-hidden="true" /> Toplu fiyat
+          </button>
+          <button
+            type="button"
+            className="admin-btn admin-btn-ghost"
+            disabled={!canWrite || !catalog?.products.length}
+            onClick={() => setSeoTarget('all')}
+            title="Tüm ürünlerin SEO başlığı ve açıklamasını ürün açıklamasından üret"
+          >
+            <Wand2 size={15} aria-hidden="true" /> {"SEO'yu doldur"}
+          </button>
           <Link href="/admin/urunler/cop-kutusu" className="admin-btn admin-btn-ghost">
             <Trash2 size={15} aria-hidden="true" /> Çöp kutusu
           </Link>
@@ -335,6 +388,22 @@ function ProductsView() {
           </span>
           <button
             type="button"
+            className="admin-btn admin-btn-ghost admin-btn-sm"
+            disabled={!canWrite}
+            onClick={() => setPriceOpen(true)}
+          >
+            <Percent size={13} aria-hidden="true" /> İndirim / zam
+          </button>
+          <button
+            type="button"
+            className="admin-btn admin-btn-ghost admin-btn-sm"
+            disabled={!canWrite}
+            onClick={() => setSeoTarget('selected')}
+          >
+            <Wand2 size={13} aria-hidden="true" /> {"SEO'yu doldur"}
+          </button>
+          <button
+            type="button"
             className="admin-btn admin-btn-danger admin-btn-sm"
             disabled={!canWrite}
             onClick={() => setConfirmDelete(true)}
@@ -380,6 +449,7 @@ function ProductsView() {
                       onChange={toggleAll}
                     />
                   </th>
+                  <th style={{ width: 64 }} aria-label="Görsel" />
                   <th>Ürün</th>
                   <th>Kategori</th>
                   <th>Fiyat</th>
@@ -403,6 +473,9 @@ function ProductsView() {
                           checked={selected.has(p.id)}
                           onChange={() => toggleOne(p.id)}
                         />
+                      </td>
+                      <td>
+                        <ProductThumb product={p} />
                       </td>
                       <td>
                         <Link
@@ -488,6 +561,7 @@ function ProductsView() {
                       onChange={() => toggleOne(p.id)}
                       className="mt-1"
                     />
+                    <ProductThumb product={p} size={52} />
                     <div className="min-w-0 flex-1">
                       <Link
                         href={`/admin/urunler/${p.slug}`}
@@ -546,6 +620,30 @@ function ProductsView() {
           )}
         </>
       )}
+
+      <PriceAdjustDialog
+        open={priceOpen}
+        onClose={() => setPriceOpen(false)}
+        selectedIds={ids}
+        categories={categories}
+        onDone={async () => {
+          await reload();
+          setSelected(new Set());
+        }}
+      />
+
+      <ConfirmDialog
+        open={seoTarget !== null}
+        title={
+          seoTarget === 'all'
+            ? `${seoIds.length} ürünün tamamının SEO alanları doldurulsun mu?`
+            : `${seoIds.length} ürünün SEO alanları doldurulsun mu?`
+        }
+        description="SEO başlığı ürün adından, SEO açıklaması ürünün uzun açıklamasının giriş cümlelerinden üretilir. Mevcut SEO metinlerinin üzerine yazılır."
+        confirmLabel="SEO'yu doldur"
+        onConfirm={runBulkSeo}
+        onCancel={() => setSeoTarget(null)}
+      />
 
       <ConfirmDialog
         open={confirmDelete}

@@ -22,6 +22,7 @@ import type {
   ProductForm,
 } from '@/types';
 import type { Prisma } from '@/generated/prisma/client';
+import { toTrDay, trDayEnd, trDayStart } from '@/lib/new-badge';
 
 /**
  * `Json` sütunlarına yazarken tip köprüsü. Uygulama tipleri (FlavorNote[] gibi)
@@ -89,6 +90,8 @@ export interface ProductRow {
   featured: boolean;
   bestSeller: boolean;
   newArrival: boolean;
+  newFrom: Date | null;
+  newUntil: Date | null;
   tasteSweetness: number;
   tasteFreshness: number;
   tasteIntensity: number;
@@ -218,6 +221,8 @@ export function rowToProduct(row: ProductRow): AdminProduct {
     featured: row.featured,
     bestSeller: row.bestSeller,
     newArrival: row.newArrival,
+    newFrom: row.newFrom ? toTrDay(row.newFrom) : null,
+    newUntil: row.newUntil ? toTrDay(row.newUntil) : null,
     taste: {
       sweetness: row.tasteSweetness,
       freshness: row.tasteFreshness,
@@ -288,6 +293,8 @@ export function productScalars(p: AdminProduct) {
     featured: p.featured,
     bestSeller: p.bestSeller,
     newArrival: p.newArrival,
+    newFrom: p.newFrom ? trDayStart(p.newFrom) : null,
+    newUntil: p.newUntil ? trDayEnd(p.newUntil) : null,
     tasteSweetness: p.taste.sweetness,
     tasteFreshness: p.taste.freshness,
     tasteIntensity: p.taste.intensity,

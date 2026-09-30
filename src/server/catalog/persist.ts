@@ -219,6 +219,20 @@ export async function saveProducts(products: AdminProduct[]): Promise<void> {
   for (const p of products) await saveProduct(p);
 }
 
+/** Yalnız SEO sütunlarını yazar — toplu SEO doldurma yüzlerce üründe hızlı kalsın. */
+export async function saveProductSeo(products: AdminProduct[]): Promise<void> {
+  if (products.length === 0) return;
+  await db.$transaction(
+    products.map((p) =>
+      db.product.update({
+        where: { id: p.id },
+        data: { seoTitle: p.seo.title, seoDescription: p.seo.description },
+      }),
+    ),
+  );
+  revalidateCatalog();
+}
+
 // -------------------------------------------------------------- taksonomi ---
 
 export async function saveCategory(category: AdminCategory): Promise<void> {

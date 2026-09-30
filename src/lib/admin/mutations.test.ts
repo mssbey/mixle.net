@@ -48,6 +48,8 @@ function product(id: string, categoryIds: string[]): AdminProduct {
     featured: false,
     bestSeller: false,
     newArrival: false,
+    newFrom: null,
+    newUntil: null,
     taste: { sweetness: 5, freshness: 5, intensity: 5, sourness: 5, creaminess: 5 },
     form: 'konsantre',
     usageRate: '',
