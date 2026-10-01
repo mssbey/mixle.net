@@ -104,6 +104,11 @@ function toStorefrontVariant(product: AdminProduct, v: AdminVariant): ProductVar
     stockCount,
     image: catalogPhotos(v.image ? [{ src: v.image }] : [])[0]?.src || primaryImage(product),
     onSale,
+    selection: { ...v.optionValues },
+    label: product.options
+      .map((o) => o.values.find((x) => x.id === v.optionValues[o.id])?.label)
+      .filter((x): x is string => Boolean(x))
+      .join(' / '),
   };
 }
 
@@ -209,6 +214,16 @@ export function toStorefrontProduct(p: AdminProduct, slugs?: TaxonomySlugMap): P
     featured: p.featured,
     bestSeller: p.bestSeller,
     newArrival,
+    // Yalnız en az bir varyantta kullanılan değerler listelenir.
+    options: p.options
+      .map((o) => ({
+        id: o.id,
+        name: o.name,
+        values: o.values
+          .filter((val) => usable.some((v) => v.optionValues[o.id] === val.id))
+          .map((val) => ({ id: val.id, label: val.label })),
+      }))
+      .filter((o) => o.values.length > 0),
     variants,
     relatedProductIds: [],
     faq: p.faq,

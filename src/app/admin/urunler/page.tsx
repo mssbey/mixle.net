@@ -122,7 +122,7 @@ function ProductsView() {
     });
   };
 
-  const ids = [...selected];
+  const ids = useMemo(() => [...selected], [selected]);
 
   const runBulk = async (action: 'activate' | 'deactivate') => {
     if (!ids.length) return;
@@ -625,6 +625,7 @@ function ProductsView() {
         open={priceOpen}
         onClose={() => setPriceOpen(false)}
         selectedIds={ids}
+        products={catalog?.products ?? []}
         categories={categories}
         onDone={async () => {
           await reload();

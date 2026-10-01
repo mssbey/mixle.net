@@ -1,5 +1,6 @@
 // Toplu fiyat güncelleme: seçili ürünler / kategoriler (alt kategoriler dahil) /
-// tüm ürünler için yüzde indirim, yüzde zam ya da indirimi kaldırma.
+// tüm ürünler için fiyatı yüzde ya da tutar olarak düşürme / artırma, ya da
+// eski üstü çizili indirimleri kaldırma.
 //
 // 900+ ürünü `saveProduct` ile tek tek yazmak uzak veritabanında dakikalar
 // sürer; burada yalnızca varyant fiyat sütunları tek SQL ile güncellenir.
@@ -31,13 +32,22 @@ export function POST(request: Request): Promise<Response> {
       select: { id: true, productId: true, priceMinor: true, compareAtPriceMinor: true },
     });
 
-    const changes = variants
-      .map((v) => ({ v, next: adjustPrice(v, input.mode, input.percent, input.roundLira) }))
-      .filter(({ v, next }) => next.priceMinor !== v.priceMinor || next.compareAtPriceMinor !== v.compareAtPriceMinor);
+    let skipped = 0;
+    const changes: { v: (typeof variants)[number]; next: { priceMinor: number; compareAtPriceMinor: number | null } }[] = [];
+    for (const v of variants) {
+      const next = adjustPrice(v, input);
+      if (!next) {
+        if (v.priceMinor > 0) skipped += 1;
+        continue;
+      }
+      if (next.priceMinor !== v.priceMinor || next.compareAtPriceMinor !== v.compareAtPriceMinor) changes.push({ v, next });
+    }
     const productIds = [...new Set(changes.map((c) => c.v.productId))];
+    // Önizlemede örnek: ilk değişecek varyantın önce/sonra fiyatı.
+    const sample = changes[0] ? { before: changes[0].v.priceMinor, after: changes[0].next.priceMinor } : null;
 
     if (input.dryRun) {
-      return Response.json({ ok: true, products: productIds.length, variants: changes.length });
+      return Response.json({ ok: true, products: productIds.length, variants: changes.length, skipped, sample });
     }
 
     for (let i = 0; i < changes.length; i += CHUNK) {
@@ -63,11 +73,11 @@ export function POST(request: Request): Promise<Response> {
       diff: {
         topluFiyat: {
           before: null,
-          after: `${input.mode} %${input.percent} · ${input.scope} · ${productIds.length} ürün / ${changes.length} varyant`,
+          after: `${input.mode} ${input.valueType === 'yuzde' ? `%${input.value}` : `${input.value} ₺`}${input.roundUp ? ' (üste yuvarla)' : ''} · ${input.scope} · ${productIds.length} ürün / ${changes.length} varyant`,
         },
       },
     });
 
-    return Response.json({ ok: true, products: productIds.length, variants: changes.length });
+    return Response.json({ ok: true, products: productIds.length, variants: changes.length, skipped, sample });
   });
 }

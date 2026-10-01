@@ -92,7 +92,13 @@ export const adminApi = {
   emptyTrash: () => request<{ ok: true; count: number }>('/api/admin/cop-kutusu', { method: 'DELETE' }),
 
   adjustPrices: (input: PriceAdjustInput) =>
-    request<{ ok: true; products: number; variants: number }>('/api/admin/products/fiyat', {
+    request<{
+      ok: true;
+      products: number;
+      variants: number;
+      skipped: number;
+      sample: { before: number; after: number } | null;
+    }>('/api/admin/products/fiyat', {
       method: 'POST',
       body: JSON.stringify(input),
     }),

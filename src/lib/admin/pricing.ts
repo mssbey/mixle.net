@@ -1,10 +1,13 @@
 // Toplu fiyat güncelleme — belirli ürünler, kategoriler ya da tüm katalog için
-// yüzde indirim / yüzde zam / indirimi kaldır. Saf fonksiyonlar: hem sunucu
-// (/api/admin/products/fiyat) hem de testler kullanır.
+// fiyatı yüzde / sabit tutar kadar düşür ya da artır. Düşürme bir "indirim"
+// değildir: yeni fiyat doğrudan satış fiyatı olur, üstü çizili eski fiyat ya da
+// indirim rozeti oluşmaz (100 → %10 düşür → 90 → tekrar → 81).
+// Saf fonksiyonlar: hem sunucu (/api/admin/products/fiyat) hem de testler kullanır.
 
 import { z } from 'zod';
 
-export type PriceMode = 'indirim' | 'zam' | 'indirim-kaldir';
+export type PriceMode = 'dusur' | 'artir' | 'indirim-kaldir';
+export type PriceValueType = 'yuzde' | 'tutar';
 export type PriceScope = 'secili' | 'kategori' | 'tumu';
 
 export const priceAdjustSchema = z
@@ -12,10 +15,12 @@ export const priceAdjustSchema = z
     scope: z.enum(['secili', 'kategori', 'tumu']),
     ids: z.array(z.string().min(1)).default([]),
     categoryIds: z.array(z.string().min(1)).default([]),
-    mode: z.enum(['indirim', 'zam', 'indirim-kaldir']),
-    percent: z.number().min(0).max(500).default(0),
-    /** Yeni fiyatı tam liraya yuvarla (ör. 224,91 → 225,00). */
-    roundLira: z.boolean().default(false),
+    mode: z.enum(['dusur', 'artir', 'indirim-kaldir']),
+    valueType: z.enum(['yuzde', 'tutar']).default('yuzde'),
+    /** Yüzde (10 = %10) ya da TL tutar (25,5 = 25,50 ₺). */
+    value: z.number().min(0).max(1_000_000).default(0),
+    /** Küsüratı bir üst liraya yuvarla (ör. 183,56 → 184,00). */
+    roundUp: z.boolean().default(false),
     /** true ise yazmaz, yalnızca etkilenecek kayıt sayısını döner. */
     dryRun: z.boolean().default(false),
   })
@@ -26,57 +31,64 @@ export const priceAdjustSchema = z
     if (v.scope === 'kategori' && v.categoryIds.length === 0) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Kategori seçilmedi', path: ['categoryIds'] });
     }
-    if (v.mode !== 'indirim-kaldir' && v.percent <= 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Yüzde 0’dan büyük olmalı', path: ['percent'] });
+    if (v.mode !== 'indirim-kaldir' && v.value <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Değer 0’dan büyük olmalı', path: ['value'] });
     }
-    if (v.mode === 'indirim' && v.percent >= 100) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'İndirim %100’den küçük olmalı', path: ['percent'] });
+    if (v.mode === 'dusur' && v.valueType === 'yuzde' && v.value >= 100) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Yüzde 100’den küçük olmalı', path: ['value'] });
+    }
+    if (v.mode === 'artir' && v.valueType === 'yuzde' && v.value > 500) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Artış en fazla %500 olabilir', path: ['value'] });
     }
   });
 
 export type PriceAdjustInput = z.input<typeof priceAdjustSchema>;
+
+export interface PriceAdjustment {
+  mode: PriceMode;
+  valueType?: PriceValueType;
+  value?: number;
+  roundUp?: boolean;
+}
 
 export interface VariantPrice {
   priceMinor: number;
   compareAtPriceMinor: number | null;
 }
 
-function round(minor: number, roundLira: boolean): number {
-  return roundLira ? Math.round(minor / 100) * 100 : Math.round(minor);
+/** Tek bir tutara işlemi uygular (kuruş). Önce kuruşa yuvarlanır, sonra istenirse üst liraya. */
+function apply(minor: number, a: Required<PriceAdjustment>): number {
+  const sign = a.mode === 'dusur' ? -1 : 1;
+  const raw =
+    a.valueType === 'yuzde' ? (minor * (100 + sign * a.value)) / 100 : minor + sign * Math.round(a.value * 100);
+  const kurus = Math.round(raw);
+  return a.roundUp ? Math.ceil(kurus / 100) * 100 : kurus;
 }
 
 /**
- * Tek varyantın yeni fiyatı.
+ * Tek varyantın yeni fiyatı; `null` → bu varyanta dokunulmaz.
  *
- * - indirim: indirim her zaman ORİJİNAL fiyattan hesaplanır (zaten indirimliyse
- *   üstüne binmez); orijinal fiyat üstü çizili "eski fiyat" olarak kalır.
- * - zam: satış fiyatı ve varsa üstü çizili fiyat aynı oranda artar.
+ * - dusur / artir: satış fiyatı doğrudan değişir. Varyantta önceden girilmiş
+ *   bir üstü çizili fiyat varsa o da aynı işlemle değişir (oran korunur); yeni
+ *   üstü çizili fiyat ASLA oluşturulmaz.
  * - indirim-kaldir: üstü çizili fiyat satış fiyatına geri döner.
+ *
+ * Fiyatı 0 olan (fiyatı girilmemiş) varyant ve düşürünce 0 ya da altına inecek
+ * varyant atlanır.
  */
-export function adjustPrice(
-  v: VariantPrice,
-  mode: PriceMode,
-  percent: number,
-  roundLira = false,
-): VariantPrice {
+export function adjustPrice(v: VariantPrice, adj: PriceAdjustment): VariantPrice | null {
+  const a: Required<PriceAdjustment> = { valueType: 'yuzde', value: 0, roundUp: false, ...adj };
   const onSale = v.compareAtPriceMinor != null && v.compareAtPriceMinor > v.priceMinor;
 
-  if (mode === 'indirim-kaldir') {
+  if (a.mode === 'indirim-kaldir') {
     return { priceMinor: onSale ? (v.compareAtPriceMinor as number) : v.priceMinor, compareAtPriceMinor: null };
   }
+  if (v.priceMinor <= 0) return null;
 
-  if (mode === 'indirim') {
-    const base = onSale ? (v.compareAtPriceMinor as number) : v.priceMinor;
-    const price = round((base * (100 - percent)) / 100, roundLira);
-    // Yuvarlama indirimi yok ettiyse eski fiyat gösterilmez.
-    return price < base ? { priceMinor: price, compareAtPriceMinor: base } : { priceMinor: base, compareAtPriceMinor: null };
-  }
-
-  const factor = (100 + percent) / 100;
-  return {
-    priceMinor: round(v.priceMinor * factor, roundLira),
-    compareAtPriceMinor: onSale ? round((v.compareAtPriceMinor as number) * factor, roundLira) : null,
-  };
+  const priceMinor = apply(v.priceMinor, a);
+  if (priceMinor <= 0) return null;
+  const compare = onSale ? apply(v.compareAtPriceMinor as number, a) : null;
+  return { priceMinor, compareAtPriceMinor: compare != null && compare > priceMinor ? compare : null };
 }
 
 /** Seçilen kategoriler + tüm alt kategorileri (döngüye karşı korumalı). */

@@ -10,7 +10,8 @@ import { Price } from '@/components/ui/Price';
 import { Rating } from '@/components/ui/Rating';
 import { FlavorTag } from '@/components/ui/FlavorTag';
 import { QuantityStepper } from '@/components/ui/QuantityStepper';
-import { uniqueOptions, resolveVariant, stockLabel } from '@/lib/commerce';
+import { initialSelection, stockLabel, variantFor, type Selection } from '@/lib/commerce';
+import { VariantOptions } from './VariantOptions';
 import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
@@ -21,17 +22,11 @@ function QuickViewContent({ product, onClose }: { product: Product | null; onClo
   const add = useCart((s) => s.add);
   const openCart = useUI((s) => s.openCart);
   const [qty, setQty] = useState(1);
-  const [volume, setVolume] = useState<string>();
-  const [intensity, setIntensity] = useState<string>();
+  const [selection, setSelection] = useState<Selection | null>(null);
 
   const open = !!product;
-  const options = product ? uniqueOptions(product) : { volumes: [], intensities: [], types: [] };
-  const variant = product
-    ? resolveVariant(product, {
-        volume: volume ?? options.volumes[0],
-        intensity: intensity ?? options.intensities[0],
-      })
-    : null;
+  const sel = selection ?? (product ? initialSelection(product) : {});
+  const variant = product ? variantFor(product, sel) : null;
 
   return (
     <Modal open={open} onClose={onClose} label="Hızlı ürün önizleme" className="max-w-3xl">
@@ -60,51 +55,8 @@ function QuickViewContent({ product, onClose }: { product: Product | null; onClo
               ))}
             </div>
 
-            <div className="mt-4 space-y-3">
-              {options.volumes.some(Boolean) && (
-              <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Hacim</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {options.volumes.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setVolume(v)}
-                      className={cn(
-                        'rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors',
-                        v === (volume ?? options.volumes[0])
-                          ? 'border-brand-500 bg-brand-500 text-white'
-                          : 'border-line text-ink hover:border-ink/30',
-                      )}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              )}
-              {options.intensities.length > 1 && (
-                <div>
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Yoğunluk</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {options.intensities.map((it) => (
-                      <button
-                        key={it}
-                        type="button"
-                        onClick={() => setIntensity(it)}
-                        className={cn(
-                          'rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors',
-                          it === (intensity ?? options.intensities[0])
-                            ? 'border-brand-500 bg-brand-500 text-white'
-                            : 'border-line text-ink hover:border-ink/30',
-                        )}
-                      >
-                        {it}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div className="mt-4">
+              <VariantOptions product={product} selection={sel} onChange={setSelection} compact />
             </div>
 
             <div className="mt-4 flex items-center justify-between">

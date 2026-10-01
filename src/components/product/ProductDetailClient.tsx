@@ -1,28 +1,23 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Product, VariantIntensity, VariantVolume } from '@/types';
+import type { Product } from '@/types';
 import { Gallery } from './Gallery';
 import { PurchasePanel } from './PurchasePanel';
-import { pickDefaultVariant, resolveVariant } from '@/lib/commerce';
+import { initialSelection, variantFor, type Selection } from '@/lib/commerce';
 import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
 import { currency } from '@/lib/site';
 
 export function ProductDetailClient({ product }: { product: Product }) {
-  const initialVariant = pickDefaultVariant(product);
-  const [volume, setVolume] = useState<VariantVolume>(initialVariant.volume);
-  const [intensity, setIntensity] = useState<VariantIntensity>(initialVariant.intensity);
+  const [selection, setSelection] = useState<Selection>(() => initialSelection(product));
   const [qty, setQty] = useState(1);
 
-  const variant = useMemo(
-    () => resolveVariant(product, { volume, intensity }),
-    [product, volume, intensity],
-  );
+  const variant = useMemo(() => variantFor(product, selection), [product, selection]);
 
   const galleryImages = useMemo(() => {
-    const variantImg = { src: variant.image, alt: `${product.name} — ${variant.volume}` };
+    const variantImg = { src: variant.image, alt: [product.name, variant.label].filter(Boolean).join(' — ') };
     const rest = product.gallery.filter((g) => g.src !== variant.image);
     return [variantImg, ...rest];
   }, [variant, product]);
@@ -41,15 +36,10 @@ export function ProductDetailClient({ product }: { product: Product }) {
       <PurchasePanel
         product={product}
         variant={variant}
-        volume={volume}
-        intensity={intensity}
+        selection={selection}
         qty={qty}
-        onVolume={(v) => {
-          setVolume(v);
-          setQty(1);
-        }}
-        onIntensity={(v) => {
-          setIntensity(v);
+        onSelect={(next) => {
+          setSelection(next);
           setQty(1);
         }}
         onQty={setQty}
@@ -60,6 +50,7 @@ export function ProductDetailClient({ product }: { product: Product }) {
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold text-ink">{product.name}</p>
+            {variant.label && <p className="truncate text-[11px] text-ink-soft">{variant.label}</p>}
             <p className="text-sm font-bold text-brand-600">{currency(variant.price * qty)}</p>
           </div>
           <button

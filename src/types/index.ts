@@ -35,6 +35,17 @@ export interface ProductVariant {
   stockCount: number;
   image: string;
   onSale: boolean;
+  /** Seçenek kimliği → değer kimliği (paneldeki seçenek matrisi). */
+  selection: Record<string, string>;
+  /** Seçenek değerlerinin sırayla birleşimi: "250 ML / 3 Mg / %100 VG". */
+  label: string;
+}
+
+/** Ürün sayfasında bir seçenek satırı (Hacim, Sertlik, VG / PG Oranı…). */
+export interface ProductOptionGroup {
+  id: string;
+  name: string;
+  values: { id: string; label: string }[];
 }
 
 export interface FlavorNote {
@@ -102,6 +113,8 @@ export interface Product {
   featured: boolean;
   bestSeller: boolean;
   newArrival: boolean;
+  /** Paneldeki seçenekler, paneldeki sırayla. Seçeneksiz üründe boş. */
+  options: ProductOptionGroup[];
   variants: ProductVariant[];
   relatedProductIds: string[];
   faq: ProductFaqItem[];

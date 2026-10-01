@@ -8,51 +8,69 @@ export function pickDefaultVariant(product: Product): ProductVariant {
   );
 }
 
-export interface VariantSelection {
-  volume?: string;
-  type?: string;
-  intensity?: string;
+/** Seçenek kimliği → değer kimliği. Ürün sayfasındaki seçimin tamamı. */
+export type Selection = Record<string, string>;
+
+/** Ürünün tüm seçeneklerinde `sel` ile birebir eşleşen varyant. */
+export function findVariant(product: Product, sel: Selection): ProductVariant | undefined {
+  return product.variants.find((v) => product.options.every((o) => v.selection[o.id] === sel[o.id]));
 }
 
-/** Seçime en yakın varyantı bul. Tam eşleşme yoksa öncelik sırasına göre gevşet. */
-export function resolveVariant(product: Product, sel: VariantSelection): ProductVariant {
-  const exact = product.variants.find(
-    (v) =>
-      (!sel.volume || v.volume === sel.volume) &&
-      (!sel.type || v.type === sel.type) &&
-      (!sel.intensity || v.intensity === sel.intensity),
-  );
-  if (exact) return exact;
-
-  const byVolIntensity = product.variants.find(
-    (v) =>
-      (!sel.volume || v.volume === sel.volume) &&
-      (!sel.intensity || v.intensity === sel.intensity),
-  );
-  if (byVolIntensity) return byVolIntensity;
-
-  const byVol = product.variants.find((v) => !sel.volume || v.volume === sel.volume);
-  return byVol ?? pickDefaultVariant(product);
+/** Seçime karşılık gelen varyant; eşleşme yoksa varsayılan varyant. */
+export function variantFor(product: Product, sel: Selection): ProductVariant {
+  return findVariant(product, sel) ?? pickDefaultVariant(product);
 }
 
-/** Hacim etiketlerini paneldeki varyant sırasında, tekrarsız döner. */
-export function uniqueOptions(product: Product) {
-  return {
-    volumes: Array.from(new Set(product.variants.map((v) => v.volume))),
-    types: Array.from(new Set(product.variants.map((v) => v.type))),
-    intensities: Array.from(new Set(product.variants.map((v) => v.intensity))),
-  };
+/** Sayfa açılışındaki seçim: varsayılan varyantın değerleri. */
+export function initialSelection(product: Product): Selection {
+  return { ...(pickDefaultVariant(product)?.selection ?? {}) };
 }
 
 /**
- * Sepet/mini sepet satırında gösterilen varyant özeti: hacim etiketi, ürünün
- * birden fazla yoğunluğu varsa yoğunluk. Tek varyantlı ürünlerde boş dönebilir.
+ * Bir değere tıklanınca yeni seçim. Tam kombinasyon varsa yalnız o seçenek
+ * değişir; yoksa bu değeri taşıyan varyantlardan mevcut seçime en çok
+ * benzeyeni (önce üstteki seçenekler, sonra stoktakiler) seçilir — müşteri
+ * hiçbir zaman var olmayan bir kombinasyonda kalmaz.
  */
-export function variantLabel(product: Product, variant: ProductVariant): string {
-  const { intensities } = uniqueOptions(product);
-  return [variant.volume, intensities.length > 1 ? variant.intensity : '']
-    .filter(Boolean)
-    .join(' · ');
+export function selectValue(product: Product, sel: Selection, optionId: string, valueId: string): Selection {
+  const next = { ...sel, [optionId]: valueId };
+  if (findVariant(product, next)) return next;
+  const n = product.options.length;
+  let best: ProductVariant | undefined;
+  let bestScore = -1;
+  for (const v of product.variants) {
+    if (v.selection[optionId] !== valueId) continue;
+    let score = v.stock === 'out-of-stock' ? 0 : 1;
+    product.options.forEach((o, i) => {
+      if (v.selection[o.id] === sel[o.id]) score += 2 ** (n - i + 1);
+    });
+    if (score > bestScore) {
+      best = v;
+      bestScore = score;
+    }
+  }
+  return best ? { ...best.selection } : next;
+}
+
+/**
+ * Bir değerin mevcut seçimdeki durumu: diğer seçenekler aynı kalırken o değere
+ * geçilince hangi varyant olur (fiyatı ve stoğu butonda gösterilir).
+ */
+export function valueVariant(
+  product: Product,
+  sel: Selection,
+  optionId: string,
+  valueId: string,
+): ProductVariant | undefined {
+  return findVariant(product, { ...sel, [optionId]: valueId });
+}
+
+/**
+ * Sepet/mini sepet satırında gösterilen varyant özeti: seçenek değerleri
+ * ("250 ML / 3 Mg / %100 VG"). Tek varyantlı ürünlerde boş dönebilir.
+ */
+export function variantLabel(_product: Product, variant: ProductVariant): string {
+  return variant.label || variant.volume;
 }
 
 /** Etiketleri başındaki ml değerine göre (10ml < 15ml < 30ml DIY Kit…) sıralar. */
@@ -62,22 +80,6 @@ export function sortVolumeLabels(labels: string[]): string[] {
     return m ? parseFloat(m[1].replace(',', '.')) : Number.POSITIVE_INFINITY;
   };
   return [...labels].sort((a, b) => ml(a) - ml(b) || a.localeCompare(b, 'tr'));
-}
-
-export function isOptionAvailable(
-  product: Product,
-  key: 'volume' | 'type' | 'intensity',
-  value: string,
-  sel: VariantSelection,
-) {
-  return product.variants.some(
-    (v) =>
-      v[key] === value &&
-      v.stock !== 'out-of-stock' &&
-      (key === 'volume' || !sel.volume || v.volume === sel.volume) &&
-      (key === 'intensity' || !sel.intensity || v.intensity === sel.intensity) &&
-      (key === 'type' || !sel.type || v.type === sel.type),
-  );
 }
 
 export const stockLabel: Record<Product['stockStatus'], { text: string; className: string }> = {

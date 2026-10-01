@@ -3,37 +3,54 @@ import { adjustPrice, withDescendants } from './pricing';
 import { isInNewWindow, newWindowState } from '@/lib/new-badge';
 
 describe('adjustPrice', () => {
-  it('indirim orijinal fiyattan hesaplanır ve eski fiyatı saklar', () => {
-    expect(adjustPrice({ priceMinor: 24990, compareAtPriceMinor: null }, 'indirim', 10, false)).toEqual({
-      priceMinor: 22491,
-      compareAtPriceMinor: 24990,
+  const pct = (mode: 'dusur' | 'artir', value: number, roundUp = false) => ({ mode, valueType: 'yuzde' as const, value, roundUp });
+
+  it('düşürme satış fiyatını doğrudan değiştirir, üstü çizili fiyat oluşturmaz', () => {
+    expect(adjustPrice({ priceMinor: 10000, compareAtPriceMinor: null }, pct('dusur', 10))).toEqual({
+      priceMinor: 9000,
+      compareAtPriceMinor: null,
     });
   });
 
-  it('zaten indirimli ürüne indirim üst üste binmez', () => {
-    expect(adjustPrice({ priceMinor: 20000, compareAtPriceMinor: 30000 }, 'indirim', 10)).toEqual({
-      priceMinor: 27000,
-      compareAtPriceMinor: 30000,
-    });
+  it('tekrar uygulanınca yeni fiyattan hesaplanır (100 → 90 → 81)', () => {
+    const once = adjustPrice({ priceMinor: 10000, compareAtPriceMinor: null }, pct('dusur', 10))!;
+    expect(adjustPrice(once, pct('dusur', 10))).toEqual({ priceMinor: 8100, compareAtPriceMinor: null });
   });
 
-  it('tam liraya yuvarlar', () => {
-    expect(adjustPrice({ priceMinor: 24990, compareAtPriceMinor: null }, 'indirim', 10, true).priceMinor).toBe(22500);
-  });
-
-  it('zam satış ve eski fiyatı birlikte artırır', () => {
-    expect(adjustPrice({ priceMinor: 10000, compareAtPriceMinor: 12000 }, 'zam', 10)).toEqual({
-      priceMinor: 11000,
-      compareAtPriceMinor: 13200,
-    });
-    expect(adjustPrice({ priceMinor: 10000, compareAtPriceMinor: null }, 'zam', 15)).toEqual({
+  it('artırma', () => {
+    expect(adjustPrice({ priceMinor: 10000, compareAtPriceMinor: null }, pct('artir', 15))).toEqual({
       priceMinor: 11500,
       compareAtPriceMinor: null,
     });
   });
 
+  it('sabit tutar', () => {
+    expect(adjustPrice({ priceMinor: 10000, compareAtPriceMinor: null }, { mode: 'dusur', valueType: 'tutar', value: 12.5 })).toEqual({
+      priceMinor: 8750,
+      compareAtPriceMinor: null,
+    });
+    expect(adjustPrice({ priceMinor: 10000, compareAtPriceMinor: null }, { mode: 'artir', valueType: 'tutar', value: 20 })!.priceMinor).toBe(12000);
+  });
+
+  it('küsüratı bir üst liraya yuvarlar; tam sayıyı yukarı kaydırmaz', () => {
+    expect(adjustPrice({ priceMinor: 20396, compareAtPriceMinor: null }, pct('dusur', 10, true))!.priceMinor).toBe(18400);
+    expect(adjustPrice({ priceMinor: 10000, compareAtPriceMinor: null }, pct('dusur', 10, true))!.priceMinor).toBe(9000);
+  });
+
+  it('önceden girilmiş üstü çizili fiyat aynı oranda değişir', () => {
+    expect(adjustPrice({ priceMinor: 10000, compareAtPriceMinor: 12000 }, pct('artir', 10))).toEqual({
+      priceMinor: 11000,
+      compareAtPriceMinor: 13200,
+    });
+  });
+
+  it('fiyatsız ya da 0 altına inecek varyant atlanır', () => {
+    expect(adjustPrice({ priceMinor: 0, compareAtPriceMinor: null }, pct('artir', 10))).toBeNull();
+    expect(adjustPrice({ priceMinor: 1000, compareAtPriceMinor: null }, { mode: 'dusur', valueType: 'tutar', value: 10 })).toBeNull();
+  });
+
   it('indirimi kaldırır', () => {
-    expect(adjustPrice({ priceMinor: 9000, compareAtPriceMinor: 10000 }, 'indirim-kaldir', 0)).toEqual({
+    expect(adjustPrice({ priceMinor: 9000, compareAtPriceMinor: 10000 }, { mode: 'indirim-kaldir' })).toEqual({
       priceMinor: 10000,
       compareAtPriceMinor: null,
     });

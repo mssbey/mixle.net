@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MessageCircle, ShieldCheck, Truck, RotateCcw, PackageCheck } from 'lucide-react';
-import type { Product, ProductVariant, VariantIntensity, VariantVolume } from '@/types';
+import type { Product, ProductVariant } from '@/types';
 import { Price } from '@/components/ui/Price';
 import { Rating } from '@/components/ui/Rating';
 import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import { FavoriteButton } from './FavoriteButton';
-import { uniqueOptions, isOptionAvailable, stockLabel } from '@/lib/commerce';
+import { stockLabel, type Selection } from '@/lib/commerce';
+import { VariantOptions } from './VariantOptions';
 import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
@@ -19,37 +20,21 @@ import { cn } from '@/lib/utils';
 interface Props {
   product: Product;
   variant: ProductVariant;
-  volume: VariantVolume;
-  intensity: VariantIntensity;
+  selection: Selection;
   qty: number;
-  onVolume: (v: VariantVolume) => void;
-  onIntensity: (v: VariantIntensity) => void;
+  onSelect: (next: Selection) => void;
   onQty: (n: number) => void;
 }
 
-const optionBtn = (selected: boolean, available: boolean) =>
-  cn(
-    'rounded-md border px-4 py-2 text-sm font-semibold transition-colors',
-    selected
-      ? 'border-brand-500 bg-brand-500 text-white'
-      : available
-        ? 'border-line text-ink hover:border-ink/30'
-        : 'cursor-not-allowed border-line text-purple-300 line-through',
-  );
-
-export function PurchasePanel({ product, variant, volume, intensity, qty, onVolume, onIntensity, onQty }: Props) {
+export function PurchasePanel({ product, variant, selection, qty, onSelect, onQty }: Props) {
   const router = useRouter();
   const add = useCart((s) => s.add);
   const openCart = useUI((s) => s.openCart);
-  const { volumes, intensities } = uniqueOptions(product);
   const categories = useCategories();
   const category = categories.find((c) => c.slug === product.category);
-  const sel = { volume, intensity };
   const soldOut = variant.stock === 'out-of-stock';
-  const stock = stockLabel[product.stockStatus];
-  const prices = product.variants.map((v) => v.price);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
+  // Çok varyantlı üründe stok durumu seçili kombinasyonu izler.
+  const stock = stockLabel[product.variants.length > 1 ? variant.stock : product.stockStatus];
 
   const handleAdd = () => {
     add(product.id, variant.id, qty);
@@ -72,7 +57,12 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
         ) : null}
         {product.series ? ` · ${product.series}` : ''}
       </p>
-      <h1 className="mt-1.5 text-2xl font-bold text-ink sm:text-3xl">{product.name}</h1>
+      <h1 className="mt-1.5 text-2xl font-bold text-ink sm:text-3xl">
+        {product.name}
+        {variant.label && product.variants.length > 1 && (
+          <span className="mt-1 block text-base font-semibold text-ink-soft sm:text-lg">{variant.label}</span>
+        )}
+      </h1>
       <p className="mt-2 text-sm text-ink-soft">{product.shortDescription}</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -85,14 +75,6 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
       <div className="mt-5 flex flex-wrap items-end justify-between gap-3 rounded-lg border border-line bg-mist p-4">
         <div>
           <Price price={variant.price} oldPrice={variant.oldPrice} size="lg" />
-          {maxPrice > minPrice && (
-            <p className="mt-1.5 text-xs text-ink-soft">
-              Fiyat aralığı:{' '}
-              <span className="font-semibold text-ink">
-                {currency(minPrice)} – {currency(maxPrice)}
-              </span>
-            </p>
-          )}
         </div>
         <p className="max-w-[12rem] text-right text-[11px] leading-snug text-ink-soft">
           Fiyata KDV dahildir.
@@ -100,58 +82,14 @@ export function PurchasePanel({ product, variant, volume, intensity, qty, onVolu
       </div>
 
       <div className="mt-6 space-y-5">
-        {volumes.some(Boolean) && (
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Hacim</p>
-          <div className="flex flex-wrap gap-2">
-            {volumes.map((v) => {
-              const available = isOptionAvailable(product, 'volume', v, sel);
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  aria-pressed={v === volume}
-                  disabled={!available}
-                  onClick={() => onVolume(v as VariantVolume)}
-                  className={optionBtn(v === volume, available)}
-                >
-                  {v}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        )}
-
-        {intensities.length > 1 && (
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Yoğunluk</p>
-            <div className="flex flex-wrap gap-2">
-              {intensities.map((it) => {
-                const available = isOptionAvailable(product, 'intensity', it, sel);
-                return (
-                  <button
-                    key={it}
-                    type="button"
-                    aria-pressed={it === intensity}
-                    disabled={!available}
-                    onClick={() => onIntensity(it as VariantIntensity)}
-                    className={optionBtn(it === intensity, available)}
-                  >
-                    {it}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <VariantOptions product={product} selection={selection} onChange={onSelect} />
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-ink-soft">
           <span>
             Ürün tipi: <span className="font-semibold text-ink">{variant.type}</span>
           </span>
           <span>
-            SKU: <span className="font-mono text-ink">{variant.sku}</span>
+            SKU: <span className="font-mono text-ink">{variant.sku || '—'}</span>
           </span>
         </div>
       </div>
