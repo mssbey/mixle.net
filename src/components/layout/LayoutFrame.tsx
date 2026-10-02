@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useIsHome } from '@/lib/hooks';
 import type { Category, Collection } from '@/types';
 import type { StorefrontContact } from '@/lib/storefront';
+import type { NavLink } from '@/data/nav';
 import type { FlavorProfileDef } from '@/lib/flavor-profiles';
 import { CatalogProvider } from '@/components/catalog/CatalogProvider';
 import { Header } from '@/components/layout/Header';
@@ -25,12 +26,14 @@ export function LayoutFrame({
   collections,
   flavorProfiles,
   contact,
+  navLinks,
   children,
 }: {
   categories: Category[];
   collections: Collection[];
   flavorProfiles: FlavorProfileDef[];
   contact: StorefrontContact;
+  navLinks: NavLink[];
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -49,7 +52,7 @@ export function LayoutFrame({
       >
         İçeriğe geç
       </a>
-      <Header contact={contact} />
+      <Header contact={contact} navLinks={navLinks} />
       <main id="main" className="pb-16 lg:pb-0">
         {children}
       </main>

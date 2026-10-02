@@ -1,12 +1,12 @@
 'use client';
 
-// Panel > Sayfalar: SSS ve ana sayfa kampanya bandı metni.
+// Panel > Sayfalar: SSS, ana sayfa kampanya bandı metni ve üst menü linkleri.
 
 import { useEffect, useState } from 'react';
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Save, Trash2 } from 'lucide-react';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { TableSkeleton, Field } from '@/components/admin/primitives';
-import { pagesApi, type CampaignContent, type FaqContent, type FaqGroup } from '@/lib/admin/pages-client';
+import { pagesApi, type CampaignContent, type FaqContent, type FaqGroup, type NavMenuContent, type NavMenuLink } from '@/lib/admin/pages-client';
 import { ApiError } from '@/lib/admin/client';
 import { toast } from '@/store/toast';
 
@@ -133,10 +133,86 @@ function CampaignEditor({ canWrite }: { canWrite: boolean }) {
   );
 }
 
+function NavMenuEditor({ canWrite }: { canWrite: boolean }) {
+  const [data, setData] = useState<NavMenuContent | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    pagesApi.getNavMenu().then(setData).catch((err) => setError(err instanceof Error ? err.message : 'Yüklenemedi'));
+  }, []);
+
+  if (error && !data) return <p className="admin-error">{error}</p>;
+  if (!data) return <TableSkeleton rows={4} />;
+
+  const setLinks = (links: NavMenuLink[]) => setData({ links });
+  const patch = (index: number, change: Partial<NavMenuLink>) =>
+    setLinks(data.links.map((l, i) => (i === index ? { ...l, ...change } : l)));
+  const move = (index: number, dir: -1 | 1) => {
+    const next = [...data.links];
+    [next[index], next[index + dir]] = [next[index + dir], next[index]];
+    setLinks(next);
+  };
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await pagesApi.saveNavMenu(data);
+      setData(saved);
+      toast.success('Menü kaydedildi');
+    } catch (err) {
+      const msg = err instanceof ApiError ? (Object.values(err.issues)[0] ?? err.message) : err instanceof Error ? err.message : 'Kaydedilemedi';
+      setError(msg);
+      toast.error('Kaydedilemedi', msg);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="admin-hint">Vitrinde &quot;Tüm Kategoriler&quot; butonunun yanındaki linkler (masaüstü). Bağlantı / ile başlamalı (örn. /kategori/mix-aromalar) ya da tam adres olmalı. Kategori listesi Kategoriler sayfasından yönetilir.</p>
+        {canWrite && <button type="button" className="admin-btn admin-btn-primary admin-btn-sm shrink-0" disabled={busy} onClick={() => void save()}><Save size={14} /> {busy ? 'Kaydediliyor…' : 'Kaydet'}</button>}
+      </div>
+      {error && <p className="admin-error" role="alert">{error}</p>}
+
+      <section className="admin-card flex flex-col gap-2" style={{ padding: 16 }}>
+        {data.links.length === 0 && <p className="admin-hint">Menüde link yok.</p>}
+        {data.links.map((l, i) => (
+          <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--admin-border)] p-2.5">
+            <input className="admin-input" style={{ maxWidth: 200 }} disabled={!canWrite} value={l.label} placeholder="Menü adı" aria-label="Menü adı"
+              onChange={(e) => patch(i, { label: e.target.value })} />
+            <input className="admin-input min-w-0 flex-1" style={{ minWidth: 180 }} disabled={!canWrite} value={l.href} placeholder="/kategori/..." aria-label="Bağlantı"
+              onChange={(e) => patch(i, { href: e.target.value })} />
+            <label className="flex items-center gap-1.5 text-xs">
+              <input type="checkbox" disabled={!canWrite} checked={l.emphasis} onChange={(e) => patch(i, { emphasis: e.target.checked })} />
+              Kırmızı vurgula
+            </label>
+            {canWrite && (
+              <div className="ml-auto flex gap-1">
+                <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Yukarı taşı"><ArrowUp size={13} /></button>
+                <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={i === data.links.length - 1} onClick={() => move(i, 1)} aria-label="Aşağı taşı"><ArrowDown size={13} /></button>
+                <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" onClick={() => setLinks(data.links.filter((_, j) => j !== i))} aria-label="Sil"><Trash2 size={13} /></button>
+              </div>
+            )}
+          </div>
+        ))}
+        {canWrite && data.links.length < 8 && (
+          <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm self-start"
+            onClick={() => setLinks([...data.links, { label: '', href: '/', emphasis: false }])}>
+            <Plus size={13} /> Link ekle
+          </button>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function PagesEditor() {
   const { status, can } = useAdminData();
   const canWrite = can('ayar:yaz');
-  const [tab, setTab] = useState<'sss' | 'kampanya'>('sss');
+  const [tab, setTab] = useState<'sss' | 'kampanya' | 'menu'>('sss');
 
   if (status === 'loading') return <TableSkeleton rows={4} />;
 
@@ -144,11 +220,11 @@ export function PagesEditor() {
     <div className="flex flex-col gap-3">
       <header>
         <h1 className="text-lg font-semibold text-[var(--brand-purple-deep)]">Sayfalar</h1>
-        <p className="admin-hint mt-0.5">SSS ve ana sayfa kampanya bandı. Diğer vitrin metinleri (rehber, hakkımızda, yorumlar) bu sürümde panelden düzenlenemez.</p>
+        <p className="admin-hint mt-0.5">SSS, ana sayfa kampanya bandı ve üst menü linkleri. Diğer vitrin metinleri (rehber, hakkımızda, yorumlar) bu sürümde panelden düzenlenemez.</p>
       </header>
 
       <div role="tablist" aria-label="İçerik" className="flex flex-wrap gap-1 border-b border-[var(--admin-border)]">
-        {([['sss', 'SSS'], ['kampanya', 'Kampanya bandı']] as const).map(([id, label]) => (
+        {([['sss', 'SSS'], ['kampanya', 'Kampanya bandı'], ['menu', 'Üst menü']] as const).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id}
             className={`admin-focusable -mb-px border-b-2 px-3 py-2 text-sm ${tab === id ? 'border-[var(--brand-purple)] font-semibold text-[var(--brand-purple-deep)]' : 'border-transparent text-[var(--admin-ink-soft)]'}`}
             onClick={() => setTab(id)}>
@@ -157,7 +233,7 @@ export function PagesEditor() {
         ))}
       </div>
 
-      {tab === 'sss' ? <FaqEditor canWrite={canWrite} /> : <CampaignEditor canWrite={canWrite} />}
+      {tab === 'sss' ? <FaqEditor canWrite={canWrite} /> : tab === 'kampanya' ? <CampaignEditor canWrite={canWrite} /> : <NavMenuEditor canWrite={canWrite} />}
     </div>
   );
 }

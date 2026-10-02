@@ -28,6 +28,7 @@ import {
   UserRound,
   Trash2,
   Sheet,
+  FileText,
 } from 'lucide-react';
 import { adminApi } from '@/lib/admin/client';
 import { toast } from '@/store/toast';
@@ -51,6 +52,7 @@ const NAV = [
   { href: '/admin/stok-yonetimi', label: 'Stok Yönetimi', icon: Sheet, exact: false },
   { href: '/admin/stok', label: 'Stok hareketleri', icon: Boxes, exact: false },
   { href: '/admin/raporlar', label: 'Raporlar', icon: BarChart3, exact: false },
+  { href: '/admin/sayfalar', label: 'Sayfalar & Menü', icon: FileText, exact: false },
   { href: '/admin/ayarlar', label: 'Ayarlar', icon: Settings, exact: false },
 ];
 

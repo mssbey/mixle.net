@@ -1,4 +1,4 @@
-// Panelden düzenlenebilir site içeriği — SSS ve ana sayfa kampanya bandı.
+// Panelden düzenlenebilir site içeriği — SSS, ana sayfa kampanya bandı ve üst menü.
 //
 // Mevcut `Setting` anahtar-değer tablosu kullanılır (yeni model gerekmez).
 // Kayıt yoksa `src/data/content.ts`'teki statik varsayılan döner — vitrin
@@ -23,6 +23,7 @@ import { revalidateTag, unstable_cache } from 'next/cache';
 import { z } from 'zod';
 import { db } from '../db';
 import { faqGroups as defaultFaqGroups, campaign as defaultCampaign } from '@/data/content';
+import { primaryNav as defaultPrimaryNav } from '@/data/nav';
 
 export const faqContentSchema = z.object({
   groups: z
@@ -47,9 +48,29 @@ export const campaignContentSchema = z.object({
 });
 export type CampaignContent = z.output<typeof campaignContentSchema>;
 
-const KEYS = { faq: 'sayfa-sss', campaign: 'sayfa-kampanya' } as const;
+/** Header'daki "Tüm Kategoriler" butonunun yanındaki hızlı erişim linkleri. */
+export const navMenuContentSchema = z.object({
+  links: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1, 'Menü adı gerekli').max(40),
+        href: z
+          .string()
+          .trim()
+          .min(1, 'Bağlantı gerekli')
+          .max(200)
+          .refine((v) => v.startsWith('/') || /^https?:\/\//.test(v), 'Bağlantı / ile ya da http(s):// ile başlamalı'),
+        emphasis: z.boolean().default(false),
+      }),
+    )
+    .max(8, 'En fazla 8 menü öğesi'),
+});
+export type NavMenuContent = z.output<typeof navMenuContentSchema>;
+
+const KEYS = { faq: 'sayfa-sss', campaign: 'sayfa-kampanya', navMenu: 'menu-ust' } as const;
 const FAQ_TAG = 'sayfa-sss';
 const CAMPAIGN_TAG = 'sayfa-kampanya';
+const NAV_MENU_TAG = 'menu-ust';
 
 const loadFaq = unstable_cache(
   async (): Promise<FaqContent> => {
@@ -74,6 +95,19 @@ const loadCampaign = unstable_cache(
 );
 export const getCampaignContent = cache(loadCampaign);
 
+const loadNavMenu = unstable_cache(
+  async (): Promise<NavMenuContent> => {
+    const row = await db.setting.findUnique({ where: { key: KEYS.navMenu } });
+    const parsed = navMenuContentSchema.safeParse(row?.value);
+    return parsed.success
+      ? parsed.data
+      : { links: defaultPrimaryNav.map((l) => ({ ...l, emphasis: l.emphasis ?? false })) };
+  },
+  ['menu-ust-icerik'],
+  { tags: [NAV_MENU_TAG] },
+);
+export const getNavMenuContent = cache(loadNavMenu);
+
 export async function saveFaqContent(raw: unknown, updatedByUserId: string): Promise<FaqContent> {
   const parsed = faqContentSchema.parse(raw);
   await db.setting.upsert({
@@ -93,6 +127,17 @@ export async function saveCampaignContent(raw: unknown, updatedByUserId: string)
     update: { value: parsed as never, updatedByUserId },
   });
   revalidateTag(CAMPAIGN_TAG, 'max');
+  return parsed;
+}
+
+export async function saveNavMenuContent(raw: unknown, updatedByUserId: string): Promise<NavMenuContent> {
+  const parsed = navMenuContentSchema.parse(raw);
+  await db.setting.upsert({
+    where: { key: KEYS.navMenu },
+    create: { key: KEYS.navMenu, value: parsed as never, updatedByUserId },
+    update: { value: parsed as never, updatedByUserId },
+  });
+  revalidateTag(NAV_MENU_TAG, 'max');
   return parsed;
 }
 

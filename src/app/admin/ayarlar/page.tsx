@@ -29,7 +29,7 @@ const SECTIONS: { href: string; icon: typeof Building2; title: string; hint: str
   { href: '/admin/ayarlar/kargo', icon: Truck, title: 'Kargo', hint: 'Bölgeler, tarifeler, taşıyıcı bağlantıları, kapıda ödeme', permission: 'ayar:oku' },
   { href: '/admin/ayarlar/eposta', icon: Mail, title: 'E-posta', hint: 'SMTP / Resend gönderim ayarları, test e-postası', permission: 'ayar:oku' },
   { href: '/admin/ayarlar/kullanicilar', icon: Users, title: 'Kullanıcılar', hint: 'Panel hesapları, roller, parola sıfırlama', permission: 'kullanici:yonet' },
-  { href: '/admin/sayfalar', icon: FileText, title: 'İçerik', hint: 'Ana sayfa metni ve SSS', permission: 'ayar:oku' },
+  { href: '/admin/sayfalar', icon: FileText, title: 'İçerik', hint: 'Ana sayfa metni, SSS ve üst menü', permission: 'ayar:oku' },
   { href: '/admin/gorseller', icon: ImageIcon, title: 'Görseller', hint: 'Medya kütüphanesi', permission: 'katalog:oku' },
 ];
 

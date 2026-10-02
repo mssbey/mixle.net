@@ -11,6 +11,7 @@ export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
   const { categories, collections } = useTaxonomy();
   const megaMenuColumns = buildMegaMenuColumns(categories);
   const megaMenuCollections = buildMegaMenuCollections(collections);
+  const hasCollections = megaMenuCollections.length > 0;
 
   return (
     <m.div
@@ -18,10 +19,14 @@ export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className="absolute inset-x-0 top-full z-50 border-t border-line bg-white shadow-lift"
+      // Tam genişlik değil: "Tüm Kategoriler" butonunun altında açılan dar kutu.
+      className="pointer-events-none absolute inset-x-0 top-full z-50"
     >
-      <div className="container-page grid grid-cols-1 gap-8 py-8 lg:grid-cols-[2.4fr_1.6fr]">
-        <div className="grid grid-cols-3 gap-6">
+      <div className="container-page">
+        <div className="pointer-events-auto grid max-h-[calc(100dvh-180px)] w-full gap-5 overflow-y-auto overscroll-contain rounded-b-lg border border-t-0 border-line bg-white p-5 shadow-lift"
+          style={{ maxWidth: hasCollections ? 920 : 700, gridTemplateColumns: hasCollections ? '1fr 220px' : '1fr' }}
+        >
+        <div className="grid grid-cols-3 gap-4">
           {megaMenuColumns.map((col) => (
             <div key={col.heading}>
               <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">
@@ -33,7 +38,7 @@ export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
                     <Link
                       href={l.href}
                       onClick={onNavigate}
-                      className="group flex flex-col rounded-md px-2 py-1.5 transition-colors hover:bg-mist"
+                      className="group flex flex-col rounded-md px-2 py-1 transition-colors hover:bg-mist"
                       style={
                         'depth' in l && l.depth ? { paddingLeft: 8 + l.depth * 12 } : undefined
                       }
@@ -52,7 +57,7 @@ export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
                         ) : null}
                         {l.label}
                       </span>
-                      {'hint' in l && l.hint && (
+                      {'hint' in l && l.hint && !('depth' in l && l.depth) && (
                         <span className="text-xs text-ink-soft">{l.hint}</span>
                       )}
                     </Link>
@@ -63,25 +68,26 @@ export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
           ))}
         </div>
 
+        {hasCollections && (
         <div>
           <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">
             Öne Çıkan Koleksiyonlar
           </h3>
-          <div className="grid gap-2.5">
+          <div className="grid gap-2">
             {megaMenuCollections.map((c) => (
               <Link
                 key={c.href}
                 href={c.href}
                 onClick={onNavigate}
-                className="group relative flex items-center gap-4 overflow-hidden rounded-md border border-line bg-white p-2.5 transition-shadow hover:shadow-soft"
+                className="group relative flex items-center gap-3 overflow-hidden rounded-md border border-line bg-white p-2 transition-shadow hover:shadow-soft"
               >
                 <Image
                   src={c.cover}
                   alt=""
-                  width={88}
-                  height={64}
-                  className="h-16 shrink-0 rounded object-contain bg-white"
-                  style={{ width: 88 }}
+                  width={56}
+                  height={44}
+                  className="h-11 shrink-0 rounded object-contain bg-white"
+                  style={{ width: 56 }}
                 />
                 <div className="min-w-0">
                   <p className="flex items-center gap-1 text-sm font-semibold text-ink">
@@ -96,6 +102,8 @@ export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
               </Link>
             ))}
           </div>
+        </div>
+        )}
         </div>
       </div>
     </m.div>

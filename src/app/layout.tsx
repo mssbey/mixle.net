@@ -9,6 +9,7 @@ import { site } from '@/lib/site';
 import { getStoreInfo } from '@/server/settings';
 import { getFlavorProfiles } from '@/server/catalog/flavor-profiles';
 import { resolveStorefrontContact } from '@/lib/storefront';
+import { getNavMenuContent } from '@/server/content/settings';
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.domain),
@@ -57,10 +58,11 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Kategori/koleksiyon listesi küçüktür (~10 KB) ve neredeyse her client
   // bileşeni ister; bu yüzden tek seferde sunucuda okunup context'e verilir.
-  const [{ categories, collections }, storeInfo, flavorProfiles] = await Promise.all([
+  const [{ categories, collections }, storeInfo, flavorProfiles, navMenu] = await Promise.all([
     getTaxonomy(),
     getStoreInfo(),
     getFlavorProfiles(),
+    getNavMenuContent(),
   ]);
   const contact = resolveStorefrontContact(storeInfo);
 
@@ -70,7 +72,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={webSiteJsonLd()} />
         <MotionProvider>
-          <LayoutFrame categories={categories} collections={collections} flavorProfiles={flavorProfiles} contact={contact}>
+          <LayoutFrame categories={categories} collections={collections} flavorProfiles={flavorProfiles} contact={contact} navLinks={navMenu.links}>
             {children}
           </LayoutFrame>
         </MotionProvider>

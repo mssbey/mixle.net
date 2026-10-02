@@ -22,7 +22,7 @@ import { AnnouncementBar } from './AnnouncementBar';
 import { MegaMenu } from './MegaMenu';
 import { MobileMenu } from './MobileMenu';
 import { MiniCart } from './MiniCart';
-import { primaryNav } from '@/data/nav';
+import type { NavLink } from '@/data/nav';
 import type { StorefrontContact } from '@/lib/storefront';
 import { useUI } from '@/store/ui';
 import { useCart } from '@/store/cart';
@@ -38,7 +38,7 @@ const HEADER_COLLAPSE_AT_MIN = 160;
 /** …ve ancak bu kadar yukarı çıkılınca tekrar açılır. */
 const HEADER_EXPAND_AT = 16;
 
-export function Header({ contact }: { contact: StorefrontContact }) {
+export function Header({ contact, navLinks }: { contact: StorefrontContact; navLinks: NavLink[] }) {
   const pathname = usePathname();
   const isHome = useIsHome();
   const router = useRouter();
@@ -324,13 +324,13 @@ export function Header({ contact }: { contact: StorefrontContact }) {
                 <ChevronDown size={14} className={cn('transition-transform', megaOpen && 'rotate-180')} />
               </button>
 
-              {(isHome ? primaryNav.slice(0, 4) : primaryNav).map((link) => {
+              {navLinks.map((link) => {
                 const active =
                   pathname === link.href ||
                   (link.href.startsWith('/') && link.href !== '/' && pathname.startsWith(link.href.split('?')[0]));
                 return (
                   <Link
-                    key={link.href}
+                    key={link.href + link.label}
                     href={link.href}
                     className={cn(
                       'relative flex items-center whitespace-nowrap px-3 text-[13px] font-semibold transition-colors',

@@ -370,7 +370,8 @@
 
 /* Screenshot reference: compact five-column storefront. */
 .reference-home { background: #f8f9fa; padding-bottom: 8px; color: #343b49; }
-.reference-home .container-page, .storefront-header .container-page, .reference-footer .container-page { width: 84%; max-width: 1620px; padding-inline: 16px; }
+/* Kategori sayfalarıyla aynı genişlik (.container-page: 1280px). */
+.reference-home .container-page, .storefront-header .container-page, .reference-footer .container-page { width: 100%; max-width: 1280px; padding-inline: 32px; }
 .reference-home h1, .reference-home h2, .reference-home h3, .reference-footer { font-family: Arial, Helvetica, sans-serif; }
 .storefront-header .header-contact .container-page { height: 50px; font-size: 13px; }
 .storefront-header .header-contact { max-height: 50px; }
@@ -451,7 +452,7 @@
 .reference-powered { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; padding: 12px; }
 .reference-powered a img { width: 85px; }
 @media (max-width: 1279px) {
-  .reference-home .container-page, .storefront-header .container-page, .reference-footer .container-page { width: 94%; }
+  .reference-home .container-page, .storefront-header .container-page, .reference-footer .container-page { padding-inline: 24px; }
   .storefront-header .header-actions { min-width: auto; gap: 6px; }
   .storefront-header .header-desktop-search { margin-left: 0; }
   .reference-home .product-card h3 { font-size: 14px; }
