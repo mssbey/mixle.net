@@ -113,6 +113,9 @@ model Product {
   steepTime String @default("")
   origin    String @default("")
 
+  /// Kargo sınıfı etiketi (ör. "standart", "hacimli") — Stok Yönetimi ekranından girilir.
+  shippingClass String @default("")
+
   /// Ürün bazında KDV override. Boşsa varsayılan oran uygulanır.
   taxRateId String?
   taxRate   TaxRate? @relation(fields: [taxRateId], references: [id], onDelete: SetNull)
@@ -235,6 +238,12 @@ model Variant {
   isDefault           Boolean @default(false)
   isActive            Boolean @default(true)
   position            Int     @default(0)
+  /// Stok takibi açıkken adet (`stock`) izlenir ve 0'da otomatik "stokta yok"
+  /// olur. Kapalıyken adet kullanılmaz; satılabilirlik `inStock` ile elle seçilir.
+  trackStock          Boolean @default(true)
+  inStock             Boolean @default(true)
+  /// Kargo ağırlığı (gram) — bilgi amaçlı, Stok Yönetimi ekranından girilir.
+  weightGrams         Int?
 
   version   Int      @default(0)
   createdAt DateTime @default(now())
@@ -757,7 +766,7 @@ model StockMovement {
   id        String @id @default(cuid())
   variantId String
   delta     Int
-  /// sipariş|iptal|iade|manuel|sayım|fire|rezervasyon-iptal
+  /// sipariş|iptal|iade|manuel|giriş|çıkış|csv|sayım|fire|rezervasyon-iptal
   reason    String
   orderId   String?
   note      String  @default("")

@@ -1,8 +1,8 @@
 // Stok rezervasyonu ve hareketleri.
 //
 // AKIŞ
-//   sipariş oluşturma → reserveStock()   : stok düşürülür + StockReservation yazılır
-//   ödeme onayı       → commitStock()    : rezervasyon kapatılır, hareket "sipariş"
+//   sipariş oluşturma → reserveStock()   : stok düşürülür + StockReservation + hareket "sipariş"
+//   ödeme onayı       → commitStock()    : rezervasyon kapatılır
 //   iptal / süre dolumu → releaseStock() : stok geri verilir, hareket "iptal"
 //   iade              → restock()        : stok geri verilir, hareket "iade"
 //
@@ -51,6 +51,19 @@ export async function reserveStock(
   for (const line of lines) {
     const qty = Math.max(1, Math.round(line.quantity));
 
+    // Stok takibi kapalı varyant: adet düşülmez, rezervasyon yazılmaz (iptalde
+    // geri verilecek bir şey de olmaz). Yalnız elle seçilen durum kontrol edilir.
+    const tracking = await tx.variant.findUnique({
+      where: { id: line.variantId },
+      select: { trackStock: true, inStock: true, isActive: true },
+    });
+    if (tracking && !tracking.trackStock) {
+      if (!tracking.isActive || !tracking.inStock) {
+        throw new InsufficientStockError(line.variantId, qty, 0, opts.names?.[line.variantId]);
+      }
+      continue;
+    }
+
     const result = await tx.variant.updateMany({
       where: { id: line.variantId, isActive: true, stock: { gte: qty } },
       data: { stock: { decrement: qty }, version: { increment: 1 } },
@@ -77,6 +90,9 @@ export async function reserveStock(
         expiresAt: opts.expiresAt,
       },
     });
+    // Stok şimdi düştüğü için geçmiş kaydı da şimdi yazılır ("50 → 49 — Sipariş").
+    // Ödeme gelmezse releaseStock "+1 iptal" yazar.
+    await movement(tx, line.variantId, -qty, 'sipariş', { orderId: opts.orderId });
   }
 }
 
@@ -113,8 +129,18 @@ export async function commitStock(
   const open = await tx.stockReservation.findMany({
     where: { orderId, releasedAt: null },
   });
+  // Hareket artık rezervasyon anında yazılıyor; bu sürümden önce açılmış
+  // rezervasyonlarda yoksa burada yazılır (çift kayıt olmaz).
+  const logged = new Set(
+    (
+      await tx.stockMovement.findMany({
+        where: { orderId, reason: 'sipariş' },
+        select: { variantId: true },
+      })
+    ).map((m) => m.variantId),
+  );
   for (const r of open) {
-    await movement(tx, r.variantId, -r.quantity, 'sipariş', { orderId, userId });
+    if (!logged.has(r.variantId)) await movement(tx, r.variantId, -r.quantity, 'sipariş', { orderId, userId });
   }
   await tx.stockReservation.updateMany({
     where: { orderId, releasedAt: null },
@@ -164,8 +190,9 @@ export async function restock(
 ): Promise<void> {
   for (const item of items) {
     if (!item.variantId || item.quantity <= 0) continue;
-    const exists = await tx.variant.findUnique({ where: { id: item.variantId }, select: { id: true } });
+    const exists = await tx.variant.findUnique({ where: { id: item.variantId }, select: { trackStock: true } });
     if (!exists) continue; // varyant silinmişse stok geri verilecek yer yok
+    if (!exists.trackStock) continue; // stok takibi kapalı: adet tutulmuyor
     await tx.variant.update({
       where: { id: item.variantId },
       data: { stock: { increment: item.quantity }, version: { increment: 1 } },

@@ -666,3 +666,82 @@
 .admin-termbox-link:hover {
   text-decoration: underline;
 }
+
+/* Stok Yönetimi tablosu ------------------------------------------------ */
+.stock-grid tbody td {
+  padding: 6px 8px;
+}
+.stock-cell {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 7px;
+  font-size: 13px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  transition: border-color 0.12s, background-color 0.12s;
+}
+.stock-cell:hover:not(:disabled) {
+  border-color: var(--admin-line-strong);
+  background: #fff;
+}
+.stock-cell:focus {
+  outline: none;
+  border-color: var(--brand-purple, #6d28d9);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(109 40 217 / 0.12);
+}
+.stock-cell:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+select.stock-cell {
+  border-color: var(--admin-line);
+  background: #fff;
+}
+.stock-cell[data-changed] {
+  background: #fff7e0;
+  border-color: #f2b84b;
+}
+.stock-cell[data-invalid] {
+  background: #fdecec;
+  border-color: #e5484d;
+}
+.stock-grid tbody tr[data-dirty] > td:first-child {
+  box-shadow: inset 3px 0 0 #f2b84b;
+}
+.stock-grid tbody tr[data-highlight] td {
+  background: #f3efff;
+}
+.stock-grid-parent td {
+  background: #fcfcfd;
+}
+.stock-grid-child td {
+  background: #fafaff;
+}
+.stock-grid-child > td:nth-child(2) {
+  border-left: 2px solid #e4ddfb;
+}
+.stock-grid tbody tr.stock-grid-note td {
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #5b4a99;
+  background: #f5f2ff;
+}
+
+/* Stok Yönetimi sayfası tüm genişliği kullanır; tablo sabit düzenle ekrana sığar. */
+.admin-content:has(.stock-manager) {
+  max-width: none;
+}
+.stock-grid {
+  table-layout: fixed;
+}
+.stock-grid thead th {
+  padding: 9px 8px;
+  white-space: normal;
+  line-height: 1.25;
+}
+.stock-grid td {
+  overflow-wrap: anywhere;
+}

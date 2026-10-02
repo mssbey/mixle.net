@@ -32,7 +32,7 @@ export function PATCH(request: Request, { params }: Ctx): Promise<Response> {
     if (!current) throw new AdminError('Ürün bulunamadı', 404);
 
     const { product } = updateProduct(catalog, current.id, patch);
-    await saveProduct(product);
+    await saveProduct(product, { userId: user.id });
     await auditChange({
       user,
       action: 'guncelle',

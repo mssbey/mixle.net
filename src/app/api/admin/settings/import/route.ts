@@ -30,7 +30,7 @@ export function POST(request: Request): Promise<Response> {
 
       // Yalnızca gerçekten değişen ürünler yazılır.
       const touched = next.products.filter((p) => snapshot.get(p.id) !== JSON.stringify(p));
-      await saveProducts(touched);
+      await saveProducts(touched, { userId: user.id, stockReason: 'csv', stockNote: 'CSV aktarımı (Ayarlar)' });
 
       await writeAudit({
         user,

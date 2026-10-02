@@ -199,6 +199,8 @@ export async function updateOrderItems(orderId: string, raw: unknown, user: Admi
     // Stok farkları
     for (const [variantId, delta] of stockDelta) {
       if (delta === 0) continue;
+      const tracked = await tx.variant.findUnique({ where: { id: variantId }, select: { trackStock: true } });
+      if (tracked && !tracked.trackStock) continue; // stok takibi kapalı: adet tutulmuyor
       if (delta > 0) {
         const r = await tx.variant.updateMany({ where: { id: variantId, stock: { gte: delta } }, data: { stock: { decrement: delta }, version: { increment: 1 } } });
         if (r.count === 0) {

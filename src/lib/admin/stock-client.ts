@@ -3,6 +3,7 @@
 // Panel stok uçları için istemci sarmalayıcısı.
 
 import { ApiError } from './client';
+import type { CsvRow, ManagerData, ManagerSaveInput, ManagerSaveResult } from './stock-manager';
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) } });
@@ -40,4 +41,26 @@ export const stockApi = {
   lowStock: () => request<LowStockReport>('/api/admin/stock/dusuk', { cache: 'no-store' }),
   adjust: (variantId: string, body: { delta: number; reason: string; note?: string }) =>
     request<{ movement: AdminStockMovementRow }>(`/api/admin/stock/duzelt/${encodeURIComponent(variantId)}`, { method: 'POST', body: JSON.stringify(body) }),
+};
+
+// ------------------------------------------------------- Stok Yönetimi ----
+
+
+export interface VariantHistoryItem {
+  id: string; delta: number; stockBefore: number; stockAfter: number; reason: string; note: string;
+  orderId: string | null; orderNumber: string | null; byName: string | null; createdAt: string;
+}
+export interface VariantHistoryResult {
+  variant: { id: string; sku: string; stock: number; trackStock: boolean; product: { name: string } };
+  items: VariantHistoryItem[];
+}
+
+export const stockManagerApi = {
+  load: () => request<ManagerData>('/api/admin/stock/yonetim', { cache: 'no-store' }),
+  save: (input: ManagerSaveInput) =>
+    request<ManagerSaveResult>('/api/admin/stock/yonetim', { method: 'POST', body: JSON.stringify(input) }),
+  importCsv: (rows: CsvRow[], dryRun: boolean) =>
+    request<ManagerSaveResult>('/api/admin/stock/yonetim/csv', { method: 'POST', body: JSON.stringify({ rows, dryRun }) }),
+  history: (variantId: string) =>
+    request<VariantHistoryResult>(`/api/admin/stock/yonetim/gecmis/${encodeURIComponent(variantId)}`, { cache: 'no-store' }),
 };

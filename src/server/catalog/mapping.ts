@@ -120,6 +120,8 @@ export interface ProductRow {
     priceMinor: number;
     compareAtPriceMinor: number | null;
     stock: number;
+    trackStock?: boolean;
+    inStock?: boolean;
     barcode: string | null;
     image: string | null;
     isDefault: boolean;
@@ -178,6 +180,8 @@ function toVariant(row: ProductRow['variants'][number]): AdminVariant {
     priceMinor: row.priceMinor,
     compareAtPriceMinor: row.compareAtPriceMinor,
     stock: row.stock,
+    trackStock: row.trackStock ?? true,
+    inStock: row.inStock ?? true,
     barcode: row.barcode,
     image: row.image,
     isDefault: row.isDefault,

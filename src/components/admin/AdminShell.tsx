@@ -27,6 +27,7 @@ import {
   Store,
   UserRound,
   Trash2,
+  Sheet,
 } from 'lucide-react';
 import { adminApi } from '@/lib/admin/client';
 import { toast } from '@/store/toast';
@@ -47,7 +48,8 @@ const NAV = [
   { href: '/admin/kategoriler', label: 'Kategoriler', icon: FolderTree, exact: false },
   { href: '/admin/kuponlar', label: 'Kuponlar', icon: Tag, exact: false },
   { href: '/admin/indirimler', label: 'İndirimler', icon: BadgePercent, exact: false },
-  { href: '/admin/stok', label: 'Stok', icon: Boxes, exact: false },
+  { href: '/admin/stok-yonetimi', label: 'Stok Yönetimi', icon: Sheet, exact: false },
+  { href: '/admin/stok', label: 'Stok hareketleri', icon: Boxes, exact: false },
   { href: '/admin/raporlar', label: 'Raporlar', icon: BarChart3, exact: false },
   { href: '/admin/ayarlar', label: 'Ayarlar', icon: Settings, exact: false },
 ];
@@ -69,6 +71,7 @@ const CRUMB_LABELS: Record<string, string> = {
   kuponlar: 'Kuponlar',
   indirimler: 'İndirimler',
   stok: 'Stok',
+  'stok-yonetimi': 'Stok Yönetimi',
   raporlar: 'Raporlar',
   gorseller: 'Görseller',
   sayfalar: 'Sayfalar',

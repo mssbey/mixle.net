@@ -14,7 +14,7 @@ import { toast } from '@/store/toast';
 import { AdjustStockDialog } from './AdjustStockDialog';
 
 const REASON_LABEL: Record<string, string> = {
-  sipariş: 'Sipariş', iptal: 'İptal', iade: 'İade', manuel: 'Manuel', sayım: 'Sayım', fire: 'Fire', 'rezervasyon-iptal': 'Rezervasyon iptali',
+  sipariş: 'Sipariş', iptal: 'İptal', iade: 'İade', manuel: 'Manuel', giriş: 'Stok girişi', çıkış: 'Stok çıkışı', csv: 'CSV aktarımı', sayım: 'Sayım', fire: 'Fire', 'rezervasyon-iptal': 'Rezervasyon iptali',
 };
 
 export function StockPanel() {

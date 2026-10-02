@@ -83,15 +83,17 @@ export async function priceCart(input: CartLineInput[]): Promise<PricedCart> {
 
     const label = variantLabel(jsonRecord(v.optionValues), v.product.options);
     const name = v.product.name;
-    availability.push({ variantId, requested: quantity, available: v.stock });
+    // Stok takibi kapalıysa adet sınırı yoktur; elle seçilen durum geçerlidir.
+    const available = v.trackStock ? v.stock : v.inStock ? quantity : 0;
+    availability.push({ variantId, requested: quantity, available });
 
-    if (v.stock <= 0) {
+    if (available <= 0) {
       problems.push(`${name}${label ? ` (${label})` : ''} stokta kalmadı.`);
       continue;
     }
-    const qty = Math.min(quantity, v.stock);
+    const qty = Math.min(quantity, available);
     if (qty < quantity) {
-      problems.push(`${name}${label ? ` (${label})` : ''} için yalnızca ${v.stock} adet stok var; adet düşürüldü.`);
+      problems.push(`${name}${label ? ` (${label})` : ''} için yalnızca ${available} adet stok var; adet düşürüldü.`);
     }
 
     lines.push({

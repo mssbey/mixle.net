@@ -64,6 +64,9 @@ function optionLabel(
   return option.values.find((v) => v.id === valueId)?.label;
 }
 
+/** Stok takibi kapalı + "Stokta" varyant için sepette izin verilen üst adet. */
+const UNTRACKED_STOCK = 99;
+
 function stockStatusFromCount(count: number): StockStatus {
   if (count <= 0) return 'out-of-stock';
   if (count <= 5) return 'low-stock';
@@ -88,7 +91,8 @@ function toStorefrontVariant(product: AdminProduct, v: AdminVariant): ProductVar
     ? (intLabel as VariantIntensity)
     : 'Standart';
 
-  const stockCount = Math.max(0, Math.round(v.stock));
+  // Stok takibi kapalı varyantta adet yoktur; elle seçilen durum geçerlidir.
+  const stockCount = v.trackStock === false ? (v.inStock === false ? 0 : UNTRACKED_STOCK) : Math.max(0, Math.round(v.stock));
   const onSale = v.compareAtPriceMinor != null && v.compareAtPriceMinor > v.priceMinor;
 
   return {

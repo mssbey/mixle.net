@@ -33,7 +33,7 @@ export function POST(request: Request): Promise<Response> {
       const before = new Map(catalog.products.map((p) => [p.id, JSON.stringify(p)]));
       const changed = next.products.filter((p) => before.get(p.id) !== JSON.stringify(p));
       if (op.action === 'seo') await saveProductSeo(changed);
-      else await saveProducts(changed);
+      else await saveProducts(changed, { userId: user.id, stockNote: 'Toplu ürün işlemi' });
       await writeAudit({
         user,
         action: 'guncelle',

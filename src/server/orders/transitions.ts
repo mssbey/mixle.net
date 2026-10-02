@@ -56,6 +56,10 @@ export async function transitionOrder(
   const settings = await getStoreSettings();
 
   const result = await db.$transaction(async (tx) => {
+    // Aynı siparişe eşzamanlı iki geçiş (ör. iptal iki kez tetiklendi) sırayla
+    // işlensin: ikincisi kilidi bekler, güncel durumu okur ve geçersiz geçiş
+    // olarak reddedilir — stok iki kez geri eklenmez.
+    await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: { items: true, customer: true },

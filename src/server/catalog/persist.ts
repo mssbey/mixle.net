@@ -93,7 +93,15 @@ export async function readCatalogSlice(match: {
  * önemlidir: `StockMovement` ve `OrderItem` varyant kimliğine bağlıdır, o
  * yüzden "hepsini sil, yeniden yaz" yapılmaz.
  */
-export async function saveProduct(product: AdminProduct): Promise<void> {
+export interface SaveActor {
+  /** Stok farkı hareket kaydına "işlemi yapan" olarak yazılır. */
+  userId?: string | null;
+  /** Hareket notu — ör. "Ürün düzenleme", "CSV aktarımı". */
+  stockNote?: string;
+  stockReason?: string;
+}
+
+export async function saveProduct(product: AdminProduct, actor: SaveActor = {}): Promise<void> {
   const scalars = productScalars(product);
 
   // Uzak veritabanında (Neon / Prisma Postgres) ~12 sıralı sorgu Prisma'nın
@@ -159,6 +167,12 @@ export async function saveProduct(product: AdminProduct): Promise<void> {
     }
 
     // --- varyantlar
+    // Stok farkları geçmişe yazılsın diye mevcut adetler önce okunur.
+    const stockBefore = new Map(
+      (
+        await tx.variant.findMany({ where: { productId: product.id }, select: { id: true, stock: true } })
+      ).map((v) => [v.id, v.stock]),
+    );
     const variantIds = product.variants.map((v) => v.id);
     await tx.variant.deleteMany({
       where: {
@@ -185,6 +199,19 @@ export async function saveProduct(product: AdminProduct): Promise<void> {
         create: { id: v.id, productId: product.id, ...data },
         update: data,
       });
+      const prev = stockBefore.get(v.id);
+      if (prev !== undefined && prev !== v.stock) {
+        await tx.stockMovement.create({
+          data: {
+            variantId: v.id,
+            delta: v.stock - prev,
+            reason: actor.stockReason ?? 'manuel',
+            note: actor.stockNote ?? 'Ürün düzenleme',
+            stockAfter: v.stock,
+            createdByUserId: actor.userId ?? null,
+          },
+        });
+      }
     }
 
     // --- kategori / koleksiyon bağları (sıra korunur: position 0 birincildir)
@@ -215,8 +242,8 @@ export async function saveProduct(product: AdminProduct): Promise<void> {
 }
 
 /** Toplu işlemler için — yalnız değişen ürünleri yazar. */
-export async function saveProducts(products: AdminProduct[]): Promise<void> {
-  for (const p of products) await saveProduct(p);
+export async function saveProducts(products: AdminProduct[], actor: SaveActor = {}): Promise<void> {
+  for (const p of products) await saveProduct(p, actor);
 }
 
 /** Yalnız SEO sütunlarını yazar — toplu SEO doldurma yüzlerce üründe hızlı kalsın. */

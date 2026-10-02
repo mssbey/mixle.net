@@ -58,6 +58,12 @@ export interface AdminVariant {
   priceMinor: number;
   /** Üstü çizili karşılaştırma fiyatı, kuruş. İndirim yoksa null. */
   compareAtPriceMinor: number | null;
+  /**
+   * Stok takibi (Stok Yönetimi ekranından yönetilir; ürün düzenleyici yazmaz).
+   * false ise `stock` kullanılmaz, satılabilirlik `inStock` ile belirlenir.
+   */
+  trackStock?: boolean;
+  inStock?: boolean;
   stock: number;
   barcode: string | null;
   image: string | null;
