@@ -26,7 +26,7 @@ export function MobileMenu({
     <Drawer open={open} onClose={onClose} label="Menü" side="left" title={<Logo onNavigate={onClose} />}>
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         <Link
-          href="/urunler"
+          href="/kategori"
           onClick={onClose}
           className="block rounded-md bg-brand-500 px-3 py-3 text-sm font-bold uppercase tracking-wide text-white"
         >

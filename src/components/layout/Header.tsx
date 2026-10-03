@@ -308,21 +308,22 @@ export function Header({ contact, navLinks }: { contact: StorefrontContact; navL
         >
           <div className="container-page">
             <nav inert={scrolled} className="flex h-[50px] items-stretch gap-1" aria-label="Ana menü">
-              <button
-                type="button"
+              {/* Üzerine gelince mega menü açılır; tıklanınca tüm kategoriler sayfasına gider. */}
+              <Link
+                href="/kategori"
                 onMouseEnter={openMega}
                 // İmleç kırmızı butondan çıkınca menü kapanır; alt paneldeki
                 // ürünlere geçerken kısa gecikme sayesinde açık kalır.
                 onMouseLeave={closeMega}
                 onFocus={openMega}
-                onClick={openMega}
+                onClick={() => setMegaOpen(false)}
                 aria-expanded={megaOpen}
                 className="mr-2 flex items-center gap-2 bg-brand-500 px-4 text-[13px] font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-600"
               >
                 <LayoutGrid size={16} />
                 Tüm Kategoriler
                 <ChevronDown size={14} className={cn('transition-transform', megaOpen && 'rotate-180')} />
-              </button>
+              </Link>
 
               {navLinks.map((link) => {
                 const active =

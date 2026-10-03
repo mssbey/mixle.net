@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getCategories, getCategoryBySlug, getChildCategories } from '@/data/categories';
-import { getProductsByCategory } from '@/data/products';
+import { getCategoryCards, getProductsByCategory } from '@/data/products';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -39,16 +39,10 @@ export default async function CategoryPage({ params }: { params: Params }) {
   ]);
 
   // Alt kategorisi olan ana kategori, ürün listesi yerine alt kategori
-  // kartlarını gösterir; görsel yoksa o daldaki ilk ürünün görseli kullanılır.
-  const childLists = await Promise.all(children.map((c) => getProductsByCategory(c.slug)));
-  const subcategoryCards = children.map((c, i) => ({
-    slug: c.slug,
-    name: c.name,
-    image: c.cover || childLists[i].find((p) => p.images[0]?.src)?.images[0]?.src || '',
-    count: childLists[i].length,
-  }));
+  // kartlarını gösterir.
+  const subcategoryCards = await getCategoryCards(children);
   // Hiçbir alt kategoriye bağlı olmayan ürünler ana kategoride listelenmeye devam eder.
-  const inChildren = new Set(childLists.flat().map((p) => p.id));
+  const inChildren = new Set(subcategoryCards.flatMap((c) => c.products.map((p) => p.id)));
   const directProducts = children.length > 0 ? list.filter((p) => !inChildren.has(p.id)) : list;
 
   return (

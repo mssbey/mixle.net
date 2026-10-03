@@ -10,7 +10,7 @@
 
 import 'server-only';
 import { cache } from 'react';
-import type { CollectionSlug, FlavorProfile, Product } from '@/types';
+import type { Category, CollectionSlug, FlavorProfile, Product } from '@/types';
 import type { ProductStatus } from '@/types/admin';
 import {
   getAdminCategories,
@@ -96,6 +96,21 @@ export const getProductsByCategory = async (slug: string): Promise<Product[]> =>
   const slugs = new Set(await getCategoryTreeSlugs(slug));
   return (await getProducts()).filter((p) => p.categories.some((c) => slugs.has(c)));
 };
+
+/**
+ * Kategori kartları (görsel + ürün sayısı) için. Kapak görseli yoksa o daldaki
+ * ilk ürünün görseli kullanılır; `products` o dalın (alt dallar dahil) ürünleridir.
+ */
+export async function getCategoryCards(categories: Category[]) {
+  const lists = await Promise.all(categories.map((c) => getProductsByCategory(c.slug)));
+  return categories.map((c, i) => ({
+    slug: c.slug,
+    name: c.name,
+    image: c.cover || lists[i].find((p) => p.images[0]?.src)?.images[0]?.src || '',
+    count: lists[i].length,
+    products: lists[i],
+  }));
+}
 
 export const getProductsByCollection = async (slug: string): Promise<Product[]> =>
   (await getProducts()).filter((p) => p.collections.includes(slug as CollectionSlug));
