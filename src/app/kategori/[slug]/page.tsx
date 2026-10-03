@@ -2,13 +2,13 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { getCategories, getCategoryBySlug, getChildCategories } from '@/data/categories';
 import { getProductsByCategory } from '@/data/products';
 import { ProductBrowser } from '@/components/commerce/ProductBrowser';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { JsonLd, breadcrumbJsonLd } from '@/lib/seo';
+import { SubcategoryGrid } from '@/components/catalog/SubcategoryGrid';
 
 type Params = Promise<{ slug: string }>;
 
@@ -37,6 +37,19 @@ export default async function CategoryPage({ params }: { params: Params }) {
     getChildCategories(cat.slug),
     cat.parentSlug ? getCategoryBySlug(cat.parentSlug) : Promise.resolve(undefined),
   ]);
+
+  // Alt kategorisi olan ana kategori, ürün listesi yerine alt kategori
+  // kartlarını gösterir; görsel yoksa o daldaki ilk ürünün görseli kullanılır.
+  const childLists = await Promise.all(children.map((c) => getProductsByCategory(c.slug)));
+  const subcategoryCards = children.map((c, i) => ({
+    slug: c.slug,
+    name: c.name,
+    image: c.cover || childLists[i].find((p) => p.images[0]?.src)?.images[0]?.src || '',
+    count: childLists[i].length,
+  }));
+  // Hiçbir alt kategoriye bağlı olmayan ürünler ana kategoride listelenmeye devam eder.
+  const inChildren = new Set(childLists.flat().map((p) => p.id));
+  const directProducts = children.length > 0 ? list.filter((p) => !inChildren.has(p.id)) : list;
 
   return (
     <div>
@@ -68,19 +81,7 @@ export default async function CategoryPage({ params }: { params: Params }) {
               )}
               {/* Alt kategoriler ayrı kategorilerdir; kendi sayfalarına bağlanır.
                   Ağaç kurulmamış eski kayıtlarda serbest metin etiketleri gösterilir. */}
-              {children.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {children.map((c) => (
-                    <Link
-                      key={c.slug}
-                      href={`/kategori/${c.slug}`}
-                      className="rounded-full border border-line bg-white px-2.5 py-1 text-xs text-ink-soft transition-colors hover:border-brand-500 hover:text-brand-500"
-                    >
-                      {c.name}
-                    </Link>
-                  ))}
-                </div>
-              ) : (
+              {children.length === 0 &&
                 cat.subcategories.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {cat.subcategories.map((s) => (
@@ -92,8 +93,7 @@ export default async function CategoryPage({ params }: { params: Params }) {
                       </span>
                     ))}
                   </div>
-                )
-              )}
+                )}
             </div>
             {cat.cover && (
               <div className="relative hidden h-28 w-64 shrink-0 overflow-hidden rounded-lg border border-line md:block">
@@ -104,16 +104,25 @@ export default async function CategoryPage({ params }: { params: Params }) {
         </div>
       </div>
 
-      <div className="container-page section !pt-8">
-        <Suspense fallback={<ProductGridSkeleton count={8} />}>
-          <ProductBrowser
-            baseProducts={list}
-            lockCategory
-            emptyTitle="Bu kategoride sonuç yok"
-            emptyDescription="Filtreleri temizleyerek diğer ürünleri görebilirsiniz."
-          />
-        </Suspense>
-      </div>
+      {subcategoryCards.length > 0 && (
+        <div className="container-page section !pt-8">
+          <SubcategoryGrid items={subcategoryCards} />
+        </div>
+      )}
+
+      {(children.length === 0 || directProducts.length > 0) && (
+        <div className={children.length > 0 ? 'container-page section !pt-0' : 'container-page section !pt-8'}>
+          {children.length > 0 && <h2 className="store-section-title mb-5">Diğer {cat.name} ürünleri</h2>}
+          <Suspense fallback={<ProductGridSkeleton count={8} />}>
+            <ProductBrowser
+              baseProducts={directProducts}
+              lockCategory
+              emptyTitle="Bu kategoride sonuç yok"
+              emptyDescription="Filtreleri temizleyerek diğer ürünleri görebilirsiniz."
+            />
+          </Suspense>
+        </div>
+      )}
     </div>
   );
 }
