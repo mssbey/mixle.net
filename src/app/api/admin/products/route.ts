@@ -14,7 +14,7 @@ export function GET(request: Request): Promise<Response> {
       categoryId: searchParams.get('categoryId') ?? undefined,
       collectionId: searchParams.get('collectionId') ?? undefined,
       status: (searchParams.get('status') as ProductStatus | 'all' | null) ?? 'all',
-      sort: (searchParams.get('sort') as ProductQuery['sort']) ?? 'updated',
+      sort: (searchParams.get('sort') as ProductQuery['sort']) ?? 'created',
       dir: (searchParams.get('dir') as ProductQuery['dir']) ?? 'desc',
       page: Number(searchParams.get('page') ?? '1') || 1,
       pageSize: Number(searchParams.get('pageSize') ?? '20') || 20,

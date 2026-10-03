@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Copy, ExternalLink, Eye, ImageOff, Percent, Plus, Trash2, Wand2, X } from 'lucide-react';
+import { Camera, Copy, ExternalLink, Eye, ImageOff, Loader2, Percent, Plus, Trash2, Wand2, X } from 'lucide-react';
 import type { AdminProduct, ProductStatus } from '@/types/admin';
 import { productStatuses, statusLabels } from '@/types/admin';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
@@ -13,7 +13,10 @@ import { PriceAdjustDialog } from '@/components/admin/PriceAdjustDialog';
 import { EmptyState, StatusBadge, TableSkeleton } from '@/components/admin/primitives';
 import { categoryTree, listProducts, type ProductQuery } from '@/lib/admin/mutations';
 import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
-import { priceRangeOf } from '@/lib/admin/variants';
+import { localId, priceRangeOf } from '@/lib/admin/variants';
+import { mediaApi } from '@/lib/admin/media-client';
+import { ApiError } from '@/lib/admin/client';
+import { toast } from '@/store/toast';
 import { formatMinor } from '@/lib/admin/format';
 import { useDebounced } from '@/lib/hooks';
 import { openInStorefrontPath } from '@/lib/admin/preview';
@@ -23,21 +26,67 @@ const PAGE_SIZE = 20;
 
 /** Listede ürünü tanımayı kolaylaştıran küçük ön izleme görseli. */
 function ProductThumb({ product, size = 48 }: { product: AdminProduct; size?: number }) {
+  const { canWrite, updateProduct } = useAdminData();
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const src = catalogPhotos(product.images)[0]?.src;
+
+  // Ürüne girmeden ana görseli değiştirir: seçilen dosya medya kütüphanesine
+  // yüklenir ve ürünün ilk (ana) görselinin yerine geçer; diğer görseller kalır.
+  const replaceMainImage = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { asset } = await mediaApi.upload(file);
+      const main = catalogPhotos(product.images)[0];
+      const rest = product.images.filter((img) => img.id !== main?.id);
+      const alt = main?.alt || product.name;
+      await updateProduct(product.id, { images: [{ id: localId('img'), src: asset.path, alt }, ...rest] });
+    } catch (err) {
+      toast.error(`${file.name} yüklenemedi`, err instanceof ApiError ? err.message : undefined);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const content = src ? (
+    <Image src={src} alt="" fill sizes={`${size}px`} className="object-contain" />
+  ) : (
+    <ImageOff size={16} />
+  );
+  const box = 'relative grid shrink-0 place-items-center overflow-hidden rounded border border-[var(--admin-line)] bg-white text-[var(--admin-ink-soft)]';
+
+  if (!canWrite) {
+    return (
+      <Link href={`/admin/urunler/${product.slug}`} className={box} style={{ width: size, height: size }} tabIndex={-1} aria-hidden="true">
+        {content}
+      </Link>
+    );
+  }
+
   return (
-    <Link
-      href={`/admin/urunler/${product.slug}`}
-      className="relative grid shrink-0 place-items-center overflow-hidden rounded border border-[var(--admin-line)] bg-white text-[var(--admin-ink-soft)]"
+    <label
+      className={`group ${box} ${uploading ? 'pointer-events-none' : 'cursor-pointer'}`}
       style={{ width: size, height: size }}
-      tabIndex={-1}
-      aria-hidden="true"
+      title={src ? 'Görseli değiştir' : 'Görsel yükle'}
     >
-      {src ? (
-        <Image src={src} alt="" fill sizes={`${size}px`} className="object-contain" />
-      ) : (
-        <ImageOff size={16} />
-      )}
-    </Link>
+      {content}
+      <span
+        className={`absolute inset-0 grid place-items-center bg-black/45 text-white transition-opacity ${uploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}
+      >
+        {uploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+      </span>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/avif"
+        className="sr-only"
+        aria-label={`${product.name} görselini değiştir`}
+        disabled={uploading}
+        onChange={(e) => void replaceMainImage(e.target.files?.[0])}
+      />
+    </label>
   );
 }
 
@@ -72,7 +121,7 @@ function ProductsView() {
   const [categoryId, setCategoryId] = useState('');
   const [collectionId, setCollectionId] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatus | 'all'>('all');
-  const [sort, setSort] = useState<NonNullable<ProductQuery['sort']>>('updated');
+  const [sort, setSort] = useState<NonNullable<ProductQuery['sort']>>('created');
   const [dir, setDir] = useState<NonNullable<ProductQuery['dir']>>('desc');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -287,6 +336,8 @@ function ProductsView() {
               setDir(d as NonNullable<ProductQuery['dir']>);
             }}
           >
+            <option value="created:desc">En son yüklenen</option>
+            <option value="created:asc">İlk yüklenen</option>
             <option value="updated:desc">En son güncellenen</option>
             <option value="updated:asc">En eski güncellenen</option>
             <option value="name:asc">Ada göre (A→Z)</option>

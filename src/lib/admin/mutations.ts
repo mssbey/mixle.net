@@ -289,7 +289,7 @@ export interface ProductQuery {
   categoryId?: string;
   collectionId?: string;
   status?: ProductStatus | 'all';
-  sort?: 'updated' | 'name' | 'price' | 'stock';
+  sort?: 'created' | 'updated' | 'name' | 'price' | 'stock';
   dir?: 'asc' | 'desc';
   page?: number;
   pageSize?: number;
@@ -301,7 +301,8 @@ export function listProducts(catalog: CatalogFile, query: ProductQuery): Product
     categoryId,
     collectionId,
     status = 'all',
-    sort = 'updated',
+    // Varsayılan: yüklenme tarihi — düzenlenen ürün listede yer değiştirmez.
+    sort = 'created',
     dir = 'desc',
     page = 1,
     pageSize = 20,
@@ -346,8 +347,10 @@ export function listProducts(catalog: CatalogFile, query: ProductQuery): Product
         return factor * (minPrice(a) - minPrice(b));
       case 'stock':
         return factor * (totalStock(a) - totalStock(b));
-      default:
+      case 'updated':
         return factor * (Date.parse(a.updatedAt) - Date.parse(b.updatedAt));
+      default:
+        return factor * (Date.parse(a.createdAt) - Date.parse(b.createdAt)) || a.id.localeCompare(b.id);
     }
   });
 
