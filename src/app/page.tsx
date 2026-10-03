@@ -1,64 +1,70 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Hero } from '@/components/home/Hero';
-import { SeriesStrip } from '@/components/home/SeriesStrip';
-import { ProductRail } from '@/components/product/ProductRail';
+import { HomeRail } from '@/components/home/HomeRail';
+import { HomeBanners, type HomeBanner } from '@/components/home/HomeBanners';
+import { FadeInUp } from '@/components/home/FadeInUp';
 import { getProducts } from '@/data/products';
+import { getCategories } from '@/data/categories';
 
 export const metadata: Metadata = { alternates: { canonical: '/' } };
 
-/** Gruplardan sırayla birer ürün alarak `limit` kadar karışık liste kurar. */
-function roundRobin<T>(items: T[], keyOf: (item: T) => string, limit: number): T[] {
-  const groups = new Map<string, T[]>();
-  for (const item of items) groups.set(keyOf(item), [...(groups.get(keyOf(item)) ?? []), item]);
-  const out: T[] = [];
-  for (let i = 0; out.length < limit; i++) {
-    let added = false;
-    for (const group of groups.values()) {
-      if (group[i]) { out.push(group[i]); added = true; }
-      if (out.length >= limit) break;
-    }
-    if (!added) break;
-  }
-  return out;
-}
+const RAIL_SIZE = 20;
+
+const search = (q: string) => `/arama?q=${encodeURIComponent(q)}`;
+const banner = (n: number, alt: string, href: string, width: number, height: number): HomeBanner => ({
+  image: `/images/reference/${n}.jpg`,
+  alt,
+  href,
+  width,
+  height,
+});
+
+// Bloklar ve sıraları mixle.net ana sayfasıyla aynıdır.
+const brandsTop = [
+  banner(3, 'Santa aromaları', search('Santa'), 289, 165),
+  banner(4, 'Halo aromaları', search('Halo'), 289, 165),
+  banner(5, 'Twelve Monkeys aromaları', search('Twelve Monkeys'), 289, 165),
+  banner(6, 'Cuttwood aromaları', search('Cuttwood'), 289, 165),
+];
+const brandsMiddle = [
+  banner(7, 'Cosmic Fog aromaları', search('Cosmic Fog'), 389, 170),
+  banner(8, 'Suicide Bunny aromaları', search('Suicide Bunny'), 389, 170),
+  banner(9, 'Capella aromaları', '/kategori/capella', 389, 170),
+];
+const brandsBottom = [
+  banner(10, 'Humble Juice aromaları', search('Humble'), 592, 136),
+  banner(11, 'One Hit Wonder aromaları', search('One Hit Wonder'), 592, 136),
+];
 
 export default async function HomePage() {
-  const products = await getProducts();
+  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
   const available = products.filter((p) => p.stockStatus !== 'out-of-stock');
+  const labelOf = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
+  const inCategory = (slug: string) => available.filter((p) => p.categories.includes(slug)).slice(0, RAIL_SIZE);
 
-  // Rayların tamamı gerçek katalog verisinden kurulur.
-  const newest = [...available].reverse().slice(0, 15);
-  const mixed = roundRobin(available, (p) => p.subcategory || p.series, 15);
-  const onSale = available.filter((p) => p.variants.some((v) => v.onSale)).slice(0, 15);
+  const newest = [...available].reverse().slice(0, RAIL_SIZE);
 
   return (
-    <div className="storefront-home reference-home">
+    <div className="home-ref min-h-screen bg-[#f9fafb] pb-4 pt-1">
       <Hero />
-
-      <section className="container-page reference-products" aria-label="Yeni eklenenler">
-        <h2 className="store-section-title">YENİ EKLENENLER</h2>
-        <ProductRail products={newest} pagination />
-      </section>
-
-      <SeriesStrip products={products} />
-
-      <section className="container-page reference-products" aria-label="Öne çıkan aromalar">
-        <h2 className="store-section-title">ÖNE ÇIKAN AROMALAR</h2>
-        <ProductRail products={mixed} pagination />
-      </section>
-
-      {onSale.length > 0 && (
-        <section className="container-page reference-products" aria-label="İndirimli aromalar">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="store-section-title">FİYATI DÜŞENLER</h2>
-            <Link href="/kampanyalar" className="text-sm font-semibold text-ink hover:text-brand-500">
-              Tümünü gör
-            </Link>
-          </div>
-          <ProductRail products={onSale} pagination />
-        </section>
-      )}
+      <FadeInUp>
+        <HomeRail title="Yeni Eklenenler" products={newest} labelOf={labelOf} />
+      </FadeInUp>
+      <FadeInUp>
+        <HomeBanners banners={brandsTop} columns={4} />
+      </FadeInUp>
+      <FadeInUp className="py-2">
+        <HomeRail products={inCategory('inawera')} labelOf={labelOf} />
+      </FadeInUp>
+      <FadeInUp>
+        <HomeBanners banners={brandsMiddle} columns={3} />
+      </FadeInUp>
+      <FadeInUp className="py-2">
+        <HomeRail products={inCategory('tfa-tpa')} labelOf={labelOf} />
+      </FadeInUp>
+      <FadeInUp className="py-2">
+        <HomeBanners banners={brandsBottom} columns={2} />
+      </FadeInUp>
     </div>
   );
 }

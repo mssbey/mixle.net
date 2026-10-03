@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { fontSans, fontDisplay, fontScript } from './fonts';
+import { fontSans, fontDisplay, fontScript, fontInter } from './fonts';
 import './globals.css';
 import { MotionProvider } from '@/components/motion';
 import { LayoutFrame } from '@/components/layout/LayoutFrame';
@@ -67,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const contact = resolveStorefrontContact(storeInfo);
 
   return (
-    <html lang="tr" className={`${fontSans.variable} ${fontDisplay.variable} ${fontScript.variable}`}>
+    <html lang="tr" className={`${fontSans.variable} ${fontDisplay.variable} ${fontScript.variable} ${fontInter.variable}`}>
       <body className="min-h-dvh bg-cream font-sans text-ink antialiased">
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={webSiteJsonLd()} />

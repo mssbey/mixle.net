@@ -318,7 +318,7 @@ export function Header({ contact, navLinks }: { contact: StorefrontContact; navL
                 onFocus={openMega}
                 onClick={() => setMegaOpen(false)}
                 aria-expanded={megaOpen}
-                className="mr-2 flex items-center gap-2 bg-brand-500 px-4 text-[13px] font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-600"
+                className="header-all-categories mr-2 flex items-center gap-2 bg-brand-500 px-4 text-[13px] font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-600"
               >
                 <LayoutGrid size={16} />
                 Tüm Kategoriler
