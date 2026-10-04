@@ -44,6 +44,18 @@ export default async function HomePage() {
 
   const newest = [...available].reverse().slice(0, RAIL_SIZE);
 
+  // Alt raylar referanstaki gibi Inawera ve TFA/TPA'dır; bu kategoriler boşsa
+  // (ör. ürünler henüz yüklenmemişse) ray kaybolmasın diye en çok ürünü olan
+  // diğer kategorilerle doldurulur.
+  const bySize = categories
+    .map((c) => ({ slug: c.slug, items: inCategory(c.slug) }))
+    .sort((a, b) => b.items.length - a.items.length);
+  const railCategories = [...new Set(['inawera', 'tfa-tpa', ...bySize.map((c) => c.slug)])]
+    .map((slug) => inCategory(slug))
+    .filter((items) => items.length > 0)
+    .slice(0, 2);
+  const [railA = [], railB = []] = railCategories;
+
   return (
     <div className="home-ref min-h-screen bg-[#f9fafb] pb-4 pt-1">
       <Hero />
@@ -54,13 +66,13 @@ export default async function HomePage() {
         <HomeBanners banners={brandsTop} columns={4} />
       </FadeInUp>
       <FadeInUp className="py-2">
-        <HomeRail products={inCategory('inawera')} labelOf={labelOf} />
+        <HomeRail products={railA} labelOf={labelOf} />
       </FadeInUp>
       <FadeInUp>
         <HomeBanners banners={brandsMiddle} columns={3} />
       </FadeInUp>
       <FadeInUp className="py-2">
-        <HomeRail products={inCategory('tfa-tpa')} labelOf={labelOf} />
+        <HomeRail products={railB} labelOf={labelOf} />
       </FadeInUp>
       <FadeInUp className="py-2">
         <HomeBanners banners={brandsBottom} columns={2} />
