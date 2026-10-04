@@ -1,7 +1,9 @@
-# Nefis Aroma
+# Mixle Lezzet Sepeti
 
-Nefis Aroma için hazırlanmış Türkçe ürün vitrini, e-ticaret arayüzü ve
-WooCommerce düzeyinde bir mağaza yönetim paneli. İki bölümden oluşur:
+[mixle.net](https://mixle.net) için hazırlanmış Türkçe aroma mağazası: vitrin,
+gerçek checkout ve WooCommerce düzeyinde bir mağaza yönetim paneli. Proje
+"Nefis Aroma" adıyla başladı; marka Mixle'a taşındı (paket adı `nefis-aroma`
+ve bazı iç belgeler eski adı taşımaya devam ediyor). İki bölümden oluşur:
 
 - **Vitrin (normal site)** — `/` altındaki herkese açık mağaza; gerçek
   checkout, ödeme, hesap ve sipariş takibiyle.
@@ -28,8 +30,11 @@ veritabanı kaydıdır.
 | Animasyon | framer-motion (`LazyMotion`, `reducedMotion="user"`) |
 | İkon | lucide-react |
 | Grafik | recharts (yalnız panel raporlarında) |
-| Veritabanı | Prisma 7 + PostgreSQL (`DATABASE_URL`) |
+| Slider | embla-carousel (ana sayfa hero ve ürün rayları) |
+| Veritabanı | Prisma 7 + PostgreSQL (`@prisma/adapter-pg`, `DATABASE_URL`) |
+| Medya | Vercel Blob (bağlıysa), yoksa yerel `data/uploads/`; `sharp` ile boyut okuma |
 | Kimlik doğrulama | `jose` imzalı httpOnly oturum çerezi + `crypto.scrypt` parola özeti, rol tabanlı yetki |
+| Barındırma | Vercel (Prisma Postgres + Blob deposu + Cron) |
 
 ## Kurulum ve çalıştırma
 
@@ -39,7 +44,7 @@ Node.js ve npm kurulu olmalıdır.
 npm ci                      # postinstall Prisma istemcisini üretir
 cp .env.example .env        # SESSION_SECRET ve ENCRYPTION_KEY doldurun
 npm run db:deploy           # veritabanı şemasını uygula
-npm run db:seed             # demo kataloğu yükle
+npm run db:seed             # kataloğu (src/data/catalog.seed.json) yükle
 npm run admin:create-user   # ilk `sahip` kullanıcısını oluştur
 npm run dev
 ```
@@ -73,7 +78,10 @@ npm start
 | `DEMO_MODE` | hayır (varsayılan `true`) | Ödeme sağlayıcılarını test moduna zorlar; e-postalar gerçekten gönderilmez, `EmailLog`'a yazılır |
 | `NEXT_PUBLIC_SITE_URL` | hayır | Canonical, Open Graph ve sitemap için doğrulanmış alan adı |
 | `CHROME_PATH` | hayır | Yerel tarayıcı QA betikleri için Chrome/Chromium yolu |
-| `CRON_SECRET` | zamanlanmış kargo takibi için | `/api/cron/kargo-takip` ve `scripts/sync-shipments.mts`'i korur (paylaşımlı rastgele dize) |
+| `CRON_SECRET` | cron uçları için | `/api/cron/katalog-yenile`, `/api/cron/kargo-takip` ve `scripts/sync-shipments.mts`'i korur (paylaşımlı rastgele dize; Vercel Cron `Authorization: Bearer` ile gönderir) |
+| `BLOB_STORE_ID` / `BLOB_READ_WRITE_TOKEN` | canlıda görsel yükleme için | Vercel Blob deposu (`mixle-medya`). Depo projeye bağlanınca `BLOB_STORE_ID` otomatik gelir (OIDC); ikisi de yoksa yüklemeler `data/uploads/`'a yazılır |
+| `DATABASE_POOL_MAX` | hayır | `pg` havuz boyutu; uzak DB bağlantı kotası için build/sunucusuz ortamda küçük tutulur (`src/server/db.ts`) |
+| `STORE_ID` | hayır (varsayılan `mixle`) | Bu dağıtımın vitrin mağazası (`mixle` \| `nuclear`). mixle.net tanımlamaz; Nuclear Likit dağıtımı `nuclear` verir. Bkz. "Mağazalar" |
 
 Ödeme, kargo ve e-posta anahtarları tercihen panelden (Ayarlar) girilir ve
 şifrelenip veritabanına yazılır; `.env.example`'daki değerler yalnız panelde
@@ -81,27 +89,48 @@ kayıt yoksa yedek olarak okunur. e-Fatura değişkenleri hiçbir kod yolu
 tarafından okunmaz — yalnız gelecekteki entegrasyon için ayrılmıştır (bkz.
 "Kapsam dışı").
 
-> **Dağıtım:** Veritabanı PostgreSQL'dir (Vercel gibi sunucusuz ortamlarda
-> SQLite kalıcı olmadığı için). İlk deploy'da migration'ların uygulanması için
-> `vercel-build` script'i `prisma migrate deploy` çalıştırır — `DATABASE_URL`
-> tanımlıysa ek adım gerekmez. Kataloğun ilk kez doldurulması
-> (`npm run db:seed` veya `npm run db:migrate-catalog`) ve ilk panel
-> kullanıcısının oluşturulması (`npm run admin:create-user`) hâlâ elle,
-> production `DATABASE_URL` ile bir kerelik çalıştırılmalıdır.
+### Dağıtım (Vercel)
+
+- **Canlı veritabanı** Vercel'deki Prisma Postgres'tir. Yerelde canlıya
+  dokunan betikler bağlantıyı `.env.local` içindeki `DATABASE_URL_PROD`'dan
+  okur (`DB_URL_VAR` ile başka bir değişken seçilebilir); `npm run db:*` ve
+  diğer `tsx` betikleri ise `.env`'deki yerel veritabanını kullanır.
+- `vercel-build` script'i önce `prisma migrate deploy`, sonra `next build`
+  çalıştırır; migration'lar her deploy'da otomatik uygulanır.
+- Kataloğun ilk kez doldurulması (`npm run db:seed`) ve ilk panel
+  kullanıcısının oluşturulması (`npm run admin:create-user`) production
+  bağlantısıyla bir kerelik, elle yapılır.
+- `vercel.json` her gece 00:01'de (TR) `/api/cron/katalog-yenile`'yi çağırır;
+  tarih aralıklı "Yeni" rozetleri ancak katalog önbelleği düşünce güncellenir.
+- Panelden yüklenen görseller canlıda Vercel Blob'a yazılır.
+
+> **Dikkat:** `vercel env pull` / `vercel storage …` komutları `.env.local`'ı
+> sessizce yeniden yazar ve `DATABASE_URL_PROD` gibi elle eklenmiş satırları
+> siler. Çalıştırmadan önce `.env.local`'ı yedekleyin.
 
 ---
 
 ## Vitrin (normal site)
 
-Herkese açık Türkçe mağaza arayüzü. Tüm veriler demo kataloğundan gelir; fiyat,
-stok ve varyasyonlar temsilidir.
+Herkese açık Türkçe mağaza arayüzü. Ürünler, fiyatlar, stok ve görseller
+gerçek katalogdur (bkz. "Katalog kaynağı"); düzen mixle.net ana sayfasını
+birebir izler.
 
 ### Özellikler
 
+- Ana sayfa: otomatik kayan hero slider, 5'li kayan ürün rayları (kategori
+  bazlı; boş kalan raylar en çok ürünü olan kategorilerle dolar), 4/3/2'li
+  marka bannerları, kaydırınca beliren bloklar; Inter yazı tipi
+- Header: "Tüm Kategoriler" düğmesi üzerine gelince mega menü açar, tıklanınca
+  `/kategori` sayfasına gider; üst menü bağlantıları panelden düzenlenir
+- Kategori sayfaları: alt kategorisi olan ana kategori, alt kategorileri
+  görselli + ürün sayılı kartlar olarak listeler; ürün bağlı olduğu tüm
+  kategori ve koleksiyonlarda görünür
 - Ürün listeleme, kategori ve koleksiyon sayfaları
 - Ürün arama, çok kriterli filtreleme (kategori, profil, form, hacim, fiyat, tat)
   ve sıralama; filtre durumu URL'ye yazılır
-- Ürün detayları: galeri + tam ekran, varyant seçimi, tat radarı, demo yorum/soru
+- Ürün detayları: galeri, tüm seçenekler (Hacim/Sertlik/VG-PG), fiyat aralığı,
+  tat radarı
 - Sepet ve favoriler; tarayıcıda yerel olarak saklanır (Zustand `persist`)
 - Aroma rehberi, aroma bulucu quiz, kampanyalar ve bilgilendirme sayfaları
 - Mobil ve masaüstü uyumlu; `prefers-reduced-motion` desteği
@@ -112,14 +141,14 @@ stok ve varyasyonlar temsilidir.
 
 | Rota | İçerik |
 | --- | --- |
-| `/` | Ana sayfa (hero, çok satanlar, yeni gelenler, koleksiyonlar, aroma bulucu, kampanya, rehber, bülten) |
+| `/` | Ana sayfa (hero slider, kategori ürün rayları, marka bannerları) |
 | `/urunler` | Tüm ürünler + filtre/sıralama |
-| `/kategori/[slug]` · `/koleksiyon/[slug]` | Kategori / koleksiyon vitrinleri |
+| `/kategori` | Tüm ana kategoriler: görsel + ürün sayılı kartlar |
+| `/kategori/[slug]` · `/koleksiyon/[slug]` | Kategori (alt kategori kartları + ürünler) / koleksiyon vitrinleri |
 | `/urun/[slug]` | Ürün detay sayfası |
 | `/yeni-gelenler` · `/cok-satanlar` · `/kampanyalar` | Seçki sayfaları |
 | `/arama` | Arama sonuçları |
-| `/sepet` · `/favoriler` · `/hesabim` | Sepet, favoriler, hesap (üyelik placeholder) |
-| `/siparis/tamamlandi` | Demo sipariş tamamlandı ekranı (gerçek sipariş oluşturmaz) |
+| `/sepet` · `/favoriler` · `/hesabim` | Sepet, favoriler, hesap |
 | `/aroma-rehberi` · `/hakkimizda` · `/sss` · `/iletisim` | Bilgilendirme |
 | `/gizlilik-politikasi` · `/cerez-politikasi` · `/mesafeli-satis-sozlesmesi` · `/iade-ve-teslimat` | Hukuki metinler |
 
@@ -139,8 +168,9 @@ stok ve varyasyonlar temsilidir.
 gösterilir), havale/EFT (panelden eşleştirilir), kapıda ödeme (ek hizmet bedeli ve
 üst tutar sınırı ayarlanabilir). Yöntemlerin açık/kapalı durumu ve min/maks tutarları
 `/admin/ayarlar/odeme` ekranından yönetilir. Kupon kodları
-veritabanındaki `Coupon` tablosundan gelir; demo kodlar seed ile yüklenir
-(`NEFIS10`, `ILKAROMA`, `GOLDENDROP`).
+veritabanındaki `Coupon` tablosundan gelir ve `/admin/kuponlar`'dan yönetilir
+(seed artık kupon yüklemez). Otomatik indirim kuralları `/admin/indirimler`'den
+tanımlanır.
 
 **Güvenlik ilkeleri.** Tutar istemciden alınmaz — her adımda `/api/checkout/quote`
 sunucuda yeniden hesaplar ve sipariş oluşturulurken bir kez daha hesaplanır.
@@ -285,17 +315,19 @@ pasife alamaz, son aktif `sahip` korunur.
 olmayan `getStoreInfo`/`getStoreSettings`i düzenler (fatura bilgileri, KDV,
 cayma hakkı, rezervasyon süresi, düşük stok eşiği, kapıda ödeme).
 
-**Görseller.** `/admin/gorseller` — dosyalar `data/uploads/YYYY/MM/` altına
-yazılır ve `/api/medya/[...path]` üzerinden servis edilir; **`public/`
-klasörüne YAZILMAZ** çünkü `next start` (üretim) yalnızca
-`next build` anında var olan `public/` dosyalarını sunar — çalışma zamanında
-eklenenler 404 döner. Kimlik doğrulama gerektirmez (ürün/kampanya görselleri
-gibi herkese açık içeriktir), yol rastgele son ek taşıdığından uzun süre
-önbelleklenir. `ImageListEditor` (ürün formu) hâlâ elle URL girişi kullanır —
-kütüphaneden seçim entegrasyonu bu sürümde yok.
+**Görseller.** `/admin/gorseller` ve ürün formundaki `ImageListEditor`
+(bilgisayardan yükleme; ürün listesinde küçük görsele tıklayınca ana görsel
+doğrudan yüklenir/değişir) aynı `src/server/media/admin.ts` katmanını kullanır.
+Blob deposu bağlıysa (`BLOB_STORE_ID` / `BLOB_READ_WRITE_TOKEN`) dosyalar
+Vercel Blob'a `uploads/YYYY/MM/…` yoluyla yazılır; değilse
+`data/uploads/YYYY/MM/` altına yazılıp `/api/medya/[...path]` üzerinden
+servis edilir. **`public/` klasörüne YAZILMAZ** çünkü `next start` yalnızca
+`next build` anında var olan `public/` dosyalarını sunar. Ürün görseli
+otomatik üretilmez; yalnız panelden yüklenir (katalog betiklerinin
+`public/images/products/` altına koyduğu fotoğraflar hariç).
 
-**Sayfalar.** `/admin/sayfalar` — SSS ve ana sayfa kampanya bandı, mevcut
-`Setting` tablosu üzerinden (yeni model gerekmez). `/sss` ve `/` statik
+**Sayfalar & Menü.** `/admin/sayfalar` — SSS, ana sayfa kampanya bandı ve üst
+menü bağlantıları, mevcut `Setting` tablosu üzerinden (yeni model gerekmez). `/sss` ve `/` statik
 prerender edilir; kayıttan sonra `unstable_cache` + `revalidateTag` ile
 geçersiz kılınır (`catalog/queries.ts` ile aynı desen — düz bir `revalidatePath`
 çağrısı denendi, statik sayfanın Full Route Cache'ini geçersiz kılmadığı
@@ -304,6 +336,20 @@ hakkımızda) bilinçli olarak bu kapsamın dışındadır.
 
 Gösterge paneline (`/admin`) aynı raporlama uçından beslenen bir "Bugün" kartı
 eklendi.
+
+### Katalog kaynağı
+
+Demo katalog kaldırıldı; `src/data/catalog.seed.json` gerçek ürünleri taşır ve
+`npm run db:seed` bunu yükler. İki kaynaktan üretilir (betikler `scripts/`):
+
+| Kaynak | Betikler | Sonuç |
+| --- | --- | --- |
+| falconkimya.com Puff Aromalar (Store API) | `falcon-puff-scrape.py` → `falcon-puff-normalize.py` → `build-puff-catalog.py` | "Falcon Puff" → **Mixle Puff**; serbest hacim varyantı; görseller `public/images/products/puff/` |
+| admin.mixle.net ürün listesi (salt okunur) | `mixle-admin-download-images.py` → `build-mixle-admin-catalog.py` | Tekil/mix aromalar (8 kategori); "Santa" → Mixle; görseller `public/images/products/aroma/` |
+
+Ham dökümler `data/` altında durur (git'e girmez). Canlı veritabanına tüm
+ürünleri silmek için `scripts/delete-all-products.ts` (önce sayım, `--confirm`
+ile gerçek silme; kategori/koleksiyonlar korunur) kullanılır.
 
 ### Veri
 
@@ -379,15 +425,51 @@ zaman harcanır.
 **Denetim kaydı.** Katalog, ayar ve oturum işlemleri `AuditLog`'a yazılır: kim,
 ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 
+### Mağazalar (Mixle + Nuclear Likit)
+
+Panel ve veritabanı birden çok vitrini yönetir. Bugün iki mağaza tanımlıdır
+(`src/lib/stores.ts`): **Mixle** (`mixle`, bu repodaki vitrin) ve **Nuclear
+Likit** (`nuclear`, ayrı repoda/dağıtımda çalışacak koyu temalı vitrin).
+
+- **Ne ayrı:** ürün, kategori, koleksiyon, çöp kutusu, sipariş, müşteri
+  hesabı, kupon, indirim kuralı, kargo bölgesi, bülten/SMS kaydı ve yasal
+  metinler `store` sütunuyla mağazaya bağlıdır. Ayarlar (`Setting`) anahtar
+  önekiyle ayrılır: Mixle'ın anahtarları öneksizdir, Nuclear'ınkiler
+  `nuclear:` önekli (ödeme, kargo, e-posta, mağaza bilgileri, SSS, menü, tat
+  profilleri). Aynı e-posta iki mağazada ayrı hesaptır; aynı kupon kodu iki
+  mağazada ayrı ayrı tanımlanabilir.
+- **Ne ortak:** panel kullanıcıları ve rolleri, vergi oranları, medya
+  kütüphanesi, denetim kaydı. Ürün/kategori **slug'ı ve kimlikler tüm
+  mağazalarda tekildir** (panel adresleri değişmesin diye).
+- **Sipariş numarası** mağaza önekiyle, ayrı sayaçla üretilir: `NA-2026-…`
+  (Mixle), `NL-2026-…` (Nuclear).
+- **Geçerli mağaza** (`src/server/store-context.ts`): vitrinde `STORE_ID`
+  ortam değişkeni (tanımlı değilse `mixle`); panelde üst çubuktaki mağaza
+  seçicisi (çerez `admin_magaza`). Her admin ucu `handle()` içinde seçili
+  mağazanın bağlamında çalışır; servisler mağazayı `currentStore()` ile okur.
+  Nuclear seçiliyken panelin üst çubuğunda yeşil bir şerit görünür.
+- **Dağıtıma özel yedekler:** `.env`'deki ödeme (`IYZICO_*` vb.) ve e-posta
+  (`SMTP_*`, `MAIL_FROM`) değerleri yalnız bu dağıtımın kendi mağazası için
+  okunur. Panelden Nuclear adına yapılan iade ve gönderilen e-postalar
+  Nuclear'ın panelde girilmiş ayarlarını kullanır.
+- **E-postalar** mağazanın adıyla imzalanır. Bağlantılar Ayarlar → Mağaza →
+  "Vitrin adresi" ile kurulur; Nuclear için bu alan doldurulmalıdır.
+- Seed kataloğu (`catalog.seed.json`, "Seed kataloğuna sıfırla") yalnız
+  Mixle içindir. İçe aktarma ve sıfırlama yalnız seçili mağazanın kayıtlarını
+  siler.
+
 ### Rotalar
 
 | Rota | İçerik |
 | --- | --- |
 | `/admin` | Özet: toplam ürün, yayında/taslak/arşiv dağılımı, stokta olmayan varyant sayısı, son düzenlenenler |
-| `/admin/urunler` | Liste: arama, kategori/koleksiyon/durum filtresi, sıralama, sayfalama, toplu seçim (toplu aktif/pasif, durum, kategori değiştir, sil) |
-| `/admin/urunler/yeni` · `/admin/urunler/[slug]` | Ürün formu: solda içerik, sağda durum/kategori/koleksiyon/SEO yan paneli; tam genişlik varyant tablosu; yapışkan alt kaydet çubuğu |
-| `/admin/kategoriler` · `/admin/koleksiyonlar` | Ekle / düzenle / sil + sürükle-bırak sıralama |
-| `/admin/ayarlar` | Ayar bölümlerine köprü kartları (rol bazlı görünür) + veri dışa/içe aktar, demo verisine sıfırla |
+| `/admin/urunler` | Liste (varsayılan sıra: yüklenme tarihi): arama, kategori/koleksiyon/durum filtresi, sayfalama, toplu seçim (aktif/pasif, durum, kategori, sil), toplu fiyat (yüzde/tutar düşür-artır, üste yuvarlama), küçük görsele tıklayıp ana görsel yükleme |
+| `/admin/urunler/yeni` · `/admin/urunler/[slug]` | Ürün formu: solda içerik, sağda durum / WordPress tarzı kategori kutusu / SEO (otomatik dolar) yan paneli; slug ürün adını izler; tat profilleri panelden yönetilir; ürün çoğaltma; vitrin önizlemesi (Draft Mode, taslak dahil) |
+| `/admin/urunler/cop-kutusu` | Silinen ürünler: geri yükle / kalıcı sil |
+| `/admin/kategoriler` | Kategori ağacı (ana/alt): ekle / düzenle / sil + sürükle-bırak sıralama. `/admin/koleksiyonlar` hâlâ çalışır ama menüde gizli |
+| `/admin/indirimler` | Otomatik indirim kuralları |
+| `/admin/stok-yonetimi` | Tüm ürünler tek tabloda; SKU, fiyat, stok, stok takibi/durumu, KDV, kargo sınıfı, ağırlık satır içinde düzenlenir; CSV ve satır geçmişi |
+| `/admin/ayarlar` | Ayar bölümlerine köprü kartları (rol bazlı görünür) + veri dışa/içe aktar, seed kataloğuna sıfırla |
 | `/admin/siparisler` | Sipariş listesi: durum sekmeleri (sayaçlı), arama (no/ad/e-posta/telefon/ürün/SKU/takip no), tarih/tutar/ödeme/kargo/kaynak filtreleri, sıralama, sayfalama, toplu işlemler (durum, kargoya ver, yazdır), CSV |
 | `/admin/siparisler/[id]` | WooCommerce düzeninde detay: kalemler (düzenle + yeniden hesapla), toplamlar ve KDV matrahı, müşteri kartı (sipariş sayısı, harcama), adresler (düzenlenebilir), ödemeler (maskeli), sevkiyatlar, iadeler, zaman çizelgesi, admin/müşteri notu |
 | `/admin/siparisler/yeni` | Manuel / telefon siparişi (`?kopya=<id>` ile kopyalama); vitrinle aynı `createOrder` servisi |
@@ -406,7 +488,7 @@ ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 | `/admin/ayarlar/eposta` | SMTP / Resend gönderim ayarları (şifreli, maskeli), test e-postası gönderme |
 | `/admin/ayarlar/kullanicilar` | Yalnız `sahip`: panel hesabı oluştur, rol/durum değiştir, parola sıfırla (oturumları kapatır); kendi hesabını düşüremez/pasife alamaz, son aktif sahip korunur |
 | `/admin/gorseller` | Medya kütüphanesi: yükle (JPG/PNG/WEBP/AVIF/SVG, azami 8 MB), ara, alt metin/etiket düzenle, sil, yol kopyala |
-| `/admin/sayfalar` | SSS ve ana sayfa kampanya bandı metni; kaydedince vitrin hemen güncellenir |
+| `/admin/sayfalar` | SSS, ana sayfa kampanya bandı ve üst menü bağlantıları; kaydedince vitrin hemen güncellenir |
 | `/admin/giris` | Parola girişi |
 
 ### Ürün ve varyasyon modeli
@@ -438,7 +520,7 @@ Davranışlar:
 ### Kalıcılık ve API
 
 Katalog verisi **veritabanındadır** (`prisma/schema.prisma`).
-`src/data/catalog.seed.json` demoya sıfırlama kaynağıdır; özgün
+`src/data/catalog.seed.json` seed ve "sıfırla" kaynağıdır (bkz. "Katalog kaynağı"); özgün
 `catalog.json` geçiş sonrası `src/data/legacy/` altına arşivlenmiştir ve
 uygulama tarafından okunmaz.
 
@@ -448,7 +530,7 @@ Veritabanı komutları:
 | --- | --- |
 | `npm run db:deploy` | Migration'ları uygula (kurulum / dağıtım) |
 | `npm run db:migrate` | Şema değişikliğinden yeni migration üret (geliştirme) |
-| `npm run db:seed` | Demo kataloğu yükle (katalog tablolarını sıfırlar) |
+| `npm run db:seed` | Kataloğu yükle (katalog tablolarını sıfırlar) |
 | `npm run db:migrate-catalog` | Arşivlenmiş JSON'dan içe aktar (`--dry-run` destekler) |
 | `npm run db:studio` | Prisma Studio |
 
@@ -464,6 +546,10 @@ CRUD işlemleri `src/app/api/admin/**` Route Handler'larıyla yapılır:
 | `/api/admin/products` | `GET` (filtreli liste), `POST` |
 | `/api/admin/products/[id]` | `GET`, `PATCH`, `DELETE` |
 | `/api/admin/products/bulk` | `POST` (aktif/pasif, durum, kategori, sil) |
+| `/api/admin/products/fiyat` · `/api/admin/products/[id]/cogalt` | Toplu fiyat değişikliği · ürün çoğaltma |
+| `/api/admin/cop-kutusu` · `/api/admin/cop-kutusu/[id]` | Çöp kutusu listesi, geri yükle / kalıcı sil |
+| `/api/admin/preview` | Draft Mode ile vitrin önizlemesi |
+| `/api/admin/flavor-profiles` · `/api/admin/discount-rules` · `/api/admin/stock/yonetim` · `/api/admin/pages/menu` | Tat profilleri · indirim kuralları · stok yönetimi tablosu · üst menü |
 | `/api/admin/categories` · `/api/admin/categories/[id]` · `/api/admin/categories/reorder` | CRUD + sıralama |
 | `/api/admin/collections` · `/api/admin/collections/[id]` · `/api/admin/collections/reorder` | CRUD + sıralama |
 | `/api/admin/settings/export` | `GET` (`?format=json` \| `csv`) |
@@ -532,7 +618,7 @@ CRUD işlemleri `src/app/api/admin/**` Route Handler'larıyla yapılır:
 | `data/uploads/` | Panelden yüklenen medya (git'e girmez; bkz. "Kapsam dışı") |
 | `src/types` | `index.ts` (vitrin), `admin.ts` (panel) |
 | `public` | Statik dosyalar ve görseller |
-| `scripts` | Görsel işleme, veri geçişi, kullanıcı oluşturma ve QA betikleri |
+| `scripts` | Katalog üretimi (Falcon Puff, admin.mixle.net), veri geçişi, kullanıcı oluşturma, toplu silme, QA ve duman testi betikleri |
 
 ## Kontroller ve QA
 
@@ -642,11 +728,11 @@ proje köküne kendi ajan bloğunu yeniden ekler (Next 16 davranışı).
 
 ## Tasarım ve görseller
 
-Sıcak krem ve marka moru üzerine kurulu ortak tasarım sistemi. Görsel kaynakları
-ve üretim promptları [GENERATED_ASSETS.md](GENERATED_ASSETS.md) dosyasındadır.
-Ürün görselleri temsilidir; fiyat/varyasyon/stok verileri gerçek veritabanı
-kayıtlarıdır (demo içerikle tohumlanmıştır — bkz. "Demo verisine sıfırla").
-Müşteri puanı/yorumu şu an yok.
+Vitrin düzeni ve ana sayfa bannerları (`public/images/reference/`) mixle.net'i
+izler. Eski üretilmiş görsellerin kaynakları ve promptları
+[GENERATED_ASSETS.md](GENERATED_ASSETS.md) dosyasındadır. Ürün fotoğrafları
+gerçektir (katalog betikleri veya panelden yükleme). Müşteri puanı/yorumu şu
+an yok.
 
 ## Kapsam dışı (bilinçli, bu sürümde yok)
 
@@ -664,12 +750,9 @@ Müşteri puanı/yorumu şu an yok.
 - **İade fotoğrafı yükleme** — `ReturnRequest.photos` alanı hazır; F7'de genel
   bir medya yükleme altyapısı (`/admin/gorseller`) geldi ama iade formuna
   bağlanmadı.
-- **Yüklenen medya kalıcılığı** — `data/uploads/` diskte tutulur; Vercel gibi
-  sunucusuz ortamlarda bu dizin KALICI DEĞİLDİR (nesne depolama entegrasyonu
-  yok). Panelden görsel yüklemek yerine `ImageListEditor`'a doğrudan URL
-  girmek (veya `public/images/` altına derleme öncesi ekleyip oradan
-  referans vermek) canlıda kalıcı çözümdür; gerçek yükleme desteği için
-  Vercel Blob gibi bir nesne depolama entegrasyonu eklenmelidir.
-- **`/admin/sayfalar` kapsamı** — yalnız SSS ve kampanya bandı; rehber
+- **Blob'suz medya** — Blob deposu bağlı değilse yüklemeler `data/uploads/`'a
+  düşer; Vercel'de bu dizin kalıcı değildir. Canlıda Blob değişkenlerinin
+  tanımlı olduğundan emin olun.
+- **`/admin/sayfalar` kapsamı** — yalnız SSS, kampanya bandı ve üst menü; rehber
   konuları, yorumlar, süreç adımları ve hakkımızda içeriği hâlâ
   `src/data/content.ts`'te statiktir.

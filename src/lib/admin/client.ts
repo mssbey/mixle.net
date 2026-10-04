@@ -13,6 +13,7 @@ import type { BulkAction } from './mutations';
 import type { PriceAdjustInput } from './pricing';
 import type { FlavorProfileDef } from '@/lib/flavor-profiles';
 import type { TrashItemView as TrashItem } from '@/server/catalog/trash';
+import type { StoreId } from '@/lib/stores';
 
 export type { TrashItem };
 
@@ -53,11 +54,15 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export interface CatalogResponse {
   catalog: CatalogFile;
-  meta: { user: AdminSessionUser; permissions: Permission[] };
+  meta: { user: AdminSessionUser; permissions: Permission[]; store: StoreId };
 }
 
 export const adminApi = {
   loadCatalog: () => request<CatalogResponse>('/api/admin/catalog', { cache: 'no-store' }),
+
+  /** Panelde yönetilen mağazayı değiştirir (çerez). */
+  setStore: (store: StoreId) =>
+    request<{ store: StoreId }>('/api/admin/magaza', { method: 'POST', body: JSON.stringify({ store }) }),
 
   createProduct: (product: AdminProduct) =>
     request<{ product: AdminProduct }>('/api/admin/products', {

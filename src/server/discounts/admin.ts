@@ -4,6 +4,7 @@
 import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { auditChange } from '../audit';
 import type { AdminUser } from '../auth/current-user';
 import { jsonArray } from '../catalog/mapping';
@@ -79,7 +80,7 @@ export interface DiscountRuleListParams {
 export async function listAdminDiscountRules(params: DiscountRuleListParams) {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(5, params.pageSize ?? 25));
-  const where: Prisma.DiscountRuleWhereInput = {};
+  const where: Prisma.DiscountRuleWhereInput = { store: currentStore() };
   if (params.q) where.name = { contains: params.q };
   if (params.type) where.type = params.type;
   if (params.active === 'aktif') where.isActive = true;
@@ -104,7 +105,7 @@ export async function listAdminDiscountRules(params: DiscountRuleListParams) {
 }
 
 export async function getAdminDiscountRule(id: string): Promise<AdminDiscountRule | null> {
-  const row = await db.discountRule.findUnique({ where: { id } });
+  const row = await db.discountRule.findFirst({ where: { id, store: currentStore() } });
   return row ? toView(row) : null;
 }
 
@@ -135,7 +136,7 @@ export async function createDiscountRule(
   ip: string | null,
 ): Promise<AdminDiscountRule> {
   const input = discountRuleInputSchema.parse(raw);
-  const row = await db.discountRule.create({ data: toData(input) });
+  const row = await db.discountRule.create({ data: { ...toData(input), store: currentStore() } });
   await auditChange({
     user,
     action: 'olustur',
@@ -154,7 +155,7 @@ export async function updateDiscountRule(
   ip: string | null,
 ): Promise<AdminDiscountRule> {
   const input = discountRuleInputSchema.parse(raw);
-  const current = await db.discountRule.findUnique({ where: { id } });
+  const current = await db.discountRule.findFirst({ where: { id, store: currentStore() } });
   if (!current) throw new DiscountRuleAdminError('İndirim kuralı bulunamadı.', 404);
 
   const row = await db.discountRule.update({
@@ -178,7 +179,7 @@ export async function deleteDiscountRule(
   user: AdminUser,
   ip: string | null,
 ): Promise<void> {
-  const current = await db.discountRule.findUnique({ where: { id } });
+  const current = await db.discountRule.findFirst({ where: { id, store: currentStore() } });
   if (!current) throw new DiscountRuleAdminError('İndirim kuralı bulunamadı.', 404);
   await db.discountRule.delete({ where: { id } });
   await auditChange({

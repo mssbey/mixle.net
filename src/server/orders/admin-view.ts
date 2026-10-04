@@ -8,6 +8,7 @@ import 'server-only';
 import { z } from 'zod';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { ORDER_STATUSES, orderStatusLabels, type OrderStatus } from './state-machine';
 import { paymentMethodLabel } from '@/lib/payment-labels';
 import { ORDER_TABS, type OrderTab } from './order-tabs';
@@ -161,7 +162,7 @@ const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
 
 export async function getAdminOrder(id: string): Promise<AdminOrderView | null> {
   const row = await db.order.findFirst({
-    where: { OR: [{ id }, { orderNumber: id.toUpperCase() }] },
+    where: { store: currentStore(), OR: [{ id }, { orderNumber: id.toUpperCase() }] },
     include: adminOrderInclude,
   });
   if (!row) return null;
@@ -409,7 +410,7 @@ export interface OrderListResult {
 }
 
 export async function listAdminOrders(q: OrderListQuery): Promise<OrderListResult> {
-  const where: Prisma.OrderWhereInput = { status: { not: 'taslak' } };
+  const where: Prisma.OrderWhereInput = { store: currentStore(), status: { not: 'taslak' } };
 
   const tabStatuses = ORDER_TABS[q.tab].statuses;
   if (q.status) where.status = q.status;
@@ -461,7 +462,8 @@ export async function listAdminOrders(q: OrderListQuery): Promise<OrderListResul
     }),
     ...(Object.keys(ORDER_TABS) as OrderTab[]).map((tab) => {
       const st = ORDER_TABS[tab].statuses;
-      return db.order.count({ where: st ? { status: { in: [...st] } } : { status: { not: 'taslak' } } });
+      const store = currentStore();
+      return db.order.count({ where: st ? { store, status: { in: [...st] } } : { store, status: { not: 'taslak' } } });
     }),
   ]);
 

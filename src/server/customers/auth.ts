@@ -15,10 +15,10 @@ import { cache } from 'react';
 import { SignJWT, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { hashPassword, passwordProblem, verifyPassword } from '../auth/password';
 import { checkLock, recordAttempt } from '../auth/rate-limit';
 import { queueEmail } from '../notifications/email';
-import { site } from '@/lib/site';
 
 export const CUSTOMER_COOKIE = 'na_musteri';
 const SESSION_SECONDS = 30 * 24 * 60 * 60; // 30 gün — vitrin oturumu uzun ömürlü
@@ -98,6 +98,8 @@ export const getCurrentCustomer = cache(async (): Promise<CustomerUser | null> =
   });
   if (!session || session.revokedAt || session.expiresAt.getTime() < Date.now()) return null;
   if (session.customer.anonymizedAt) return null;
+  // Başka mağazanın hesabı bu vitrinde oturum açmış sayılmaz.
+  if (session.customer.store !== currentStore()) return null;
 
   const c = session.customer;
   return {
@@ -143,7 +145,7 @@ export async function registerCustomer(raw: unknown): Promise<CustomerUser> {
   if (problem) throw new CustomerAuthError(problem, 422, { password: problem });
 
   const email = input.email.toLocaleLowerCase('tr');
-  const existing = await db.customer.findUnique({ where: { email } });
+  const existing = await db.customer.findUnique({ where: { store_email: { store: currentStore(), email } } });
 
   if (existing && !existing.isGuest) {
     throw new CustomerAuthError('Bu e-posta ile zaten bir hesap var. Giriş yapın.', 409, {
@@ -168,6 +170,7 @@ export async function registerCustomer(raw: unknown): Promise<CustomerUser> {
       })
     : await db.customer.create({
         data: {
+          store: currentStore(),
           email,
           passwordHash,
           isGuest: false,
@@ -186,7 +189,7 @@ export async function registerCustomer(raw: unknown): Promise<CustomerUser> {
     template: 'hesap-olusturuldu',
     vars: {
       musteriAdi: `${customer.firstName} ${customer.lastName}`.trim(),
-      hesapLinki: `${site.domain}/hesabim`,
+      hesapLinki: '{{siteUrl}}/hesabim',
     },
   });
 
@@ -214,7 +217,7 @@ export async function loginCustomer(
     );
   }
 
-  const customer = await db.customer.findUnique({ where: { email } });
+  const customer = await db.customer.findUnique({ where: { store_email: { store: currentStore(), email } } });
   const ok = await verifyPassword(password, customer?.passwordHash ?? DUMMY_HASH);
 
   if (!customer || !customer.passwordHash || !ok || customer.anonymizedAt) {

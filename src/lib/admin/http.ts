@@ -7,6 +7,7 @@
 import { ZodError } from 'zod';
 import { AuthError, requirePermission, type AdminUser } from '@/server/auth/current-user';
 import type { Permission } from '@/server/auth/rbac';
+import { readAdminStore, runWithStore } from '@/server/store-context';
 import { AdminError } from './mutations';
 import { fieldErrors } from './schema';
 
@@ -39,7 +40,9 @@ export async function handle(
 ): Promise<Response> {
   try {
     const user = await requirePermission(permission);
-    return await handler(user);
+    // Mağazaya bağlı tüm okuma/yazmalar panelde seçili mağazaya göre yapılır.
+    const store = await readAdminStore();
+    return await runWithStore(store, () => handler(user));
   } catch (err) {
     return toErrorResponse(err);
   }

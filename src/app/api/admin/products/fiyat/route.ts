@@ -11,6 +11,7 @@ import { db } from '@/server/db';
 import { revalidateCatalog } from '@/server/catalog/queries';
 import { writeAudit } from '@/server/audit';
 import { Prisma } from '@/generated/prisma/client';
+import { currentStore } from '@/server/store-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,11 +21,13 @@ export function POST(request: Request): Promise<Response> {
   return handle('katalog:yaz', async (user) => {
     const input = priceAdjustSchema.parse(await readJson<unknown>(request));
 
-    let where: Prisma.ProductWhereInput = {};
-    if (input.scope === 'secili') where = { id: { in: input.ids } };
+    // Her kapsam seçili mağazayla sınırlıdır — "tüm ürünler" diğer mağazanın fiyatlarına dokunmaz.
+    const store = currentStore();
+    let where: Prisma.ProductWhereInput = { store };
+    if (input.scope === 'secili') where = { store, id: { in: input.ids } };
     if (input.scope === 'kategori') {
-      const all = await db.category.findMany({ select: { id: true, parentId: true } });
-      where = { categories: { some: { categoryId: { in: withDescendants(all, input.categoryIds) } } } };
+      const all = await db.category.findMany({ where: { store }, select: { id: true, parentId: true } });
+      where = { store, categories: { some: { categoryId: { in: withDescendants(all, input.categoryIds) } } } };
     }
 
     const variants = await db.variant.findMany({

@@ -8,6 +8,8 @@ import 'server-only';
 import { cache } from 'react';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { DEFAULT_STORE, type StoreId } from '@/lib/stores';
+import { currentStore } from '../store-context';
 import { jsonArray } from '../catalog/mapping';
 import type { RateTier, ShippingMethodRule, ShippingZoneRule } from '../pricing/shipping-rates';
 
@@ -46,19 +48,27 @@ const DEFAULT_METHODS = [
   },
 ];
 
-/** Tablo boşsa varsayılan bölge + yöntemleri yazar. Idempotent. */
-export async function ensureDefaultShipping(): Promise<void> {
-  const count = await db.shippingZone.count();
+/** Varsayılan kayıt kimliği: Mixle'ınkiler öneksiz (mevcut kayıtlar), diğerleri `<mağaza>-` önekli. */
+function defaultId(store: StoreId, id: string): string {
+  return store === DEFAULT_STORE ? id : `${store}-${id}`;
+}
+
+/** Mağazanın bölge tablosu boşsa varsayılan bölge + yöntemleri yazar. Idempotent. */
+export async function ensureDefaultShipping(store: StoreId = currentStore()): Promise<void> {
+  const count = await db.shippingZone.count({ where: { store } });
   if (count > 0) return;
 
   await db.shippingZone.create({
     data: {
       ...DEFAULT_ZONE,
+      id: defaultId(store, DEFAULT_ZONE.id),
+      store,
       countries: DEFAULT_ZONE.countries,
       cities: DEFAULT_ZONE.cities,
       methods: {
         create: DEFAULT_METHODS.map((m) => ({
           ...m,
+          id: defaultId(store, m.id),
           tiers: m.tiers === null ? undefined : (m.tiers as Prisma.InputJsonValue),
         })),
       },
@@ -94,9 +104,10 @@ function toMethodRule(row: {
   };
 }
 
-export const getShippingZones = cache(async (): Promise<ShippingZoneRule[]> => {
-  await ensureDefaultShipping();
+const shippingZonesFor = cache(async (store: StoreId): Promise<ShippingZoneRule[]> => {
+  await ensureDefaultShipping(store);
   const zones = await db.shippingZone.findMany({
+    where: { store },
     orderBy: { sortOrder: 'asc' },
     include: { methods: { orderBy: { sortOrder: 'asc' } } },
   });
@@ -109,3 +120,6 @@ export const getShippingZones = cache(async (): Promise<ShippingZoneRule[]> => {
     methods: z.methods.map(toMethodRule),
   }));
 });
+
+/** Geçerli mağazanın bölgeleri (istek başına teklenir). */
+export const getShippingZones = (): Promise<ShippingZoneRule[]> => shippingZonesFor(currentStore());

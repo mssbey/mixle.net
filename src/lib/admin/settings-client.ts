@@ -21,6 +21,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export interface StoreInfo {
   legalName: string; tradeName: string; address: string; city: string; phone: string; email: string;
   taxOffice: string; taxNumber: string; mersisNo: string; notifyEmail: string;
+  /** Vitrin adresi; e-posta bağlantıları bununla kurulur. */
+  siteUrl: string;
 }
 export interface StoreSettingsView {
   pricesIncludeTax: boolean; defaultTaxRateBps: number; shippingTaxRateBps: number;

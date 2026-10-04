@@ -9,6 +9,7 @@
 import type { Metadata } from 'next';
 import { CheckCircle2, Clock, Landmark, Info } from 'lucide-react';
 import { db } from '@/server/db';
+import { currentStore } from '@/server/store-context';
 import { getCurrentCustomer } from '@/server/customers/auth';
 import { verifyOrderAccessToken } from '@/server/orders/access';
 import { publicOrderInclude, publicOrderView } from '@/server/orders/view';
@@ -34,8 +35,8 @@ export default async function OrderCompletePage({
   const orderNumber = (no ?? '').toUpperCase();
 
   const row = orderNumber
-    ? await db.order.findUnique({
-        where: { orderNumber },
+    ? await db.order.findFirst({
+        where: { orderNumber, store: currentStore() },
         include: { ...publicOrderInclude, customer: { select: { email: true } } },
       })
     : null;

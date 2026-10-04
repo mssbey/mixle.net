@@ -1,6 +1,7 @@
 // Kargo etiketi yazdırma: ?ids=a,b,c — her sevkiyat ayrı A6 sayfada.
 
 import { requirePermission } from '@/server/auth/current-user';
+import { withAdminStore } from '@/server/store-context';
 import { db } from '@/server/db';
 import { getStoreInfo } from '@/server/settings';
 import { ShipmentLabelDocument, type LabelViewModel } from '@/components/admin/shipping/ShipmentLabelDocument';
@@ -8,7 +9,7 @@ import { site } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ShipmentLabelsPage({ searchParams }: { searchParams: Promise<{ ids?: string }> }) {
+async function ShipmentLabelsPageContent({ searchParams }: { searchParams: Promise<{ ids?: string }> }) {
   await requirePermission('siparis:oku');
   const { ids } = await searchParams;
   const list = (ids ?? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 100);
@@ -75,4 +76,9 @@ export default async function ShipmentLabelsPage({ searchParams }: { searchParam
       from={{ name: store.tradeName || site.name, phone: store.phone, addressLine: store.address, city: store.city }}
     />
   );
+}
+
+/** Veriler panelde seçili mağazanın bağlamında okunur. */
+export default async function ShipmentLabelsPage(props: Parameters<typeof ShipmentLabelsPageContent>[0]) {
+  return withAdminStore(() => ShipmentLabelsPageContent(props));
 }

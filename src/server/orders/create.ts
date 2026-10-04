@@ -12,6 +12,7 @@ import 'server-only';
 import { z } from 'zod';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { maskTckn } from '@/lib/validators/tckn';
 import { seal, isEncryptionConfigured, tryOpen } from '../crypto/secret-box';
 import { reserveStock, releaseExpiredReservations } from '../inventory/reserve';
@@ -172,10 +173,11 @@ export async function createOrder(
   raw: unknown,
   ctx: CreateOrderContext,
 ): Promise<CreateOrderResult> {
+  const store = currentStore();
   // 1) Idempotency — aynı anahtarla gelen ikinci istek yeni sipariş açmaz.
   if (ctx.idempotencyKey) {
     const existing = await db.order.findUnique({ where: { idempotencyKey: ctx.idempotencyKey } });
-    if (existing) {
+    if (existing && existing.store === store) {
       return {
         orderId: existing.id,
         orderNumber: existing.orderNumber,
@@ -276,8 +278,9 @@ export async function createOrder(
     let customerId = ctx.customerId;
     if (!customerId) {
       const guest = await tx.customer.upsert({
-        where: { email },
+        where: { store_email: { store, email } },
         create: {
+          store,
           email,
           isGuest: true,
           firstName: shippingAddress.firstName,
@@ -289,7 +292,7 @@ export async function createOrder(
         },
         update: {
           // Misafir verisi tazelenir; kayıtlı hesabın adı ezilmez.
-          ...(await tx.customer.findUnique({ where: { email }, select: { isGuest: true } }))?.isGuest
+          ...(await tx.customer.findUnique({ where: { store_email: { store, email } }, select: { isGuest: true } }))?.isGuest
             ? {
                 firstName: shippingAddress.firstName,
                 lastName: shippingAddress.lastName,
@@ -313,10 +316,11 @@ export async function createOrder(
       await saveAddress(tx, customerId, billingAddress, 'fatura');
     }
 
-    const orderNumber = await nextOrderNumber(tx);
+    const orderNumber = await nextOrderNumber(tx, store);
 
     const order = await tx.order.create({
       data: {
+        store,
         orderNumber,
         customerId,
         guestEmail: ctx.customerId ? null : email,
@@ -412,7 +416,7 @@ export async function createOrder(
     );
 
     if (quote.coupon?.ok) {
-      const coupon = await tx.coupon.findUnique({ where: { code: quote.coupon.code } });
+      const coupon = await tx.coupon.findUnique({ where: { store_code: { store, code: quote.coupon.code } } });
       if (coupon) {
         await tx.couponRedemption.create({
           data: {

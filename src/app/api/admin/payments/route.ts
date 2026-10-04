@@ -5,6 +5,7 @@ import type { Prisma } from '@/generated/prisma/client';
 import { handle } from '@/lib/admin/http';
 import { db } from '@/server/db';
 import { maskSensitive } from '@/server/log';
+import { currentStore } from '@/server/store-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,9 +24,10 @@ export function GET(request: Request): Promise<Response> {
   return handle('siparis:oku', async () => {
     const q = querySchema.parse(Object.fromEntries(new URL(request.url).searchParams.entries()));
     const skip = (q.page - 1) * q.pageSize;
+    const store = currentStore();
 
     if (q.view === 'iadeler') {
-      const where: Prisma.RefundWhereInput = q.status ? { status: q.status } : {};
+      const where: Prisma.RefundWhereInput = { order: { store }, ...(q.status ? { status: q.status } : {}) };
       const [total, rows] = await Promise.all([
         db.refund.count({ where }),
         db.refund.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: q.pageSize, include: { order: { select: { id: true, orderNumber: true } }, user: { select: { email: true, name: true } } } }),
@@ -51,7 +53,7 @@ export function GET(request: Request): Promise<Response> {
     if (q.view === 'mutabakat') {
       // Ödendi görünen ama başarılı ödeme kaydı toplamı tutmayan siparişler + başarılı ödeme olup ödenmemiş görünenler.
       const orders = await db.order.findMany({
-        where: { status: { notIn: ['taslak'] }, ...(q.from || q.to ? { placedAt: { ...(q.from ? { gte: new Date(q.from) } : {}), ...(q.to ? { lte: new Date(q.to) } : {}) } } : {}) },
+        where: { store, status: { notIn: ['taslak'] }, ...(q.from || q.to ? { placedAt: { ...(q.from ? { gte: new Date(q.from) } : {}), ...(q.to ? { lte: new Date(q.to) } : {}) } } : {}) },
         include: { payments: true },
         orderBy: { placedAt: 'desc' },
         take: 2000,
@@ -68,7 +70,7 @@ export function GET(request: Request): Promise<Response> {
       return Response.json({ view: q.view, total, page: q.page, pageSize: q.pageSize, pageCount: Math.max(1, Math.ceil(total / q.pageSize)), items: mismatches.slice(skip, skip + q.pageSize) });
     }
 
-    const where: Prisma.PaymentWhereInput = {};
+    const where: Prisma.PaymentWhereInput = { order: { store } };
     if (q.view === 'basarisiz') where.status = 'başarısız';
     else if (q.status) where.status = q.status;
     if (q.provider) where.provider = q.provider;

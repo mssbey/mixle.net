@@ -3,6 +3,7 @@
 import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { carrierLabels, type Carrier } from './carriers';
 import { SHIPMENT_TABS, type ShipmentTab } from './shipment-tabs';
 
@@ -90,7 +91,7 @@ export async function listAdminShipments(params: ShipmentListParams): Promise<Sh
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(5, params.pageSize ?? 25));
 
-  const where: Prisma.ShipmentWhereInput = {};
+  const where: Prisma.ShipmentWhereInput = { order: { store: currentStore() } };
   const tab = params.tab ?? 'tumu';
   const tabStatuses = SHIPMENT_TABS[tab]?.statuses;
   if (tabStatuses) where.status = { in: [...tabStatuses] };

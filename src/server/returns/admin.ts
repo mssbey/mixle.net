@@ -3,6 +3,7 @@
 import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { auditChange } from '../audit';
 import type { AdminUser } from '../auth/current-user';
 import { transitionOrder } from '../orders/transitions';
@@ -70,7 +71,7 @@ export interface ReturnListParams {
 export async function listAdminReturns(params: ReturnListParams) {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(5, params.pageSize ?? 25));
-  const where: Prisma.ReturnRequestWhereInput = {};
+  const where: Prisma.ReturnRequestWhereInput = { order: { store: currentStore() } };
   if (params.status && params.status !== 'tumu') where.status = params.status;
   if (params.q) {
     const q = params.q.trim();

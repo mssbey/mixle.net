@@ -9,6 +9,7 @@ import 'server-only';
 import { z } from 'zod';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { auditChange } from '../audit';
 import type { AdminUser } from '../auth/current-user';
 import { jsonArray } from '../catalog/mapping';
@@ -50,7 +51,7 @@ export interface CustomerListParams {
 export async function listAdminCustomers(params: CustomerListParams) {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(5, params.pageSize ?? 25));
-  const where: Prisma.CustomerWhereInput = { isGuest: false };
+  const where: Prisma.CustomerWhereInput = { store: currentStore(), isGuest: false };
   if (params.q) {
     const q = params.q.trim();
     where.OR = [{ email: { contains: q.toLowerCase() } }, { firstName: { contains: q } }, { lastName: { contains: q } }, { phone: { contains: q } }];
@@ -108,8 +109,8 @@ export interface AdminCustomerDetail extends AdminCustomerRow {
 }
 
 export async function getAdminCustomer(id: string): Promise<AdminCustomerDetail | null> {
-  const row = await db.customer.findUnique({
-    where: { id },
+  const row = await db.customer.findFirst({
+    where: { id, store: currentStore() },
     include: {
       addresses: { orderBy: { isDefault: 'desc' } },
       orders: { orderBy: { placedAt: 'desc' }, take: 20, select: { id: true, orderNumber: true, status: true, grandTotalMinor: true, placedAt: true } },
@@ -151,7 +152,7 @@ export const customerMetaSchema = z.object({
 
 export async function updateCustomerMeta(id: string, raw: unknown, user: AdminUser, ip: string | null) {
   const input = customerMetaSchema.parse(raw);
-  const current = await db.customer.findUnique({ where: { id } });
+  const current = await db.customer.findFirst({ where: { id, store: currentStore() } });
   if (!current) throw new CustomerAdminError('Müşteri bulunamadı.', 404);
 
   const updated = await db.customer.update({
@@ -172,7 +173,7 @@ export async function updateCustomerMeta(id: string, raw: unknown, user: AdminUs
  * silinir), kişisel alanlar maskelenir. Sipariş kayıtları saklanır.
  */
 export async function anonymizeCustomer(id: string, user: AdminUser, ip: string | null): Promise<void> {
-  const current = await db.customer.findUnique({ where: { id } });
+  const current = await db.customer.findFirst({ where: { id, store: currentStore() } });
   if (!current) throw new CustomerAdminError('Müşteri bulunamadı.', 404);
   if (current.anonymizedAt) throw new CustomerAdminError('Bu müşteri zaten anonimleştirilmiş.', 409);
 

@@ -6,7 +6,9 @@
 import 'server-only';
 import { cache } from 'react';
 import { z } from 'zod';
-import { db } from '../db';
+import { readSettingValue, writeSetting } from '../settings';
+import { DEFAULT_STORE, STORE_META, type StoreId } from '@/lib/stores';
+import { currentStore, deploymentStore } from '../store-context';
 import { seal, tryOpen, isEncryptionConfigured } from '../crypto/secret-box';
 import { site } from '@/lib/site';
 
@@ -49,16 +51,23 @@ const ENV_FALLBACK = {
   fromName: envFrom.name,
 };
 
-function decryptSecrets(s: EmailSettings): EmailSettings {
+/**
+ * Şifreli alanları çözer. `useEnv` yalnız bu dağıtımın kendi mağazası için
+ * açıktır: `.env`'deki SMTP/MAIL_FROM yedeği o mağazanındır, panelden başka
+ * mağaza adına gönderilen e-postaya karışmamalı.
+ */
+function decryptSecrets(s: EmailSettings, useEnv = true): EmailSettings {
   const out = structuredClone(s);
   for (const [section, fields] of Object.entries(SECRET_FIELDS) as [keyof typeof SECRET_FIELDS, readonly string[]][]) {
     const target = out[section] as unknown as Record<string, string>;
     for (const f of fields) {
       const v = target[f];
       if (v && v.startsWith('v1.')) target[f] = tryOpen(v) ?? '';
+      if (!useEnv) continue;
       if (!target[f]) target[f] = (ENV_FALLBACK[section] as Record<string, string | undefined>)[f] ?? '';
     }
   }
+  if (!useEnv) return out;
   if (!out.fromEmail) out.fromEmail = ENV_FALLBACK.fromEmail;
   if (!out.fromName || out.fromName === site.name) out.fromName = ENV_FALLBACK.fromName || out.fromName;
   if (out.provider === 'yok') {
@@ -71,12 +80,18 @@ function decryptSecrets(s: EmailSettings): EmailSettings {
 }
 
 /** Sunucu içi: çözülmüş anahtarlarla. Panele verilmez. */
-export const getEmailSettings = cache(async (): Promise<EmailSettings> => {
-  const row = await db.setting.findUnique({ where: { key: EMAIL_SETTING_KEY } });
-  const parsed = emailSettingsSchema.safeParse(row?.value ?? {});
+const emailSettingsFor = cache(async (store: StoreId): Promise<EmailSettings> => {
+  const value = await readSettingValue(EMAIL_SETTING_KEY, store);
+  const parsed = emailSettingsSchema.safeParse(value ?? {});
   const base = parsed.success ? parsed.data : emailSettingsSchema.parse({});
-  return decryptSecrets(base);
+  const out = decryptSecrets(base, store === deploymentStore());
+  // Varsayılan gönderen adı Mixle'ınkidir; diğer mağaza kendi adıyla gönderir.
+  if (store !== DEFAULT_STORE && out.fromName === site.name) out.fromName = STORE_META[store].label;
+  return out;
 });
+
+/** Geçerli mağazanın ayarları (istek başına teklenir). */
+export const getEmailSettings = (): Promise<EmailSettings> => emailSettingsFor(currentStore());
 
 function maskSecret(value: string): string {
   return value ? `••••${value.slice(-4)}` : '';
@@ -94,8 +109,8 @@ export async function getEmailSettingsMasked() {
 
 export async function saveEmailSettings(raw: unknown, updatedByUserId: string): Promise<void> {
   const incoming = emailSettingsSchema.parse(raw);
-  const existingRow = await db.setting.findUnique({ where: { key: EMAIL_SETTING_KEY } });
-  const existing = emailSettingsSchema.safeParse(existingRow?.value ?? {});
+  const existingValue = await readSettingValue(EMAIL_SETTING_KEY);
+  const existing = emailSettingsSchema.safeParse(existingValue ?? {});
   const stored = existing.success ? existing.data : emailSettingsSchema.parse({});
 
   const next = structuredClone(incoming);
@@ -115,9 +130,5 @@ export async function saveEmailSettings(raw: unknown, updatedByUserId: string): 
     }
   }
 
-  await db.setting.upsert({
-    where: { key: EMAIL_SETTING_KEY },
-    create: { key: EMAIL_SETTING_KEY, value: next as never, isSecret: true, updatedByUserId },
-    update: { value: next as never, isSecret: true, updatedByUserId },
-  });
+  await writeSetting(EMAIL_SETTING_KEY, next, updatedByUserId, { isSecret: true });
 }

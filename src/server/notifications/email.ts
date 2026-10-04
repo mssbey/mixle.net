@@ -16,6 +16,7 @@ import { DEMO_MODE } from '../config';
 import { formatMinor } from '@/lib/money';
 import { paymentMethodLabel } from '@/lib/payment-labels';
 import { site } from '@/lib/site';
+import { getStoreBrand, type StoreBrand } from '../settings';
 
 export type EmailTemplateKey =
   | 'siparis-alindi'
@@ -53,7 +54,7 @@ Siparişinizi takip etmek için: {{takipLinki}}
 
 Kabul ettiğiniz Mesafeli Satış Sözleşmesi (sürüm {{sozlesmeSurumu}}) ve Ön Bilgilendirme Formu bu e-postanın ekinde yer alır.
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'odeme-basarili': {
     subject: 'Ödemeniz alındı — {{siparisNo}}',
@@ -63,7 +64,7 @@ ${site.name}`,
 
 Takip: {{takipLinki}}
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'odeme-basarisiz': {
     subject: 'Ödeme alınamadı — {{siparisNo}}',
@@ -71,7 +72,7 @@ ${site.name}`,
 
 {{siparisNo}} numaralı siparişiniz için ödeme alınamadı. Siparişiniz bekliyor; yeniden ödeme yapmak için: {{takipLinki}}
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'kargoya-verildi': {
     subject: 'Siparişiniz kargoda — {{siparisNo}}',
@@ -81,7 +82,7 @@ ${site.name}`,
 Takip numarası: {{kargoTakipNo}}
 Takip linki: {{kargoTakipLinki}}
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'teslim-edildi': {
     subject: 'Siparişiniz teslim edildi — {{siparisNo}}',
@@ -91,7 +92,7 @@ ${site.name}`,
 
 Cayma hakkınız teslim tarihinden itibaren {{caymaGun}} gündür. İade talebi için: {{takipLinki}}
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   iptal: {
     subject: 'Siparişiniz iptal edildi — {{siparisNo}}',
@@ -99,7 +100,7 @@ ${site.name}`,
 
 {{siparisNo}} numaralı siparişiniz iptal edildi. Ödeme yaptıysanız iade işlemi başlatılmıştır.
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'iade-onayi': {
     subject: 'İade talebiniz alındı — {{siparisNo}}',
@@ -107,7 +108,7 @@ ${site.name}`,
 
 {{siparisNo}} numaralı siparişiniz için iade talebiniz alındı. İnceleme sonucunu e-posta ile bildireceğiz.
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'iade-talebi-onaylandi': {
     subject: 'İade talebiniz onaylandı — {{siparisNo}}',
@@ -119,7 +120,7 @@ ${site.name}`,
 
 Ürün elimize ulaştığında iade işleminizi tamamlayıp size bilgi vereceğiz.
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'iade-talebi-reddedildi': {
     subject: 'İade talebiniz hakkında — {{siparisNo}}',
@@ -131,7 +132,7 @@ Sonuç: {{redSebebi}}
 
 Sorularınız için bize ulaşabilirsiniz.
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'iade-tamamlandi': {
     subject: 'İadeniz tamamlandı — {{siparisNo}}',
@@ -139,7 +140,7 @@ ${site.name}`,
 
 {{siparisNo}} numaralı siparişinizin iadesi tamamlandı. {{iadeTutari}} ödeme yönteminize iade edildi.
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'parola-sifirla': {
     subject: 'Parola sıfırlama',
@@ -149,7 +150,7 @@ Parolanızı sıfırlamak için bağlantı (1 saat geçerli): {{sifirlamaLinki}}
 
 Bu isteği siz yapmadıysanız bu e-postayı yok sayın.
 
-${site.name}`,
+{{magazaAdi}}`,
   },
   'yeni-siparis-yonetici': {
     subject: 'Yeni sipariş: {{siparisNo}} — {{toplam}}',
@@ -163,23 +164,36 @@ Toplam: {{toplam}}
 Panel: {{panelLinki}}`,
   },
   'hesap-olusturuldu': {
-    subject: `${site.name} hesabınız oluşturuldu`,
+    subject: '{{magazaAdi}} hesabınız oluşturuldu',
     body: `Merhaba {{musteriAdi}},
 
 Hesabınız oluşturuldu. Siparişlerinizi ve adreslerinizi {{hesapLinki}} adresinden yönetebilirsiniz.
 
-${site.name}`,
+{{magazaAdi}}`,
   },
 };
 
 export type EmailVars = Record<string, string | number | null | undefined>;
 
-export function renderTemplate(key: EmailTemplateKey, vars: EmailVars): Template {
+/**
+ * Şablonu doldurur. Mağaza adı (`{{magazaAdi}}`) ve vitrin kökü (`{{siteUrl}}`)
+ * değişkenlerden SONRA doldurulur: `orderEmailVars` bağlantıları `{{siteUrl}}`
+ * ile kurar ki panel başka mağazanın e-postasını doğru adresle gönderebilsin.
+ */
+export function renderTemplate(
+  key: EmailTemplateKey,
+  vars: EmailVars,
+  brand: StoreBrand = { name: site.name, url: site.domain.replace(/\/$/, '') },
+): Template {
   const fill = (text: string) =>
-    text.replace(/\{\{(\w+)\}\}/g, (_, name: string) => {
-      const v = vars[name];
-      return v == null ? '' : String(v);
-    });
+    text
+      .replace(/\{\{(\w+)\}\}/g, (match, name: string) => {
+        if (name === 'magazaAdi' || name === 'siteUrl') return match;
+        const v = vars[name];
+        return v == null ? '' : String(v);
+      })
+      .replace(/\{\{magazaAdi\}\}/g, brand.name)
+      .replace(/\{\{siteUrl\}\}/g, brand.url);
   const t = TEMPLATES[key];
   return { subject: fill(t.subject), body: fill(t.body).replace(/\n{3,}/g, '\n\n') };
 }
@@ -197,7 +211,8 @@ export interface QueueEmailInput {
  * Gönderim hatası asıl işlemi (sipariş oluşturma vb.) asla düşürmez.
  */
 export async function queueEmail(input: QueueEmailInput): Promise<void> {
-  const { subject, body } = renderTemplate(input.template, input.vars);
+  const brand = await getStoreBrand().catch(() => undefined);
+  const { subject, body } = renderTemplate(input.template, input.vars, brand);
   let row: { id: string } | null = null;
   try {
     row = await db.emailLog.create({
@@ -248,7 +263,8 @@ export function orderEmailVars(order: {
       ? `${order.customer.firstName} ${order.customer.lastName}`.trim()
       : `${addr.firstName ?? ''} ${addr.lastName ?? ''}`.trim() || 'Müşterimiz';
   const email = order.customer?.email ?? order.guestEmail ?? '';
-  const base = site.domain;
+  // Kök, gönderim anında geçerli mağazanın adresiyle doldurulur (bkz. renderTemplate).
+  const base = '{{siteUrl}}';
   const takip = `${base}/siparis-takibi?no=${encodeURIComponent(order.orderNumber)}&eposta=${encodeURIComponent(email)}`;
 
   return {

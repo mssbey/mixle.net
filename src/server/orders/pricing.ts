@@ -6,6 +6,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { jsonRecord } from '../catalog/mapping';
 import { getStoreSettings } from '../settings';
 import type { PricedLine } from './totals';
@@ -55,7 +56,8 @@ export async function priceCart(input: CartLineInput[]): Promise<PricedCart> {
   for (const l of input) merged.set(l.variantId, (merged.get(l.variantId) ?? 0) + l.quantity);
 
   const variants = await db.variant.findMany({
-    where: { id: { in: [...merged.keys()] } },
+    // Başka mağazanın varyantı bu sepette bulunamaz → "satışta değil" olarak düşer.
+    where: { id: { in: [...merged.keys()] }, product: { store: currentStore() } },
     include: {
       product: {
         include: {
@@ -126,7 +128,7 @@ export async function resolveCoupon(
   if (!rawCode || !rawCode.trim()) return null;
   const code = normalizeCouponCode(rawCode);
 
-  const row = await db.coupon.findUnique({ where: { code } });
+  const row = await db.coupon.findUnique({ where: { store_code: { store: currentStore(), code } } });
   if (!row) return { ok: false, reason: 'Böyle bir kupon kodu bulunamadı.' };
 
   const rule: CouponRule = {
@@ -161,6 +163,7 @@ export async function resolveCoupon(
     }),
     db.order.count({
       where: {
+        store: currentStore(),
         status: { notIn: ['taslak', 'iptal', 'başarısız'] },
         OR: [
           ...(who.customerId ? [{ customerId: who.customerId }] : []),

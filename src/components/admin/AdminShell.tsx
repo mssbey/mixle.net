@@ -35,6 +35,8 @@ import { toast } from '@/store/toast';
 import { useAdminData } from './AdminDataProvider';
 import { roleLabels } from '@/server/auth/rbac';
 import { AdminToaster } from './AdminToaster';
+import { StoreSwitcher } from './StoreSwitcher';
+import { DEFAULT_STORE } from '@/lib/stores';
 
 const NAV = [
   { href: '/admin', label: 'Özet', icon: LayoutDashboard, exact: true },
@@ -90,7 +92,7 @@ const COLLAPSE_KEY = 'na-admin-sidebar-collapsed';
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? '/admin';
   const router = useRouter();
-  const { user, status, updatedAt } = useAdminData();
+  const { user, status, updatedAt, store } = useAdminData();
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -149,7 +151,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="admin-layout" data-collapsed={collapsed}>
+    <div className="admin-layout" data-collapsed={collapsed} data-store={store}>
       {mobileOpen && (
         <div
           className="admin-sidebar-backdrop"
@@ -194,10 +196,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="admin-sidebar-foot mt-auto flex flex-col gap-1 pt-3 text-[11px] text-[#94a3b8]">
-          <Link href="/" className="admin-nav-link admin-focusable" title="Vitrine dön">
-            <Store size={16} aria-hidden="true" />
-            <span className="admin-nav-label">Vitrini aç</span>
-          </Link>
+          {/* Bu dağıtımın vitrini Mixle'dır; diğer mağazanın vitrini kendi alan adındadır. */}
+          {store === DEFAULT_STORE && (
+            <Link href="/" className="admin-nav-link admin-focusable" title="Vitrine dön">
+              <Store size={16} aria-hidden="true" />
+              <span className="admin-nav-label">Vitrini aç</span>
+            </Link>
+          )}
           <button
             type="button"
             onClick={onLogout}
@@ -270,6 +275,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
               style={{ paddingLeft: 28, width: 190 }}
             />
           </form>
+
+          {user && <StoreSwitcher store={store} />}
 
           {user && (
             <span

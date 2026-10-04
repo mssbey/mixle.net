@@ -11,6 +11,8 @@
 import 'server-only';
 import { cache } from 'react';
 import { db } from '../db';
+import type { StoreId } from '@/lib/stores';
+import { currentStore } from '../store-context';
 
 export const LEGAL_KINDS = [
   'mesafeli-satis',
@@ -124,19 +126,19 @@ export interface LegalDoc {
 /** Tablo boşsa varsayılan metinleri 1. sürüm olarak yayınlar. Idempotent. */
 export async function ensureDefaultLegalDocuments(): Promise<void> {
   for (const kind of LEGAL_KINDS) {
-    const exists = await db.legalDocument.findFirst({ where: { kind } });
+    const exists = await db.legalDocument.findFirst({ where: { store: currentStore(), kind } });
     if (!exists) {
       await db.legalDocument.create({
-        data: { kind, version: 1, ...DEFAULT_TEXTS[kind], publishedAt: new Date() },
+        data: { store: currentStore(), kind, version: 1, ...DEFAULT_TEXTS[kind], publishedAt: new Date() },
       });
     }
   }
 }
 
-/** Yayındaki en güncel sürüm. */
-export const getCurrentLegal = cache(async (kind: LegalKind): Promise<LegalDoc> => {
+// Mağaza argümanı React `cache()` anahtarına girer.
+const currentLegalFor = cache(async (store: StoreId, kind: LegalKind): Promise<LegalDoc> => {
   const row = await db.legalDocument.findFirst({
-    where: { kind, publishedAt: { not: null } },
+    where: { store, kind, publishedAt: { not: null } },
     orderBy: { version: 'desc' },
   });
   if (row) return row as LegalDoc;
@@ -144,8 +146,11 @@ export const getCurrentLegal = cache(async (kind: LegalKind): Promise<LegalDoc> 
   return { kind, version: 1, ...DEFAULT_TEXTS[kind], publishedAt: null };
 });
 
+/** Yayındaki en güncel sürüm (geçerli mağaza). */
+export const getCurrentLegal = (kind: LegalKind): Promise<LegalDoc> => currentLegalFor(currentStore(), kind);
+
 export async function getLegalVersion(kind: LegalKind, version: number): Promise<LegalDoc | null> {
-  const row = await db.legalDocument.findUnique({ where: { kind_version: { kind, version } } });
+  const row = await db.legalDocument.findUnique({ where: { store_kind_version: { store: currentStore(), kind, version } } });
   return (row as LegalDoc | null) ?? (version === 1 ? { kind, version: 1, ...DEFAULT_TEXTS[kind], publishedAt: null } : null);
 }
 

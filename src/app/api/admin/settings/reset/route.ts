@@ -11,11 +11,17 @@ import { AdminError } from '@/lib/admin/mutations';
 import { legacyCatalogSchema, legacyToCatalog } from '@/server/catalog/import';
 import { replaceCatalog } from '@/server/catalog/persist';
 import { writeAudit } from '@/server/audit';
+import { currentStore } from '@/server/store-context';
+import { DEFAULT_STORE } from '@/lib/stores';
 
 export const dynamic = 'force-dynamic';
 
 export function POST(): Promise<Response> {
   return handle('bakim:yaz', async (user) => {
+    // Seed dosyası Mixle kataloğudur; başka mağazaya yüklenmez.
+    if (currentStore() !== DEFAULT_STORE) {
+      throw new AdminError('Seed kataloğu yalnız Mixle mağazası için geçerlidir.', 409);
+    }
     const file = path.join(process.cwd(), 'src', 'data', 'catalog.seed.json');
 
     let raw: unknown;

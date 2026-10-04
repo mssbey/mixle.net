@@ -14,6 +14,7 @@
 import { z } from 'zod';
 import type { PrismaClient } from '@/generated/prisma/client';
 import type { AdminProduct, CatalogFile } from '@/types/admin';
+import { DEFAULT_STORE, type StoreId } from '@/lib/stores';
 import { toMinor } from '@/lib/money';
 import {
   categoryScalars,
@@ -187,19 +188,23 @@ export function reportOf(catalog: CatalogFile): ImportReport {
   };
 }
 
-/** Kataloğun tüm tablolarını boşaltır (yabancı anahtar sırasına dikkat ederek). */
-export async function wipeCatalog(db: PrismaClient): Promise<void> {
+/**
+ * Bir mağazanın katalog tablolarını boşaltır (yabancı anahtar sırasına dikkat
+ * ederek). Diğer mağazaların kayıtlarına dokunmaz.
+ */
+export async function wipeCatalog(db: PrismaClient, store: StoreId = DEFAULT_STORE): Promise<void> {
   // Alt kayıtlar `onDelete: Cascade` ile bağlı; yine de sıra açıkça yazılır ki
   // Postgres'e geçişte davranış aynı kalsın.
-  await db.optionValue.deleteMany({});
-  await db.productOption.deleteMany({});
-  await db.productImage.deleteMany({});
-  await db.variant.deleteMany({});
-  await db.productCategory.deleteMany({});
-  await db.productCollection.deleteMany({});
-  await db.product.deleteMany({});
-  await db.category.deleteMany({});
-  await db.collection.deleteMany({});
+  const product = { store };
+  await db.optionValue.deleteMany({ where: { option: { product } } });
+  await db.productOption.deleteMany({ where: { product } });
+  await db.productImage.deleteMany({ where: { product } });
+  await db.variant.deleteMany({ where: { product } });
+  await db.productCategory.deleteMany({ where: { product } });
+  await db.productCollection.deleteMany({ where: { product } });
+  await db.product.deleteMany({ where: { store } });
+  await db.category.deleteMany({ where: { store } });
+  await db.collection.deleteMany({ where: { store } });
 }
 
 /**
@@ -209,20 +214,21 @@ export async function wipeCatalog(db: PrismaClient): Promise<void> {
 export async function importCatalog(
   db: PrismaClient,
   catalog: CatalogFile,
-  options: { wipe?: boolean } = {},
+  options: { wipe?: boolean; store?: StoreId } = {},
 ): Promise<ImportReport> {
-  if (options.wipe) await wipeCatalog(db);
+  const store = options.store ?? DEFAULT_STORE;
+  if (options.wipe) await wipeCatalog(db, store);
 
   for (const c of catalog.categories) {
     const data = categoryScalars(c);
-    await db.category.upsert({ where: { id: c.id }, create: { id: c.id, ...data }, update: data });
+    await db.category.upsert({ where: { id: c.id }, create: { id: c.id, store, ...data }, update: data });
   }
 
   for (const c of catalog.collections) {
     const data = collectionScalars(c);
     await db.collection.upsert({
       where: { id: c.id },
-      create: { id: c.id, ...data },
+      create: { id: c.id, store, ...data },
       update: data,
     });
   }
@@ -238,6 +244,7 @@ export async function importCatalog(
         where: { id: p.id },
         create: {
           id: p.id,
+          store,
           ...scalars,
           createdAt: new Date(p.createdAt),
           updatedAt: new Date(p.updatedAt),

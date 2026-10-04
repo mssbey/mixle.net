@@ -10,6 +10,7 @@
 
 import 'server-only';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { REVENUE_STATUSES } from '../orders/state-machine';
 import { returnReasonLabels, type ReturnReason } from '../returns/schema';
 import { paymentMethodLabel } from '@/lib/payment-labels';
@@ -77,7 +78,8 @@ export interface ReportsOverview {
 const dayFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Istanbul' }); // YYYY-MM-DD
 
 export async function getReportsOverview(range: { from: Date; to: Date }): Promise<ReportsOverview> {
-  const where = { placedAt: { gte: range.from, lte: range.to }, status: { in: [...REVENUE_STATUSES] } };
+  const store = currentStore();
+  const where = { store, placedAt: { gte: range.from, lte: range.to }, status: { in: [...REVENUE_STATUSES] } };
   const orders = await db.order.findMany({
     where,
     select: { id: true, placedAt: true, grandTotalMinor: true, refundedTotalMinor: true, paymentMethod: true },
@@ -87,7 +89,7 @@ export async function getReportsOverview(range: { from: Date; to: Date }): Promi
   const refundedMinor = orders.reduce((s, o) => s + o.refundedTotalMinor, 0);
   const orderCount = orders.length;
 
-  const returnRequestCount = await db.returnRequest.count({ where: { requestedAt: { gte: range.from, lte: range.to } } });
+  const returnRequestCount = await db.returnRequest.count({ where: { order: { store }, requestedAt: { gte: range.from, lte: range.to } } });
 
   const byDay = new Map<string, { revenueMinor: number; orderCount: number }>();
   const byMethod = new Map<string, { count: number; revenueMinor: number }>();
@@ -144,7 +146,7 @@ export async function getReportsOverview(range: { from: Date; to: Date }): Promi
     .map((c) => ({ categoryId: c.id, name: c.name, revenueMinor: catRevenue.get(c.id) ?? 0 }))
     .sort((a, b) => b.revenueMinor - a.revenueMinor);
 
-  const reasonAgg = await db.returnRequest.groupBy({ by: ['reason'], where: { requestedAt: { gte: range.from, lte: range.to } }, _count: { _all: true } });
+  const reasonAgg = await db.returnRequest.groupBy({ by: ['reason'], where: { order: { store }, requestedAt: { gte: range.from, lte: range.to } }, _count: { _all: true } });
   const returnReasons = reasonAgg
     .map((r) => ({ reason: r.reason, reasonLabel: returnReasonLabels[r.reason as ReturnReason] ?? r.reason, count: r._count._all }))
     .sort((a, b) => b.count - a.count);

@@ -20,7 +20,10 @@ import type {
   CatalogFile,
 } from '@/types/admin';
 import { CATALOG_SCHEMA_VERSION } from '@/types/admin';
+import { AdminError } from '@/lib/admin/mutations';
+import { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import {
   categoryScalars,
   collectionScalars,
@@ -34,10 +37,11 @@ import { revalidateCatalog } from './queries';
 
 /** Veritabanındaki kataloğun tamamı — saf mutasyonların çalışma bağlamı. */
 export async function readCatalog(): Promise<CatalogFile> {
+  const store = currentStore();
   const [products, categories, collections] = await Promise.all([
-    loadProductRows(),
-    db.category.findMany({ orderBy: { sortOrder: 'asc' } }),
-    db.collection.findMany({ orderBy: { sortOrder: 'asc' } }),
+    loadProductRows({ store }),
+    db.category.findMany({ where: { store }, orderBy: { sortOrder: 'asc' } }),
+    db.collection.findMany({ where: { store }, orderBy: { sortOrder: 'asc' } }),
   ]);
 
   return {
@@ -69,10 +73,15 @@ export async function readCatalogSlice(match: {
     ...(slugs.length ? [{ slug: { in: slugs } }] : []),
   ];
 
+  // Ürünler mağaza filtresi OLMADAN eşlenir: slug ve kimlik tüm mağazalarda
+  // tekildir, saf mutasyon başka mağazadaki aynı slug'ı da çakışma saymalı.
+  // Kategoriler ise yalnız bu mağazanınkiler — ürün başka mağazanın
+  // kategorisine bağlanamaz.
+  const store = currentStore();
   const [products, categories, collections] = await Promise.all([
     or.length ? loadProductRows({ OR: or }) : Promise.resolve([]),
-    db.category.findMany({ orderBy: { sortOrder: 'asc' } }),
-    db.collection.findMany({ orderBy: { sortOrder: 'asc' } }),
+    db.category.findMany({ where: { store }, orderBy: { sortOrder: 'asc' } }),
+    db.collection.findMany({ where: { store }, orderBy: { sortOrder: 'asc' } }),
   ]);
 
   return {
@@ -82,6 +91,29 @@ export async function readCatalogSlice(match: {
     categories: categories.map(rowToCategory),
     collections: collections.map(rowToCollection),
   };
+}
+
+// ------------------------------------------------------------ mağaza ayrımı ---
+
+/** Kayıt başka mağazaya aitse yazma reddedilir (kimlikler tüm mağazalarda tekildir). */
+function assertSameStore(owner: { store: string } | null, store: string, label: string): void {
+  if (owner && owner.store !== store) {
+    throw new AdminError(`${label} başka bir mağazaya ait; bu mağazadan düzenlenemez.`, 409);
+  }
+}
+
+/** Slug tüm mağazalarda tekildir; başka mağazadaki çakışma anlaşılır bir 409'a çevrilir. */
+async function uniqueSlug<T>(label: string, write: () => Promise<T>): Promise<T> {
+  try {
+    return await write();
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw new AdminError(`${label} kısa adı (slug) başka bir mağazada kullanılıyor; farklı bir slug girin.`, 409, {
+        slug: 'Bu slug kullanılıyor',
+      });
+    }
+    throw err;
+  }
 }
 
 // ------------------------------------------------------------------ ürün ----
@@ -109,11 +141,15 @@ export async function saveProduct(product: AdminProduct, actor: SaveActor = {}):
   // "Transaction already closed" ile kayıt yarım kalmasın.
   const limits = { maxWait: 10_000, timeout: 60_000 };
 
+  const store = currentStore();
   await db.$transaction(async (tx) => {
+    const owner = await tx.product.findUnique({ where: { id: product.id }, select: { store: true } });
+    assertSameStore(owner, store, 'Ürün');
     await tx.product.upsert({
       where: { id: product.id },
       create: {
         id: product.id,
+        store,
         ...scalars,
         createdAt: new Date(product.createdAt),
         updatedAt: new Date(product.updatedAt),
@@ -252,7 +288,7 @@ export async function saveProductSeo(products: AdminProduct[]): Promise<void> {
   await db.$transaction(
     products.map((p) =>
       db.product.update({
-        where: { id: p.id },
+        where: { id: p.id, store: currentStore() },
         data: { seoTitle: p.seo.title, seoDescription: p.seo.description },
       }),
     ),
@@ -264,11 +300,15 @@ export async function saveProductSeo(products: AdminProduct[]): Promise<void> {
 
 export async function saveCategory(category: AdminCategory): Promise<void> {
   const data = categoryScalars(category);
-  await db.category.upsert({
-    where: { id: category.id },
-    create: { id: category.id, ...data },
-    update: data,
-  });
+  const store = currentStore();
+  assertSameStore(await db.category.findUnique({ where: { id: category.id }, select: { store: true } }), store, 'Kategori');
+  await uniqueSlug('Kategori', () =>
+    db.category.upsert({
+      where: { id: category.id },
+      create: { id: category.id, store, ...data },
+      update: data,
+    }),
+  );
   revalidateCatalog();
 }
 
@@ -277,25 +317,30 @@ export async function saveCategory(category: AdminCategory): Promise<void> {
  * kategorinin üstüne (yoksa köke) taşınır.
  */
 export async function removeCategory(id: string, newParentId: string | null = null): Promise<void> {
+  const store = currentStore();
   await db.$transaction([
-    db.category.updateMany({ where: { parentId: id }, data: { parentId: newParentId } }),
-    db.category.delete({ where: { id } }),
+    db.category.updateMany({ where: { parentId: id, store }, data: { parentId: newParentId } }),
+    db.category.delete({ where: { id, store } }),
   ]);
   revalidateCatalog();
 }
 
 export async function saveCollection(collection: AdminCollection): Promise<void> {
   const data = collectionScalars(collection);
-  await db.collection.upsert({
-    where: { id: collection.id },
-    create: { id: collection.id, ...data },
-    update: data,
-  });
+  const store = currentStore();
+  assertSameStore(await db.collection.findUnique({ where: { id: collection.id }, select: { store: true } }), store, 'Koleksiyon');
+  await uniqueSlug('Koleksiyon', () =>
+    db.collection.upsert({
+      where: { id: collection.id },
+      create: { id: collection.id, store, ...data },
+      update: data,
+    }),
+  );
   revalidateCatalog();
 }
 
 export async function removeCollection(id: string): Promise<void> {
-  await db.collection.delete({ where: { id } });
+  await db.collection.delete({ where: { id, store: currentStore() } });
   revalidateCatalog();
 }
 
@@ -303,7 +348,7 @@ export async function removeCollection(id: string): Promise<void> {
 export async function saveCategoryOrder(categories: AdminCategory[]): Promise<void> {
   await db.$transaction(
     categories.map((c) =>
-      db.category.update({ where: { id: c.id }, data: { sortOrder: c.order } }),
+      db.category.update({ where: { id: c.id, store: currentStore() }, data: { sortOrder: c.order } }),
     ),
   );
   revalidateCatalog();
@@ -312,7 +357,7 @@ export async function saveCategoryOrder(categories: AdminCategory[]): Promise<vo
 export async function saveCollectionOrder(collections: AdminCollection[]): Promise<void> {
   await db.$transaction(
     collections.map((c) =>
-      db.collection.update({ where: { id: c.id }, data: { sortOrder: c.order } }),
+      db.collection.update({ where: { id: c.id, store: currentStore() }, data: { sortOrder: c.order } }),
     ),
   );
   revalidateCatalog();
@@ -351,14 +396,16 @@ export async function replaceCatalog(next: CatalogFile): Promise<void> {
   for (const c of next.collections) await saveCollection(c);
   for (const p of next.products) await saveProduct(p);
 
+  // Silme YALNIZ geçerli mağazada: başka mağazanın kataloğu içe aktarmadan etkilenmez.
+  const store = currentStore();
   await db.product.deleteMany({
-    where: { id: { notIn: keepProducts.length ? keepProducts : ['__yok__'] } },
+    where: { store, id: { notIn: keepProducts.length ? keepProducts : ['__yok__'] } },
   });
   await db.category.deleteMany({
-    where: { id: { notIn: keepCategories.length ? keepCategories : ['__yok__'] } },
+    where: { store, id: { notIn: keepCategories.length ? keepCategories : ['__yok__'] } },
   });
   await db.collection.deleteMany({
-    where: { id: { notIn: keepCollections.length ? keepCollections : ['__yok__'] } },
+    where: { store, id: { notIn: keepCollections.length ? keepCollections : ['__yok__'] } },
   });
 
   revalidateCatalog();

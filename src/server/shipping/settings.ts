@@ -9,9 +9,10 @@
 import 'server-only';
 import { cache } from 'react';
 import { z } from 'zod';
-import { db } from '../db';
+import type { StoreId } from '@/lib/stores';
+import { currentStore } from '../store-context';
 import { seal, tryOpen, isEncryptionConfigured } from '../crypto/secret-box';
-import { getStoreSettings, writeSetting, SETTING_KEYS } from '../settings';
+import { getStoreSettings, readSettingValue, writeSetting, SETTING_KEYS } from '../settings';
 import { CARRIERS } from './carriers';
 
 const NAMED_CARRIERS = CARRIERS.filter((c) => c !== 'manuel' && c !== 'kendi-kuryemiz');
@@ -54,12 +55,15 @@ function decryptSecrets(s: ShippingSettings): ShippingSettings {
 }
 
 /** Sunucu içi: çözülmüş anahtarlarla. Panele verilmez. */
-export const getShippingSettings = cache(async (): Promise<ShippingSettings> => {
-  const row = await db.setting.findUnique({ where: { key: SHIPPING_SETTING_KEY } });
-  const parsed = shippingSettingsSchema.safeParse(row?.value ?? {});
+const shippingSettingsFor = cache(async (store: StoreId): Promise<ShippingSettings> => {
+  const value = await readSettingValue(SHIPPING_SETTING_KEY, store);
+  const parsed = shippingSettingsSchema.safeParse(value ?? {});
   const base = parsed.success ? parsed.data : shippingSettingsSchema.parse({});
   return decryptSecrets(base);
 });
+
+/** Geçerli mağazanın ayarları (istek başına teklenir). */
+export const getShippingSettings = (): Promise<ShippingSettings> => shippingSettingsFor(currentStore());
 
 function maskSecret(value: string): string {
   if (!value) return '';
@@ -83,8 +87,8 @@ export async function getShippingSettingsMasked() {
 
 export async function saveShippingSettings(raw: unknown, updatedByUserId: string): Promise<void> {
   const incoming = shippingSettingsSchema.parse(raw);
-  const existingRow = await db.setting.findUnique({ where: { key: SHIPPING_SETTING_KEY } });
-  const existing = shippingSettingsSchema.safeParse(existingRow?.value ?? {});
+  const existingValue = await readSettingValue(SHIPPING_SETTING_KEY);
+  const existing = shippingSettingsSchema.safeParse(existingValue ?? {});
   const stored = existing.success ? existing.data : shippingSettingsSchema.parse({});
 
   const next = structuredClone(incoming) as unknown as { providers: Record<string, Record<string, unknown>> };
@@ -106,11 +110,7 @@ export async function saveShippingSettings(raw: unknown, updatedByUserId: string
     }
   }
 
-  await db.setting.upsert({
-    where: { key: SHIPPING_SETTING_KEY },
-    create: { key: SHIPPING_SETTING_KEY, value: next as never, isSecret: true, updatedByUserId },
-    update: { value: next as never, isSecret: true, updatedByUserId },
-  });
+  await writeSetting(SHIPPING_SETTING_KEY, next, updatedByUserId, { isSecret: true });
 }
 
 export const codLimitsSchema = z.object({

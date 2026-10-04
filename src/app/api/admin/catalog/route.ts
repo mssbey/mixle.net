@@ -1,6 +1,7 @@
 import { handle } from '@/lib/admin/http';
 import { readCatalog } from '@/server/catalog/persist';
 import { rolePermissions } from '@/server/auth/rbac';
+import { currentStore } from '@/server/store-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ export function GET(): Promise<Response> {
       meta: {
         user: { id: user.id, email: user.email, name: user.name, role: user.role },
         permissions: rolePermissions[user.role],
+        store: currentStore(),
       },
     });
   });

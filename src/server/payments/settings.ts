@@ -8,7 +8,9 @@
 import 'server-only';
 import { z } from 'zod';
 import { cache } from 'react';
-import { db } from '../db';
+import { readSettingValue, writeSetting } from '../settings';
+import type { StoreId } from '@/lib/stores';
+import { currentStore, deploymentStore } from '../store-context';
 import { isEncryptionConfigured, seal, tryOpen } from '../crypto/secret-box';
 import { DEFAULT_INSTALLMENTS, type BankInstallmentTable } from './installments';
 import type { ProviderId } from './provider';
@@ -91,27 +93,35 @@ const ENV_FALLBACK: Record<string, Record<string, string | undefined>> = {
 export const PAYMENT_SETTING_KEY = 'odeme';
 
 /** Şifreli alanları çözer; çözülemeyen (anahtar değişmiş) alan boş kalır. */
-function decryptSecrets(raw: PaymentSettings): PaymentSettings {
+/**
+ * Şifreli anahtarları çözer. `.env` yedeği (`IYZICO_*` vb.) yalnız bu
+ * dağıtımın kendi mağazası için okunur — panelden başka mağazanın ödemesi
+ * (ör. iade) asla bu dağıtımın sağlayıcı hesabıyla işlenmemeli.
+ */
+function decryptSecrets(raw: PaymentSettings, useEnv = true): PaymentSettings {
   const out = structuredClone(raw) as PaymentSettings;
   for (const [provider, fields] of Object.entries(SECRET_FIELDS)) {
     const section = out[provider as 'iyzico' | 'paytr' | 'stripe'] as unknown as Record<string, string>;
     for (const f of fields) {
       const v = section[f];
       if (v && v.startsWith('v1.')) section[f] = tryOpen(v) ?? '';
-      if (!section[f]) section[f] = ENV_FALLBACK[provider]?.[f] ?? '';
+      if (useEnv && !section[f]) section[f] = ENV_FALLBACK[provider]?.[f] ?? '';
     }
-    if (provider === 'paytr' && !section.merchantId) section.merchantId = ENV_FALLBACK.paytr.merchantId ?? '';
+    if (useEnv && provider === 'paytr' && !section.merchantId) section.merchantId = ENV_FALLBACK.paytr.merchantId ?? '';
   }
   return out;
 }
 
 /** Sunucu içi kullanım: ÇÖZÜLMÜŞ anahtarlarla ayarlar. Panele verilmez. */
-export const getPaymentSettings = cache(async (): Promise<PaymentSettings> => {
-  const row = await db.setting.findUnique({ where: { key: PAYMENT_SETTING_KEY } });
-  const parsed = paymentSettingsSchema.safeParse(row?.value ?? {});
+const paymentSettingsFor = cache(async (store: StoreId): Promise<PaymentSettings> => {
+  const value = await readSettingValue(PAYMENT_SETTING_KEY, store);
+  const parsed = paymentSettingsSchema.safeParse(value ?? {});
   const base = parsed.success ? parsed.data : paymentSettingsSchema.parse({});
-  return decryptSecrets(base);
+  return decryptSecrets(base, store === deploymentStore());
 });
+
+/** Geçerli mağazanın ayarları (istek başına teklenir). */
+export const getPaymentSettings = (): Promise<PaymentSettings> => paymentSettingsFor(currentStore());
 
 export function maskSecret(value: string): string {
   if (!value) return '';
@@ -139,8 +149,8 @@ export async function getPaymentSettingsMasked() {
  */
 export async function savePaymentSettings(raw: unknown, updatedByUserId: string): Promise<void> {
   const incoming = paymentSettingsSchema.parse(raw);
-  const existingRow = await db.setting.findUnique({ where: { key: PAYMENT_SETTING_KEY } });
-  const existing = paymentSettingsSchema.safeParse(existingRow?.value ?? {});
+  const existingValue = await readSettingValue(PAYMENT_SETTING_KEY);
+  const existing = paymentSettingsSchema.safeParse(existingValue ?? {});
   const stored = existing.success ? existing.data : paymentSettingsSchema.parse({});
 
   const next = structuredClone(incoming) as unknown as Record<string, Record<string, unknown>>;
@@ -159,11 +169,7 @@ export async function savePaymentSettings(raw: unknown, updatedByUserId: string)
     }
   }
 
-  await db.setting.upsert({
-    where: { key: PAYMENT_SETTING_KEY },
-    create: { key: PAYMENT_SETTING_KEY, value: next as never, isSecret: true, updatedByUserId },
-    update: { value: next as never, isSecret: true, updatedByUserId },
-  });
+  await writeSetting(PAYMENT_SETTING_KEY, next, updatedByUserId, { isSecret: true });
 }
 
 export function installmentTables(s: PaymentSettings): BankInstallmentTable[] {

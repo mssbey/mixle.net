@@ -4,6 +4,7 @@ import 'server-only';
 import { z } from 'zod';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { auditChange } from '../audit';
 import type { AdminUser } from '../auth/current-user';
 import { getStoreSettings } from '../settings';
@@ -77,7 +78,7 @@ export interface StockMovementListParams {
 export async function listStockMovements(params: StockMovementListParams) {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(5, params.pageSize ?? 25));
-  const where: Prisma.StockMovementWhereInput = {};
+  const where: Prisma.StockMovementWhereInput = { variant: { product: { store: currentStore() } } };
   if (params.reason) where.reason = params.reason;
   if (params.from || params.to) where.createdAt = { ...(params.from ? { gte: new Date(params.from) } : {}), ...(params.to ? { lte: new Date(params.to) } : {}) };
   if (params.q) {
@@ -108,7 +109,7 @@ export interface LowStockRow {
 export async function lowStockReport(): Promise<{ threshold: number; items: LowStockRow[] }> {
   const settings = await getStoreSettings();
   const rows = await db.variant.findMany({
-    where: { isActive: true, stock: { lte: settings.lowStockThreshold }, product: { status: 'yayında' } },
+    where: { isActive: true, stock: { lte: settings.lowStockThreshold }, product: { status: 'yayında', store: currentStore() } },
     select: { id: true, productId: true, sku: true, stock: true, product: { select: { name: true, slug: true } } },
     orderBy: { stock: 'asc' },
     take: 200,
@@ -121,7 +122,7 @@ export async function lowStockReport(): Promise<{ threshold: number; items: LowS
 
 export async function manualAdjust(variantId: string, raw: unknown, user: AdminUser, ip: string | null): Promise<AdminStockMovementRow> {
   const input = manualAdjustSchema.parse(raw);
-  const variant = await db.variant.findUnique({ where: { id: variantId }, select: { stock: true } });
+  const variant = await db.variant.findFirst({ where: { id: variantId, product: { store: currentStore() } }, select: { stock: true } });
   if (!variant) throw new InventoryAdminError('Varyant bulunamadı.', 404);
 
   const stockAfter = variant.stock + input.delta;

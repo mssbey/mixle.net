@@ -13,7 +13,9 @@ import 'server-only';
 import { cache } from 'react';
 import { revalidateTag, unstable_cache } from 'next/cache';
 import type { AdminCategory, AdminCollection, AdminProduct } from '@/types/admin';
+import type { StoreId } from '@/lib/stores';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { loadProductRows } from './load';
 import {
   rowToCategory,
@@ -30,11 +32,11 @@ interface CatalogData {
   collections: AdminCollection[];
 }
 
-async function readCatalogFromDb(): Promise<CatalogData> {
+async function readCatalogFromDb(store: StoreId): Promise<CatalogData> {
   const [products, categories, collections] = await Promise.all([
-    loadProductRows(),
-    db.category.findMany({ orderBy: { sortOrder: 'asc' } }),
-    db.collection.findMany({ orderBy: { sortOrder: 'asc' } }),
+    loadProductRows({ store }),
+    db.category.findMany({ where: { store }, orderBy: { sortOrder: 'asc' } }),
+    db.collection.findMany({ where: { store }, orderBy: { sortOrder: 'asc' } }),
   ]);
 
   return {
@@ -53,23 +55,30 @@ async function readCatalogFromDb(): Promise<CatalogData> {
  * bağlantı kotasını dolduruyordu. Build'de veri zaten değişmez; bellekte tutulur.
  * Çalışma zamanında bu yol KULLANILMAZ; tazelik `revalidateTag` ile korunur.
  */
-let buildTimeCatalog: Promise<CatalogData> | null = null;
+const buildTimeCatalog = new Map<StoreId, Promise<CatalogData>>();
 
+// Mağaza argümanı `unstable_cache` anahtarına girer: her mağazanın kataloğu ayrı önbelleklenir.
 const loadCatalog = unstable_cache(
-  (): Promise<CatalogData> => {
-    if (process.env.NEXT_PHASE !== 'phase-production-build') return readCatalogFromDb();
-    buildTimeCatalog ??= readCatalogFromDb().catch((err: unknown) => {
-      buildTimeCatalog = null;
-      throw err;
-    });
-    return buildTimeCatalog;
+  (store: StoreId): Promise<CatalogData> => {
+    if (process.env.NEXT_PHASE !== 'phase-production-build') return readCatalogFromDb(store);
+    let pending = buildTimeCatalog.get(store);
+    if (!pending) {
+      pending = readCatalogFromDb(store).catch((err: unknown) => {
+        buildTimeCatalog.delete(store);
+        throw err;
+      });
+      buildTimeCatalog.set(store, pending);
+    }
+    return pending;
   },
   ['katalog-tam'],
   { tags: [CATALOG_TAG] },
 );
 
-/** Tüm katalog (admin modeli). İstek başına teklenir, istekler arası önbelleklenir. */
-export const getCatalogData = cache(loadCatalog);
+const catalogFor = cache(loadCatalog);
+
+/** Geçerli mağazanın tüm kataloğu (admin modeli). İstek başına teklenir, istekler arası önbelleklenir. */
+export const getCatalogData = (): Promise<CatalogData> => catalogFor(currentStore());
 
 export async function getAdminProducts(): Promise<AdminProduct[]> {
   return (await getCatalogData()).products;
@@ -94,7 +103,7 @@ export async function getAdminCollections(): Promise<AdminCollection[]> {
  */
 export const getAdminProductBySlugFresh = cache(
   async (slug: string): Promise<AdminProduct | undefined> => {
-    const rows = await loadProductRows({ slug });
+    const rows = await loadProductRows({ slug, store: currentStore() });
     return rows[0] ? rowToProduct(rows[0]) : undefined;
   },
 );

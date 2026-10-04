@@ -5,6 +5,8 @@ import 'server-only';
 import { z } from 'zod';
 import { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
+import { ensureDefaultShipping } from './zones';
 
 export class ShippingAdminError extends Error {
   constructor(
@@ -38,21 +40,24 @@ export const methodInputSchema = z.object({
 export type MethodInput = z.infer<typeof methodInputSchema>;
 
 export async function listZonesAdmin() {
-  return db.shippingZone.findMany({ orderBy: { sortOrder: 'asc' }, include: { methods: { orderBy: { sortOrder: 'asc' } } } });
+  const store = currentStore();
+  await ensureDefaultShipping(store);
+  return db.shippingZone.findMany({ where: { store }, orderBy: { sortOrder: 'asc' }, include: { methods: { orderBy: { sortOrder: 'asc' } } } });
 }
 
 export async function createZone(raw: unknown) {
   const input = zoneInputSchema.parse(raw);
-  const max = await db.shippingZone.aggregate({ _max: { sortOrder: true } });
+  const store = currentStore();
+  const max = await db.shippingZone.aggregate({ where: { store }, _max: { sortOrder: true } });
   return db.shippingZone.create({
-    data: { ...input, countries: input.countries as Prisma.InputJsonValue, cities: input.cities as Prisma.InputJsonValue, sortOrder: (max._max.sortOrder ?? -1) + 1 },
+    data: { ...input, store, countries: input.countries as Prisma.InputJsonValue, cities: input.cities as Prisma.InputJsonValue, sortOrder: (max._max.sortOrder ?? -1) + 1 },
     include: { methods: true },
   });
 }
 
 export async function updateZone(id: string, raw: unknown) {
   const input = zoneInputSchema.partial().parse(raw);
-  const zone = await db.shippingZone.findUnique({ where: { id } });
+  const zone = await db.shippingZone.findFirst({ where: { id, store: currentStore() } });
   if (!zone) throw new ShippingAdminError('Bölge bulunamadı.', 404);
   return db.shippingZone.update({
     where: { id },
@@ -66,17 +71,17 @@ export async function updateZone(id: string, raw: unknown) {
 }
 
 export async function deleteZone(id: string) {
-  const zone = await db.shippingZone.findUnique({ where: { id }, include: { _count: { select: { methods: true } } } });
+  const zone = await db.shippingZone.findFirst({ where: { id, store: currentStore() } });
   if (!zone) throw new ShippingAdminError('Bölge bulunamadı.', 404);
   await db.shippingZone.delete({ where: { id } }); // Prisma cascade: methods de silinir.
 }
 
 export async function reorderZones(orderedIds: string[]) {
-  await db.$transaction(orderedIds.map((id, i) => db.shippingZone.update({ where: { id }, data: { sortOrder: i } })));
+  await db.$transaction(orderedIds.map((id, i) => db.shippingZone.update({ where: { id, store: currentStore() }, data: { sortOrder: i } })));
 }
 
 export async function createMethod(zoneId: string, raw: unknown) {
-  const zone = await db.shippingZone.findUnique({ where: { id: zoneId } });
+  const zone = await db.shippingZone.findFirst({ where: { id: zoneId, store: currentStore() } });
   if (!zone) throw new ShippingAdminError('Bölge bulunamadı.', 404);
   const input = methodInputSchema.parse(raw);
   const max = await db.shippingMethod.aggregate({ where: { zoneId }, _max: { sortOrder: true } });
@@ -87,7 +92,7 @@ export async function createMethod(zoneId: string, raw: unknown) {
 
 export async function updateMethod(id: string, raw: unknown) {
   const input = methodInputSchema.partial().parse(raw);
-  const method = await db.shippingMethod.findUnique({ where: { id } });
+  const method = await db.shippingMethod.findFirst({ where: { id, zone: { store: currentStore() } } });
   if (!method) throw new ShippingAdminError('Yöntem bulunamadı.', 404);
   return db.shippingMethod.update({
     where: { id },
@@ -99,11 +104,13 @@ export async function updateMethod(id: string, raw: unknown) {
 }
 
 export async function deleteMethod(id: string) {
-  const method = await db.shippingMethod.findUnique({ where: { id } });
+  const method = await db.shippingMethod.findFirst({ where: { id, zone: { store: currentStore() } } });
   if (!method) throw new ShippingAdminError('Yöntem bulunamadı.', 404);
   await db.shippingMethod.delete({ where: { id } });
 }
 
 export async function reorderMethods(zoneId: string, orderedIds: string[]) {
+  const zone = await db.shippingZone.findFirst({ where: { id: zoneId, store: currentStore() } });
+  if (!zone) throw new ShippingAdminError('Bölge bulunamadı.', 404);
   await db.$transaction(orderedIds.map((id, i) => db.shippingMethod.update({ where: { id, zoneId }, data: { sortOrder: i } })));
 }

@@ -4,6 +4,7 @@
 // bilinmeden hiçbir bilgi sızmaz; hata mesajı iki durumda da aynıdır.
 
 import { db } from '@/server/db';
+import { currentStore } from '@/server/store-context';
 import { ORDER_NUMBER_PATTERN } from '@/server/orders/numbering';
 import { clientIpOf, readJsonBody, storefrontError } from '@/lib/storefront-http';
 import { publicOrderView } from '@/server/orders/view';
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
 
     const order = await db.order.findFirst({
       where: {
+        store: currentStore(),
         orderNumber,
         OR: [{ guestEmail: mail }, { customer: { email: mail } }],
       },

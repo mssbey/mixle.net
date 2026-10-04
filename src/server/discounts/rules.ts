@@ -4,12 +4,13 @@
 
 import 'server-only';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { jsonArray } from '../catalog/mapping';
 import type { DiscountRule } from '../pricing/discount-rules';
 
 export async function loadActiveDiscountRules(): Promise<DiscountRule[]> {
   const rows = await db.discountRule.findMany({
-    where: { isActive: true },
+    where: { store: currentStore(), isActive: true },
     orderBy: { priority: 'asc' },
   });
 

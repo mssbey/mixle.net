@@ -17,6 +17,7 @@ import type {
 } from '@/types/admin';
 import { adminApi, ApiError, type AdminSessionUser } from '@/lib/admin/client';
 import type { Permission } from '@/server/auth/rbac';
+import { DEFAULT_STORE, type StoreId } from '@/lib/stores';
 import type { BulkAction } from '@/lib/admin/mutations';
 import { toast } from '@/store/toast';
 
@@ -28,6 +29,8 @@ interface AdminDataValue {
   /** Rolün sahip olduğu izinler — arayüz bunları GİZLEME için kullanır;
    *  asıl kontrol her zaman sunucudadır (bkz. src/lib/admin/http.ts). */
   permissions: Permission[];
+  /** Panelde yönetilen mağaza; tüm listeler ve kayıtlar buna göredir. */
+  store: StoreId;
   can: (permission: Permission) => boolean;
   /** Kısayol: `can('katalog:yaz')`. */
   canWrite: boolean;
@@ -79,6 +82,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<AdminSessionUser | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [store, setStore] = useState<StoreId>(DEFAULT_STORE);
   const [catalog, setCatalog] = useState<CatalogFile | null>(null);
 
   const reload = useCallback(async () => {
@@ -88,6 +92,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       setCatalog(data);
       setUser(meta.user);
       setPermissions(meta.permissions);
+      setStore(meta.store);
       setStatus('ready');
       setError(null);
     } catch (err) {
@@ -132,6 +137,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       error,
       user,
       permissions,
+      store,
       can,
       canWrite: can('katalog:yaz'),
       catalog,
@@ -353,7 +359,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [status, error, user, permissions, catalog, reload, applyProduct]);
+  }, [status, error, user, permissions, store, catalog, reload, applyProduct]);
 
   return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>;
 }

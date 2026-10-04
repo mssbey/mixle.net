@@ -21,7 +21,9 @@ import 'server-only';
 import { cache } from 'react';
 import { revalidateTag, unstable_cache } from 'next/cache';
 import { z } from 'zod';
-import { db } from '../db';
+import { DEFAULT_STORE, type StoreId } from '@/lib/stores';
+import { readSettingValue, writeSetting } from '../settings';
+import { currentStore } from '../store-context';
 import { faqGroups as defaultFaqGroups, campaign as defaultCampaign } from '@/data/content';
 import { primaryNav as defaultPrimaryNav } from '@/data/nav';
 
@@ -72,71 +74,64 @@ const FAQ_TAG = 'sayfa-sss';
 const CAMPAIGN_TAG = 'sayfa-kampanya';
 const NAV_MENU_TAG = 'menu-ust';
 
+// Önbellek anahtarına `unstable_cache` argümanları da girer: mağaza argüman
+// olarak verildiği için iki mağazanın içeriği ayrı önbelleklenir. Statik
+// varsayılanlar (`src/data/*`) Mixle'ındır; diğer mağaza kayıt girilene dek boş
+// içerik görür.
 const loadFaq = unstable_cache(
-  async (): Promise<FaqContent> => {
-    const row = await db.setting.findUnique({ where: { key: KEYS.faq } });
-    const parsed = faqContentSchema.safeParse(row?.value);
-    return parsed.success ? parsed.data : { groups: defaultFaqGroups };
+  async (store: StoreId): Promise<FaqContent> => {
+    const parsed = faqContentSchema.safeParse(await readSettingValue(KEYS.faq, store));
+    if (parsed.success) return parsed.data;
+    return { groups: store === DEFAULT_STORE ? defaultFaqGroups : [] };
   },
   ['sayfa-sss-icerik'],
   { tags: [FAQ_TAG] },
 );
 /** İstek başına teklenir, istekler arası `revalidateTag` ile geçersiz kılınana dek önbelleklenir. */
-export const getFaqContent = cache(loadFaq);
+const faqFor = cache(loadFaq);
+export const getFaqContent = (): Promise<FaqContent> => faqFor(currentStore());
 
 const loadCampaign = unstable_cache(
-  async (): Promise<CampaignContent> => {
-    const row = await db.setting.findUnique({ where: { key: KEYS.campaign } });
-    const parsed = campaignContentSchema.safeParse(row?.value);
+  async (store: StoreId): Promise<CampaignContent> => {
+    const parsed = campaignContentSchema.safeParse(await readSettingValue(KEYS.campaign, store));
     return parsed.success ? parsed.data : defaultCampaign;
   },
   ['sayfa-kampanya-icerik'],
   { tags: [CAMPAIGN_TAG] },
 );
-export const getCampaignContent = cache(loadCampaign);
+const campaignFor = cache(loadCampaign);
+export const getCampaignContent = (): Promise<CampaignContent> => campaignFor(currentStore());
 
 const loadNavMenu = unstable_cache(
-  async (): Promise<NavMenuContent> => {
-    const row = await db.setting.findUnique({ where: { key: KEYS.navMenu } });
-    const parsed = navMenuContentSchema.safeParse(row?.value);
-    return parsed.success
-      ? parsed.data
-      : { links: defaultPrimaryNav.map((l) => ({ ...l, emphasis: l.emphasis ?? false })) };
+  async (store: StoreId): Promise<NavMenuContent> => {
+    const parsed = navMenuContentSchema.safeParse(await readSettingValue(KEYS.navMenu, store));
+    if (parsed.success) return parsed.data;
+    if (store !== DEFAULT_STORE) return { links: [] };
+    return { links: defaultPrimaryNav.map((l) => ({ ...l, emphasis: l.emphasis ?? false })) };
   },
   ['menu-ust-icerik'],
   { tags: [NAV_MENU_TAG] },
 );
-export const getNavMenuContent = cache(loadNavMenu);
+const navMenuFor = cache(loadNavMenu);
+export const getNavMenuContent = (): Promise<NavMenuContent> => navMenuFor(currentStore());
 
 export async function saveFaqContent(raw: unknown, updatedByUserId: string): Promise<FaqContent> {
   const parsed = faqContentSchema.parse(raw);
-  await db.setting.upsert({
-    where: { key: KEYS.faq },
-    create: { key: KEYS.faq, value: parsed as never, updatedByUserId },
-    update: { value: parsed as never, updatedByUserId },
-  });
+  await writeSetting(KEYS.faq, parsed, updatedByUserId);
   revalidateTag(FAQ_TAG, 'max');
   return parsed;
 }
 
 export async function saveCampaignContent(raw: unknown, updatedByUserId: string): Promise<CampaignContent> {
   const parsed = campaignContentSchema.parse(raw);
-  await db.setting.upsert({
-    where: { key: KEYS.campaign },
-    create: { key: KEYS.campaign, value: parsed as never, updatedByUserId },
-    update: { value: parsed as never, updatedByUserId },
-  });
+  await writeSetting(KEYS.campaign, parsed, updatedByUserId);
   revalidateTag(CAMPAIGN_TAG, 'max');
   return parsed;
 }
 
 export async function saveNavMenuContent(raw: unknown, updatedByUserId: string): Promise<NavMenuContent> {
   const parsed = navMenuContentSchema.parse(raw);
-  await db.setting.upsert({
-    where: { key: KEYS.navMenu },
-    create: { key: KEYS.navMenu, value: parsed as never, updatedByUserId },
-    update: { value: parsed as never, updatedByUserId },
-  });
+  await writeSetting(KEYS.navMenu, parsed, updatedByUserId);
   revalidateTag(NAV_MENU_TAG, 'max');
   return parsed;
 }

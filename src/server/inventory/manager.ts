@@ -31,6 +31,7 @@ import {
   type VariantChange,
 } from '@/lib/admin/stock-manager';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { writeAudit } from '../audit';
 import type { AdminUser } from '../auth/current-user';
 import { getStoreSettings } from '../settings';
@@ -44,6 +45,7 @@ const CHUNK = 400;
 export async function loadManagerData(): Promise<ManagerData> {
   const [rows, taxRates, settings] = await Promise.all([
     db.product.findMany({
+      where: { store: currentStore() },
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -182,6 +184,7 @@ export async function saveManagerChanges(
   const input = managerSaveSchema.parse(raw);
   const results: RowResult[] = [...extraResults];
 
+  const store = currentStore();
   const outcome = await db.$transaction(
     async (tx) => {
       const ids = [...new Set(input.variants.map((c) => c.variantId))];
@@ -190,7 +193,7 @@ export async function saveManagerChanges(
             SELECT v.id, v."productId", v.sku, v."priceMinor", v."compareAtPriceMinor", v.stock,
                    v."trackStock", v."inStock", v."weightGrams", v."optionValues", p.name AS "productName"
             FROM "Variant" v JOIN "Product" p ON p.id = v."productId"
-            WHERE v.id IN (${Prisma.join(ids)})
+            WHERE v.id IN (${Prisma.join(ids)}) AND p.store = ${store}
             FOR UPDATE OF v`
         : [];
       const byId = new Map(locked.map((v) => [v.id, v]));
@@ -308,7 +311,7 @@ export async function saveManagerChanges(
       const productPlans: { id: string; data: { taxRateId?: string | null; shippingClass?: string } }[] = [];
       if (input.products.length) {
         const pRows = await tx.product.findMany({
-          where: { id: { in: input.products.map((p) => p.productId) } },
+          where: { store, id: { in: input.products.map((p) => p.productId) } },
           select: { id: true, name: true, taxRateId: true, shippingClass: true, taxRate: { select: { name: true } } },
         });
         const taxIds = input.products.map((p) => p.taxRateId).filter((x): x is string => !!x);
@@ -433,6 +436,7 @@ export async function saveManagerChanges(
  */
 export async function csvToChanges(rows: CsvRow[]): Promise<{ changes: VariantChange[]; errors: RowResult[] }> {
   const variants = await db.variant.findMany({
+    where: { product: { store: currentStore() } },
     select: { id: true, sku: true, productId: true, product: { select: { name: true } } },
   });
   const byId = new Map(variants.map((v) => [v.id, v]));
@@ -530,8 +534,8 @@ export async function csvToChanges(rows: CsvRow[]): Promise<{ changes: VariantCh
 
 export async function variantHistory(variantId: string) {
   const [variant, movements] = await Promise.all([
-    db.variant.findUnique({
-      where: { id: variantId },
+    db.variant.findFirst({
+      where: { id: variantId, product: { store: currentStore() } },
       select: { id: true, sku: true, stock: true, trackStock: true, product: { select: { name: true } } },
     }),
     db.stockMovement.findMany({

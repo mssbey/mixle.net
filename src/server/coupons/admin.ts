@@ -4,6 +4,7 @@
 import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { auditChange } from '../audit';
 import type { AdminUser } from '../auth/current-user';
 import { jsonArray } from '../catalog/mapping';
@@ -70,7 +71,7 @@ export interface CouponListParams {
 export async function listAdminCoupons(params: CouponListParams) {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(5, params.pageSize ?? 25));
-  const where: Prisma.CouponWhereInput = {};
+  const where: Prisma.CouponWhereInput = { store: currentStore() };
   if (params.q) where.code = { contains: normalizeCouponCode(params.q) };
   if (params.active === 'aktif') where.isActive = true;
   if (params.active === 'pasif') where.isActive = false;
@@ -83,7 +84,7 @@ export async function listAdminCoupons(params: CouponListParams) {
 }
 
 export async function getAdminCoupon(id: string): Promise<AdminCoupon | null> {
-  const row = await db.coupon.findUnique({ where: { id } });
+  const row = await db.coupon.findFirst({ where: { id, store: currentStore() } });
   return row ? toView(row) : null;
 }
 
@@ -110,22 +111,22 @@ function toData(input: CouponInput) {
 export async function createCoupon(raw: unknown, user: AdminUser, ip: string | null): Promise<AdminCoupon> {
   const input = couponInputSchema.parse(raw);
   const code = normalizeCouponCode(input.code);
-  const existing = await db.coupon.findUnique({ where: { code } });
+  const existing = await db.coupon.findUnique({ where: { store_code: { store: currentStore(), code } } });
   if (existing) throw new CouponAdminError(`"${code}" koduyla bir kupon zaten var.`, 409);
 
-  const row = await db.coupon.create({ data: toData(input) });
+  const row = await db.coupon.create({ data: { ...toData(input), store: currentStore() } });
   await auditChange({ user, action: 'olustur', entityType: 'Coupon', entityId: row.id, after: { code: row.code, type: row.type, value: row.value }, ip });
   return toView(row);
 }
 
 export async function updateCoupon(id: string, raw: unknown, user: AdminUser, ip: string | null): Promise<AdminCoupon> {
   const input = couponInputSchema.parse(raw);
-  const current = await db.coupon.findUnique({ where: { id } });
+  const current = await db.coupon.findFirst({ where: { id, store: currentStore() } });
   if (!current) throw new CouponAdminError('Kupon bulunamadı.', 404);
 
   const code = normalizeCouponCode(input.code);
   if (code !== current.code) {
-    const clash = await db.coupon.findUnique({ where: { code } });
+    const clash = await db.coupon.findUnique({ where: { store_code: { store: current.store, code } } });
     if (clash) throw new CouponAdminError(`"${code}" koduyla bir kupon zaten var.`, 409);
   }
 
@@ -140,7 +141,7 @@ export async function updateCoupon(id: string, raw: unknown, user: AdminUser, ip
 }
 
 export async function deleteCoupon(id: string, user: AdminUser, ip: string | null): Promise<void> {
-  const current = await db.coupon.findUnique({ where: { id } });
+  const current = await db.coupon.findFirst({ where: { id, store: currentStore() } });
   if (!current) throw new CouponAdminError('Kupon bulunamadı.', 404);
   if (current.usedCount > 0) {
     throw new CouponAdminError('Kullanılmış kupon silinemez; bunun yerine pasife alın (kullanım geçmişi korunur).', 409);

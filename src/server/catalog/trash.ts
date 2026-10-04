@@ -13,6 +13,7 @@ import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
 import type { AdminProduct } from '@/types/admin';
 import { db } from '../db';
+import { currentStore } from '../store-context';
 import { saveProduct } from './persist';
 import { revalidateCatalog } from './queries';
 
@@ -44,16 +45,17 @@ export interface TrashItemView {
 /** Ürünleri çöpe taşır (tek transaction'da kopyala + sil). */
 export async function trashProducts(products: AdminProduct[], deletedBy: string | null): Promise<void> {
   if (!products.length) return;
+  const store = currentStore();
   await db.$transaction([
     ...products.map((p) =>
       db.productTrash.upsert({
         where: { id: p.id },
-        create: { id: p.id, slug: p.slug, name: p.name, snapshot: p as unknown as Prisma.InputJsonValue, deletedBy },
+        create: { id: p.id, store, slug: p.slug, name: p.name, snapshot: p as unknown as Prisma.InputJsonValue, deletedBy },
         update: { slug: p.slug, name: p.name, snapshot: p as unknown as Prisma.InputJsonValue, deletedBy, deletedAt: new Date() },
       }),
     ),
     // Alt kayıtlar `onDelete: Cascade` ile birlikte silinir.
-    db.product.deleteMany({ where: { id: { in: products.map((p) => p.id) } } }),
+    db.product.deleteMany({ where: { store, id: { in: products.map((p) => p.id) } } }),
   ]);
   revalidateCatalog();
 }
@@ -66,7 +68,7 @@ async function purgeExpired(): Promise<void> {
 
 export async function listTrash(): Promise<TrashItemView[]> {
   await purgeExpired();
-  const rows = await db.productTrash.findMany({ orderBy: { deletedAt: 'desc' } });
+  const rows = await db.productTrash.findMany({ where: { store: currentStore() }, orderBy: { deletedAt: 'desc' } });
   return rows.map((r) => {
     const p = r.snapshot as unknown as AdminProduct;
     return {
@@ -84,7 +86,8 @@ export async function listTrash(): Promise<TrashItemView[]> {
 }
 
 export async function restoreFromTrash(id: string): Promise<AdminProduct> {
-  const row = await db.productTrash.findUnique({ where: { id } });
+  const store = currentStore();
+  const row = await db.productTrash.findFirst({ where: { id, store } });
   if (!row) throw new TrashError('Çöp kutusunda böyle bir ürün yok.', 404);
   if (await db.product.findUnique({ where: { id }, select: { id: true } })) {
     throw new TrashError('Bu kimlikle bir ürün zaten katalogda var.', 409);
@@ -92,8 +95,8 @@ export async function restoreFromTrash(id: string): Promise<AdminProduct> {
 
   const snap = row.snapshot as unknown as AdminProduct;
   const [categories, collections] = await Promise.all([
-    db.category.findMany({ where: { id: { in: snap.categoryIds ?? [] } }, select: { id: true } }),
-    db.collection.findMany({ where: { id: { in: snap.collectionIds ?? [] } }, select: { id: true } }),
+    db.category.findMany({ where: { store, id: { in: snap.categoryIds ?? [] } }, select: { id: true } }),
+    db.collection.findMany({ where: { store, id: { in: snap.collectionIds ?? [] } }, select: { id: true } }),
   ]);
   const liveCats = new Set(categories.map((c) => c.id));
   const liveCols = new Set(collections.map((c) => c.id));
@@ -118,6 +121,7 @@ export async function restoreFromTrash(id: string): Promise<AdminProduct> {
 }
 
 export async function purgeFromTrash(ids: string[] | 'all'): Promise<number> {
-  const r = await db.productTrash.deleteMany(ids === 'all' ? undefined : { where: { id: { in: ids } } });
+  const store = currentStore();
+  const r = await db.productTrash.deleteMany({ where: ids === 'all' ? { store } : { store, id: { in: ids } } });
   return r.count;
 }

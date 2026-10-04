@@ -4,6 +4,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { db } from '@/server/db';
+import { currentStore } from '../store-context';
 
 export const newsletterInputSchema = z.object({
   email: z.string().trim().toLowerCase().email('Geçerli bir e-posta adresi girin.'),
@@ -38,11 +39,12 @@ export async function subscribeNewsletter(
   input: z.infer<typeof newsletterInputSchema>,
   meta: Meta = {},
 ): Promise<{ created: boolean }> {
-  const existing = await db.newsletterSubscriber.findUnique({ where: { email: input.email } });
+  const store = currentStore();
+  const existing = await db.newsletterSubscriber.findUnique({ where: { store_email: { store, email: input.email } } });
   if (existing) {
     if (existing.status !== 'aktif') {
       await db.newsletterSubscriber.update({
-        where: { email: input.email },
+        where: { id: existing.id },
         data: { status: 'aktif', unsubscribedAt: null },
       });
     }
@@ -50,6 +52,7 @@ export async function subscribeNewsletter(
   }
   await db.newsletterSubscriber.create({
     data: {
+      store,
       email: input.email,
       source: input.source,
       ip: meta.ip ?? null,
@@ -64,11 +67,12 @@ export async function subscribeSms(
   input: z.infer<typeof smsInputSchema>,
   meta: Meta = {},
 ): Promise<{ created: boolean }> {
-  const existing = await db.smsSubscriber.findUnique({ where: { phone: input.phone } });
+  const store = currentStore();
+  const existing = await db.smsSubscriber.findUnique({ where: { store_phone: { store, phone: input.phone } } });
   if (existing) {
     if (existing.status !== 'aktif') {
       await db.smsSubscriber.update({
-        where: { phone: input.phone },
+        where: { id: existing.id },
         data: { status: 'aktif', unsubscribedAt: null },
       });
     }
@@ -76,6 +80,7 @@ export async function subscribeSms(
   }
   await db.smsSubscriber.create({
     data: {
+      store,
       phone: input.phone,
       source: input.source,
       ip: meta.ip ?? null,
