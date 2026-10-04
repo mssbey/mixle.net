@@ -6,7 +6,10 @@
 import { getNeighbourhoodsByCityCodeAndDistrict } from 'turkey-neighbourhoods';
 import { ilByName, isIlce } from '@/data/tr-address';
 
-export const dynamic = 'force-static';
+// `force-static` KULLANILMAZ: o modda istek URL'sinin sorgu parametreleri
+// boşaltılır ve uç her il/ilçe için boş liste döner. Önbellek aşağıdaki
+// Cache-Control başlığıyla (tarayıcı + CDN) sağlanır.
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -32,6 +35,6 @@ export async function GET(request: Request) {
 
   return Response.json(
     { mahalleler },
-    { headers: { 'cache-control': 'public, max-age=86400, stale-while-revalidate=604800' } },
+    { headers: { 'cache-control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800' } },
   );
 }

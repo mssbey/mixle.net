@@ -11,6 +11,9 @@ import { NextResponse } from 'next/server';
 import { handle } from '@/lib/admin/http';
 import { editorPath, safeInternalPath, storefrontPath } from '@/lib/admin/preview';
 import { getAdminProductBySlugFresh } from '@/server/catalog/queries';
+import { currentStore, deploymentStore } from '@/server/store-context';
+import { getStoreBrand } from '@/server/settings';
+import { signPreviewQuery } from '@/server/storefront-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +35,24 @@ export function GET(request: Request): Promise<Response> {
         { error: 'not-found', message: `"${slug}" için ürün bulunamadı.`, editor: editorPath(slug) },
         { status: 404 },
       );
+    }
+
+    // Başka mağazanın ürünü: kendi alan adındaki vitrinde, imzalı bağlantıyla açılır.
+    if (currentStore() !== deploymentStore()) {
+      const { url: siteUrl } = await getStoreBrand();
+      const query = signPreviewQuery(product.slug);
+      if (!siteUrl || !query) {
+        return NextResponse.json(
+          {
+            error: 'config',
+            message: !siteUrl
+              ? 'Önizleme için Ayarlar → Mağaza → "Vitrin adresi" girilmeli.'
+              : 'Önizleme için REVALIDATE_SECRET tanımlı olmalı (iki dağıtımda aynı değer).',
+          },
+          { status: 409 },
+        );
+      }
+      return NextResponse.redirect(`${siteUrl}/api/onizleme?${query}`, { status: 303 });
     }
 
     draft.enable();

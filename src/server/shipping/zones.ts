@@ -6,7 +6,7 @@
 
 import 'server-only';
 import { cache } from 'react';
-import type { Prisma } from '@/generated/prisma/client';
+import { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
 import { DEFAULT_STORE, type StoreId } from '@/lib/stores';
 import { currentStore } from '../store-context';
@@ -58,22 +58,29 @@ export async function ensureDefaultShipping(store: StoreId = currentStore()): Pr
   const count = await db.shippingZone.count({ where: { store } });
   if (count > 0) return;
 
-  await db.shippingZone.create({
-    data: {
-      ...DEFAULT_ZONE,
-      id: defaultId(store, DEFAULT_ZONE.id),
-      store,
-      countries: DEFAULT_ZONE.countries,
-      cities: DEFAULT_ZONE.cities,
-      methods: {
-        create: DEFAULT_METHODS.map((m) => ({
-          ...m,
-          id: defaultId(store, m.id),
-          tiers: m.tiers === null ? undefined : (m.tiers as Prisma.InputJsonValue),
-        })),
+  // Eşzamanlı ilk istekler aynı varsayılanı yazmaya çalışabilir; çakışan
+  // (P2002) yazma, kaydı başka isteğin zaten oluşturduğu anlamına gelir.
+  try {
+    await db.shippingZone.create({
+      data: {
+        ...DEFAULT_ZONE,
+        id: defaultId(store, DEFAULT_ZONE.id),
+        store,
+        countries: DEFAULT_ZONE.countries,
+        cities: DEFAULT_ZONE.cities,
+        methods: {
+          create: DEFAULT_METHODS.map((m) => ({
+            ...m,
+            id: defaultId(store, m.id),
+            tiers: m.tiers === null ? undefined : (m.tiers as Prisma.InputJsonValue),
+          })),
+        },
       },
-    },
-  });
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') return;
+    throw err;
+  }
 }
 
 function toMethodRule(row: {

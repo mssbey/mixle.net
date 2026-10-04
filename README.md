@@ -82,6 +82,8 @@ npm start
 | `BLOB_STORE_ID` / `BLOB_READ_WRITE_TOKEN` | canlıda görsel yükleme için | Vercel Blob deposu (`mixle-medya`). Depo projeye bağlanınca `BLOB_STORE_ID` otomatik gelir (OIDC); ikisi de yoksa yüklemeler `data/uploads/`'a yazılır |
 | `DATABASE_POOL_MAX` | hayır | `pg` havuz boyutu; uzak DB bağlantı kotası için build/sunucusuz ortamda küçük tutulur (`src/server/db.ts`) |
 | `STORE_ID` | hayır (varsayılan `mixle`) | Bu dağıtımın vitrin mağazası (`mixle` \| `nuclear`). mixle.net tanımlamaz; Nuclear Likit dağıtımı `nuclear` verir. Bkz. "Mağazalar" |
+| `STOREFRONT_REVALIDATE_URLS` | diğer vitrin varsa | Panelde katalog/içerik yazılınca haber verilecek vitrinlerin yenileme uçları, virgülle (ör. `https://nuclearlikit.com/api/yenile`). Bkz. `src/server/storefront-sync.ts` |
+| `REVALIDATE_SECRET` | diğer vitrin varsa | Yenileme bildirimini ve panelden açılan imzalı ürün önizlemesini korur; vitrin dağıtımında da AYNI değer |
 
 Ödeme, kargo ve e-posta anahtarları tercihen panelden (Ayarlar) girilir ve
 şifrelenip veritabanına yazılır; `.env.example`'daki değerler yalnız panelde
@@ -454,6 +456,12 @@ Likit** (`nuclear`, ayrı repoda/dağıtımda çalışacak koyu temalı vitrin).
   Nuclear'ın panelde girilmiş ayarlarını kullanır.
 - **E-postalar** mağazanın adıyla imzalanır. Bağlantılar Ayarlar → Mağaza →
   "Vitrin adresi" ile kurulur; Nuclear için bu alan doldurulmalıdır.
+- **Nuclear Likit vitrini** ayrı repodadır (`../nuclear-likit`). Sunucu
+  katmanını ve vitrin API uçlarını (`src/server`, checkout/hesap/ödeme uçları
+  vb.) bu repodan `npm run sync` ile kopyalar — **ortak kodu yalnız burada
+  değiştirin**, sonra Nuclear'da senkronlayıp commit edin. Panel kaydı
+  Nuclear'ın önbelleğini `STOREFRONT_REVALIDATE_URLS` ile düşürür; Nuclear
+  ürününde "vitrinde önizle" imzalı bağlantıyla Nuclear alan adında açılır.
 - Seed kataloğu (`catalog.seed.json`, "Seed kataloğuna sıfırla") yalnız
   Mixle içindir. İçe aktarma ve sıfırlama yalnız seçili mağazanın kayıtlarını
   siler.

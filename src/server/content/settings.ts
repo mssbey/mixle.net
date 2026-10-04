@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { DEFAULT_STORE, type StoreId } from '@/lib/stores';
 import { readSettingValue, writeSetting } from '../settings';
 import { currentStore } from '../store-context';
+import { notifyStorefronts } from '../storefront-sync';
 import { faqGroups as defaultFaqGroups, campaign as defaultCampaign } from '@/data/content';
 import { primaryNav as defaultPrimaryNav } from '@/data/nav';
 
@@ -119,6 +120,7 @@ export async function saveFaqContent(raw: unknown, updatedByUserId: string): Pro
   const parsed = faqContentSchema.parse(raw);
   await writeSetting(KEYS.faq, parsed, updatedByUserId);
   revalidateTag(FAQ_TAG, 'max');
+  notifyStorefronts();
   return parsed;
 }
 
@@ -126,6 +128,7 @@ export async function saveCampaignContent(raw: unknown, updatedByUserId: string)
   const parsed = campaignContentSchema.parse(raw);
   await writeSetting(KEYS.campaign, parsed, updatedByUserId);
   revalidateTag(CAMPAIGN_TAG, 'max');
+  notifyStorefronts();
   return parsed;
 }
 
@@ -133,6 +136,7 @@ export async function saveNavMenuContent(raw: unknown, updatedByUserId: string):
   const parsed = navMenuContentSchema.parse(raw);
   await writeSetting(KEYS.navMenu, parsed, updatedByUserId);
   revalidateTag(NAV_MENU_TAG, 'max');
+  notifyStorefronts();
   return parsed;
 }
 

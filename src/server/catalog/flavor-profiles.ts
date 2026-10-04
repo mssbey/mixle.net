@@ -7,6 +7,7 @@ import { revalidateTag, unstable_cache } from 'next/cache';
 import type { StoreId } from '@/lib/stores';
 import { readSettingValue, writeSetting } from '../settings';
 import { currentStore } from '../store-context';
+import { notifyStorefronts } from '../storefront-sync';
 import {
   DEFAULT_FLAVOR_PROFILES,
   flavorProfileListSchema,
@@ -38,5 +39,6 @@ export async function saveFlavorProfiles(
   const list = flavorProfileListSchema.parse(raw);
   await writeSetting(KEY, list, updatedByUserId);
   revalidateTag(TAG, 'max');
+  notifyStorefronts();
   return list;
 }
