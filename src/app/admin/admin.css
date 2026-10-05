@@ -347,6 +347,56 @@
   border-radius: 999px;
   background: currentColor;
 }
+.admin-status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.admin-status-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.admin-status-toggle__track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  flex: none;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background 0.15s;
+}
+.admin-status-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s;
+}
+.admin-status-toggle.is-on {
+  color: #16794a;
+}
+.admin-status-toggle.is-on .admin-status-toggle__track {
+  background: #22a06b;
+}
+.admin-status-toggle.is-on .admin-status-toggle__thumb {
+  transform: translateX(14px);
+}
+.admin-status-toggle:focus-visible {
+  outline: none;
+}
+.admin-status-toggle:focus-visible .admin-status-toggle__track {
+  box-shadow: 0 0 0 3px rgb(34 160 107 / 0.3);
+}
 .admin-badge-yayında {
   background: #e8f5ee;
   color: #16794a;

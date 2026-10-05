@@ -10,6 +10,35 @@ export function StatusBadge({ status }: { status: ProductStatus }) {
   );
 }
 
+/** Ürün listesinde yayında ⇄ taslak aç/kapa düğmesi. Arşivdeki ürün "kapalı" görünür. */
+export function StatusToggle({
+  status,
+  disabled,
+  onToggle,
+}: {
+  status: ProductStatus;
+  disabled?: boolean;
+  onToggle: () => void;
+}) {
+  const on = status === 'yayında';
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={onToggle}
+      className={cn('admin-status-toggle', on && 'is-on')}
+      title={on ? 'Yayında — taslağa almak için tıklayın' : 'Kapalı — yayına almak için tıklayın'}
+    >
+      <span className="admin-status-toggle__track" aria-hidden="true">
+        <span className="admin-status-toggle__thumb" />
+      </span>
+      <span className="admin-status-toggle__label">{statusLabels[status]}</span>
+    </button>
+  );
+}
+
 export function StockBadge({ count }: { count: number }) {
   if (count <= 0) return <span className="admin-badge admin-badge-stok">Stok yok</span>;
   if (count <= 5)

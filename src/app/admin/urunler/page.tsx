@@ -10,7 +10,7 @@ import { productStatuses, statusLabels } from '@/types/admin';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { PriceAdjustDialog } from '@/components/admin/PriceAdjustDialog';
-import { EmptyState, StatusBadge, TableSkeleton } from '@/components/admin/primitives';
+import { EmptyState, StatusToggle, TableSkeleton } from '@/components/admin/primitives';
 import { categoryTree, listProducts, type ProductQuery } from '@/lib/admin/mutations';
 import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
 import { localId, priceRangeOf } from '@/lib/admin/variants';
@@ -104,18 +104,33 @@ function ProductsView() {
     canWrite,
     reload,
     storeUrl,
+    updateProduct,
   } = useAdminData();
   const [priceOpen, setPriceOpen] = useState(false);
 
   // Aynı satıra iki kez basılmasın diye çoğaltılan ürün kilitlenir.
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
-  // WordPress "Kopyala": taslak kopya oluşturulur ve kopyanın düzenleme ekranı açılır.
+  // "Kopyala": taslak kopya oluşturulur ve düzenleme ekranı YENİ SEKMEDE açılır;
+  // liste bu sekmede kalır. Sekme tıklama anında açılır (sonradan açılan pencereyi
+  // tarayıcı açılır pencere engelleyicisine takar), adresi kopya hazır olunca verilir.
   const duplicate = async (id: string) => {
     setDuplicatingId(id);
+    const tab = window.open('about:blank', '_blank');
     const copy = await duplicateProduct(id);
-    if (copy) router.push(`/admin/urunler/${copy.slug}`);
-    else setDuplicatingId(null);
+    setDuplicatingId(null);
+    const href = copy ? `/admin/urunler/${copy.slug}` : null;
+    if (href && tab) tab.location.href = href;
+    else if (href) router.push(href);
+    else tab?.close();
+  };
+
+  // Durum sütunundaki aç/kapa: yayında ⇄ taslak.
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const toggleStatus = async (id: string, current: ProductStatus) => {
+    setTogglingId(id);
+    await updateProduct(id, { status: current === 'yayında' ? 'taslak' : 'yayında' });
+    setTogglingId(null);
   };
 
   const [search, setSearch] = useState(params.get('search') ?? '');
@@ -556,7 +571,11 @@ function ProductsView() {
                         )}
                       </td>
                       <td>
-                        <StatusBadge status={p.status} />
+                        <StatusToggle
+                          status={p.status}
+                          disabled={!canWrite || togglingId === p.id}
+                          onToggle={() => void toggleStatus(p.id, p.status)}
+                        />
                       </td>
                       <td>
                         <div className="flex items-center justify-end gap-1.5">
@@ -580,7 +599,7 @@ function ProductsView() {
                             disabled={!canWrite || duplicatingId === p.id}
                             onClick={() => void duplicate(p.id)}
                             aria-label={`${p.name} ürününü kopyala`}
-                            title="Kopyala — taslak kopya oluşturup düzenlemeye aç"
+                            title="Kopyala — taslak kopyayı yeni sekmede düzenlemeye aç"
                           >
                             <Copy size={13} />
                           </button>
@@ -623,7 +642,11 @@ function ProductsView() {
                       </Link>
                       <p className="admin-hint">{p.categoryIds.map(categoryName).join(', ')}</p>
                       <div className="mt-1.5 flex items-center gap-2">
-                        <StatusBadge status={p.status} />
+                        <StatusToggle
+                          status={p.status}
+                          disabled={!canWrite || togglingId === p.id}
+                          onToggle={() => void toggleStatus(p.id, p.status)}
+                        />
                         <span className="text-xs text-[var(--admin-ink-soft)]">
                           {range.min === range.max
                             ? formatMinor(range.min)

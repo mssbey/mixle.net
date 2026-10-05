@@ -56,7 +56,7 @@ export function blankProduct(firstCategoryId?: string): AdminProduct {
     collectionIds: [],
     tags: [],
     images: [],
-    status: 'taslak',
+    status: 'yayında',
     seo: { title: '', description: '' },
     flavorNotes: [],
     flavorProfiles: [],
@@ -197,12 +197,17 @@ export function ProductEditor({ initial, mode }: Props) {
     }
   };
 
-  /** WordPress "Kopyala": taslak kopya oluşturur ve kopyanın düzenleme ekranını açar. */
+  /** "Kopyala": taslak kopya oluşturur ve kopyanın düzenleme ekranını yeni sekmede açar. */
   const duplicate = async () => {
     setDuplicating(true);
+    // Sekme tıklama anında açılır; sonradan açılanı açılır pencere engelleyicisi keser.
+    const tab = window.open('about:blank', '_blank');
     const copy = await duplicateProduct(saved.id);
     setDuplicating(false);
-    if (copy) router.push(`/admin/urunler/${copy.slug}`);
+    const href = copy ? `/admin/urunler/${copy.slug}` : null;
+    if (href && tab) tab.location.href = href;
+    else if (href) router.push(href);
+    else tab?.close();
   };
 
   /** Ürünü çöp kutusuna taşır (30 gün geri yüklenebilir) ve listeye döner. */
