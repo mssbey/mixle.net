@@ -41,7 +41,8 @@ interface AdminDataValue {
   categories: AdminCategory[];
   collections: AdminCollection[];
   updatedAt: string | null;
-  reload: () => Promise<void>;
+  /** `silent`: iskelet göstermeden arkada tazeler (menü tıklaması, yeni sipariş). */
+  reload: (opts?: { silent?: boolean }) => Promise<void>;
   categoryName: (id: string) => string;
   collectionName: (id: string) => string;
   productById: (id: string) => AdminProduct | undefined;
@@ -88,8 +89,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
   const [storeUrl, setStoreUrl] = useState('');
   const [catalog, setCatalog] = useState<CatalogFile | null>(null);
 
-  const reload = useCallback(async () => {
-    setStatus('loading');
+  const reload = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setStatus('loading');
     try {
       const { catalog: data, meta } = await adminApi.loadCatalog();
       setCatalog(data);

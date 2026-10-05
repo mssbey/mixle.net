@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { useOrderWatch } from './useOrderWatch';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -92,7 +93,21 @@ const COLLAPSE_KEY = 'na-admin-sidebar-collapsed';
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? '/admin';
   const router = useRouter();
-  const { user, status, updatedAt, store } = useAdminData();
+  const { user, status, updatedAt, store, reload, can } = useAdminData();
+
+  // Menüden bir sayfaya tıklanınca (aynı sayfa dahil) sayfa yeniden kurulur ve
+  // kendi verisini baştan çeker; katalog da arkada tazelenir. Tam sayfa yenileme
+  // gibi davranır ama panel kabuğu ve oturum yerinde kalır.
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshPage = () => {
+    setRefreshKey((k) => k + 1);
+    void reload({ silent: true });
+  };
+
+  // Yeni sipariş düşünce bildirim; sipariş listesi veya özet açıksa tazelenir.
+  useOrderWatch(status === 'ready' && can('siparis:oku'), () => {
+    if (pathname === '/admin' || pathname === '/admin/siparisler') setRefreshKey((k) => k + 1);
+  });
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -185,6 +200,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className="admin-nav-link admin-focusable"
+                onClick={refreshPage}
                 aria-current={active ? 'page' : undefined}
                 title={item.label}
               >
@@ -302,7 +318,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </p>
             </div>
           ) : (
-            children
+            <Fragment key={refreshKey}>{children}</Fragment>
           )}
         </main>
       </div>
