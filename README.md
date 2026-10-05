@@ -84,6 +84,7 @@ npm start
 | `STORE_ID` | hayır (varsayılan `mixle`) | Bu dağıtımın vitrin mağazası (`mixle` \| `nuclear`). mixle.net tanımlamaz; Nuclear Likit dağıtımı `nuclear` verir. Bkz. "Mağazalar" |
 | `STOREFRONT_REVALIDATE_URLS` | diğer vitrin varsa | Panelde katalog/içerik yazılınca haber verilecek vitrinlerin yenileme uçları, virgülle (ör. `https://nuclearlikit.com/api/yenile`). Bkz. `src/server/storefront-sync.ts` |
 | `REVALIDATE_SECRET` | diğer vitrin varsa | Yenileme bildirimini ve panelden açılan imzalı ürün önizlemesini korur; vitrin dağıtımında da AYNI değer |
+| `STORE_URL_NUCLEAR` / `STORE_URL_KANZI` | diğer vitrin varsa | O mağazanın vitrin kökü (ör. `https://kanzivape.zeynart.xyz`). Panelde "Vitrinde aç" ve e-posta bağlantıları için; Ayarlar → Mağaza → "Vitrin adresi" doluysa o kullanılır |
 
 Ödeme, kargo ve e-posta anahtarları tercihen panelden (Ayarlar) girilir ve
 şifrelenip veritabanına yazılır; `.env.example`'daki değerler yalnız panelde

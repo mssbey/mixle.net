@@ -103,6 +103,7 @@ function ProductsView() {
     duplicateProduct,
     canWrite,
     reload,
+    storeUrl,
   } = useAdminData();
   const [priceOpen, setPriceOpen] = useState(false);
 
@@ -560,7 +561,7 @@ function ProductsView() {
                       <td>
                         <div className="flex items-center justify-end gap-1.5">
                           <a
-                            href={openInStorefrontPath(p.slug, p.status)}
+                            href={openInStorefrontPath(p.slug, p.status, storeUrl)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="admin-btn admin-btn-ghost admin-btn-sm"

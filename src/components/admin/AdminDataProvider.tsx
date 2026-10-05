@@ -31,6 +31,8 @@ interface AdminDataValue {
   permissions: Permission[];
   /** Panelde yönetilen mağaza; tüm listeler ve kayıtlar buna göredir. */
   store: StoreId;
+  /** Seçili mağaza başka alan adındaysa vitrin kökü (ör. https://kanzivape…); değilse boş. */
+  storeUrl: string;
   can: (permission: Permission) => boolean;
   /** Kısayol: `can('katalog:yaz')`. */
   canWrite: boolean;
@@ -83,6 +85,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminSessionUser | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [store, setStore] = useState<StoreId>(DEFAULT_STORE);
+  const [storeUrl, setStoreUrl] = useState('');
   const [catalog, setCatalog] = useState<CatalogFile | null>(null);
 
   const reload = useCallback(async () => {
@@ -93,6 +96,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       setUser(meta.user);
       setPermissions(meta.permissions);
       setStore(meta.store);
+      setStoreUrl(meta.storeUrl ?? '');
       setStatus('ready');
       setError(null);
     } catch (err) {
@@ -138,6 +142,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       user,
       permissions,
       store,
+      storeUrl,
       can,
       canWrite: can('katalog:yaz'),
       catalog,
@@ -359,7 +364,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [status, error, user, permissions, store, catalog, reload, applyProduct]);
+  }, [status, error, user, permissions, store, storeUrl, catalog, reload, applyProduct]);
 
   return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>;
 }

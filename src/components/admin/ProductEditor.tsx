@@ -95,6 +95,7 @@ export function ProductEditor({ initial, mode }: Props) {
     duplicateProduct,
     deleteProduct,
     categoryName,
+    storeUrl,
   } = useAdminData();
   const { profiles: flavorProfiles } = useAdminFlavorProfiles();
   const [profileEditSignal, setProfileEditSignal] = useState(0);
@@ -241,7 +242,7 @@ export function ProductEditor({ initial, mode }: Props) {
         {mode === 'edit' && saved.slug && (
           <div className="flex flex-wrap items-center gap-2">
             <a
-              href={openInStorefrontPath(saved.slug, saved.status)}
+              href={openInStorefrontPath(saved.slug, saved.status, storeUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className="admin-btn admin-btn-ghost"

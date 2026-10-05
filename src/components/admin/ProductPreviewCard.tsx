@@ -11,6 +11,7 @@ import { formatMinor } from '@/lib/money';
 import { priceRangeOf } from '@/lib/admin/variants';
 import { catalogPhotos } from '@/lib/storefront-images';
 import { openInStorefrontPath, storefrontPath } from '@/lib/admin/preview';
+import { useAdminData } from './AdminDataProvider';
 import { toast } from '@/store/toast';
 import { hasNewWindow, isInNewWindow } from '@/lib/new-badge';
 import { StatusBadge } from './primitives';
@@ -48,16 +49,18 @@ export function ProductPreviewCard({ product, saved, dirty }: Props) {
   const slugReady = target.slug.trim().length > 0;
   const canOpen = !unsaved && slugReady;
 
+  const { storeUrl } = useAdminData();
+  // Seçili mağaza başka alan adındaysa (Nuclear, KanziVape) adres onun alan adıyla gösterilir.
   const host = useMemo(() => {
     try {
-      return new URL(site.domain).host;
+      return new URL(storeUrl || site.domain).host;
     } catch {
       return 'mixle.net';
     }
-  }, []);
+  }, [storeUrl]);
   const path = storefrontPath(target.slug || product.slug || 'urun-adi');
   const displayUrl = `${host}${decodeURIComponent(path)}`;
-  const href = openInStorefrontPath(target.slug, target.status);
+  const href = openInStorefrontPath(target.slug, target.status, storeUrl);
 
   // Otomatik görsel yok: panelden yüklenmediyse boş medya alanı gösterilir.
   const image = catalogPhotos(product.images)[0]?.src ?? null;
