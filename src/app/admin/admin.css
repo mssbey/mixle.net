@@ -749,47 +749,114 @@ select.stock-cell {
 /* ---------------------------------------------------------- mağaza seçici --- */
 /* Panel birden çok mağazayı yönetir; seçili mağaza her ekranda belirgin olmalı. */
 .admin-store-switch {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 4px 3px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--admin-line-strong);
-  background: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--brand-purple-deep);
+  gap: 10px;
+  min-height: 46px;
+  padding: 4px 12px 4px 10px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: var(--brand-red);
+  color: #fff;
+  box-shadow: 0 6px 18px -8px rgba(15, 23, 41, 0.45);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-store-switch:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px -10px rgba(15, 23, 41, 0.55);
+}
+.admin-store-switch:focus-within {
+  outline: 3px solid rgba(227, 27, 35, 0.35);
+  outline-offset: 2px;
+}
+.admin-store-switch__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.admin-store-switch__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+.admin-store-switch__label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.8;
 }
 .admin-store-switch select {
   appearance: none;
   border: 0;
   background: transparent;
-  padding: 2px 18px 2px 0;
-  font: inherit;
+  padding: 1px 22px 0 0;
+  font-size: 16px;
+  font-weight: 800;
   color: inherit;
   cursor: pointer;
+  outline: none;
   background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position: calc(100% - 9px) 55%, calc(100% - 5px) 55%;
-  background-size: 4px 4px;
+  background-position: calc(100% - 10px) 55%, calc(100% - 5px) 55%;
+  background-size: 5px 5px;
   background-repeat: no-repeat;
+}
+.admin-store-switch select option {
+  color: #0f1729;
+  font-weight: 600;
 }
 .admin-store-switch select:disabled {
   opacity: 0.6;
   cursor: progress;
 }
+/* Canlı nokta: hangi mağazada çalışıldığı bir bakışta görülsün. */
+.admin-store-switch__dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  background: currentColor;
+  animation: admin-store-pulse 2s ease-in-out infinite;
+}
+@keyframes admin-store-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-store-switch__dot { animation: none; }
+}
 .admin-store-switch[data-store='nuclear'] {
-  border-color: #0f172a;
   background: #0f172a;
+  border-color: #a3e635;
   color: #a3e635;
+}
+.admin-store-switch[data-store='nuclear'] .admin-store-switch__icon {
+  background: rgba(163, 230, 53, 0.16);
+}
+.admin-store-switch[data-store='kanzi'] {
+  background: #1f2a5c;
+  border-color: #ff5a36;
+  color: #ffd5c2;
+}
+.admin-store-switch[data-store='kanzi'] .admin-store-switch__icon {
+  background: #ff5a36;
+  color: #fff;
+}
+@media (max-width: 640px) {
+  .admin-store-switch__label { display: none; }
+  .admin-store-switch { min-height: 42px; padding: 4px 10px 4px 6px; }
 }
 /* Mixle dışı mağaza seçiliyken üst çubukta kalıcı bir şerit: yanlış mağazada işlem yapmayı zorlaştırır. */
 .admin-layout[data-store='nuclear'] .admin-topbar {
   box-shadow: inset 0 3px 0 #a3e635;
-}
-.admin-store-switch[data-store='kanzi'] {
-  border-color: #1f2a5c;
-  background: #1f2a5c;
-  color: #ffd5c2;
 }
 .admin-layout[data-store='kanzi'] .admin-topbar {
   box-shadow: inset 0 3px 0 #ff5a36;

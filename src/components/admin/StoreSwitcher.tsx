@@ -26,21 +26,26 @@ export function StoreSwitcher({ store }: { store: StoreId }) {
   };
 
   return (
-    <label className="admin-store-switch" data-store={store} title="Yönetilen mağaza">
-      <Store size={13} aria-hidden="true" />
-      <span className="sr-only">Yönetilen mağaza</span>
-      <select
-        value={store}
-        disabled={pending}
-        onChange={(e) => void onChange(e.target.value)}
-        className="admin-focusable"
-      >
-        {STORES.map((id) => (
-          <option key={id} value={id}>
-            {STORE_META[id].label}
-          </option>
-        ))}
-      </select>
+    <label className="admin-store-switch" data-store={store} title="Yönetilen mağaza — değiştirmek için tıklayın">
+      <span className="admin-store-switch__dot" aria-hidden="true" />
+      <span className="admin-store-switch__icon" aria-hidden="true">
+        <Store size={18} />
+      </span>
+      <span className="admin-store-switch__text">
+        <span className="admin-store-switch__label">Yönetilen mağaza</span>
+        <select
+          value={store}
+          disabled={pending}
+          onChange={(e) => void onChange(e.target.value)}
+          aria-label="Yönetilen mağaza"
+        >
+          {STORES.map((id) => (
+            <option key={id} value={id}>
+              {STORE_META[id].label}
+            </option>
+          ))}
+        </select>
+      </span>
     </label>
   );
 }
