@@ -429,9 +429,17 @@ ne zaman, hangi kaydın hangi alanlarını değiştirdi (öncesi/sonrası diff).
 
 ### Mağazalar (Mixle + Nuclear Likit)
 
-Panel ve veritabanı birden çok vitrini yönetir. Bugün iki mağaza tanımlıdır
-(`src/lib/stores.ts`): **Mixle** (`mixle`, bu repodaki vitrin) ve **Nuclear
-Likit** (`nuclear`, ayrı repoda/dağıtımda çalışacak koyu temalı vitrin).
+Panel ve veritabanı birden çok vitrini yönetir. Bugün üç mağaza tanımlıdır
+(`src/lib/stores.ts`):
+
+| Mağaza | Kimlik | Sipariş öneki | Vitrin |
+| --- | --- | --- | --- |
+| Mixle | `mixle` | `NA-` | bu repo |
+| Nuclear Likit | `nuclear` | `NL-` | `../nuclear-likit` (koyu tema) |
+| KanziVape | `kanzi` | `KV-` | `../kanzivape` (açık, editoryal tema) |
+
+Yeni mağaza eklemek: `STORES` / `STORE_META`'ya bir satır, panel şeridi için
+`admin.css`'e bir renk; migration gerekmez.
 
 - **Ne ayrı:** ürün, kategori, koleksiyon, çöp kutusu, sipariş, müşteri
   hesabı, kupon, indirim kuralı, kargo bölgesi, bülten/SMS kaydı ve yasal
@@ -456,12 +464,13 @@ Likit** (`nuclear`, ayrı repoda/dağıtımda çalışacak koyu temalı vitrin).
   Nuclear'ın panelde girilmiş ayarlarını kullanır.
 - **E-postalar** mağazanın adıyla imzalanır. Bağlantılar Ayarlar → Mağaza →
   "Vitrin adresi" ile kurulur; Nuclear için bu alan doldurulmalıdır.
-- **Nuclear Likit vitrini** ayrı repodadır (`../nuclear-likit`). Sunucu
+- **Nuclear Likit ve KanziVape vitrinleri** ayrı repolardadır. Sunucu
   katmanını ve vitrin API uçlarını (`src/server`, checkout/hesap/ödeme uçları
   vb.) bu repodan `npm run sync` ile kopyalar — **ortak kodu yalnız burada
-  değiştirin**, sonra Nuclear'da senkronlayıp commit edin. Panel kaydı
-  Nuclear'ın önbelleğini `STOREFRONT_REVALIDATE_URLS` ile düşürür; Nuclear
-  ürününde "vitrinde önizle" imzalı bağlantıyla Nuclear alan adında açılır.
+  değiştirin**, sonra iki vitrinde de senkronlayıp commit edin. Panel kaydı
+  vitrinlerin önbelleğini `STOREFRONT_REVALIDATE_URLS` (virgülle iki adres)
+  ile düşürür; "vitrinde önizle" imzalı bağlantıyla ürünün kendi mağazasının
+  alan adında açılır.
 - Seed kataloğu (`catalog.seed.json`, "Seed kataloğuna sıfırla") yalnız
   Mixle içindir. İçe aktarma ve sıfırlama yalnız seçili mağazanın kayıtlarını
   siler.
