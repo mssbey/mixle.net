@@ -782,7 +782,15 @@ select.stock-cell {
   background: #0f172a;
   color: #a3e635;
 }
-/* Nuclear seçiliyken üst çubukta kalıcı bir şerit: yanlış mağazada işlem yapmayı zorlaştırır. */
+/* Mixle dışı mağaza seçiliyken üst çubukta kalıcı bir şerit: yanlış mağazada işlem yapmayı zorlaştırır. */
 .admin-layout[data-store='nuclear'] .admin-topbar {
   box-shadow: inset 0 3px 0 #a3e635;
+}
+.admin-store-switch[data-store='kanzi'] {
+  border-color: #1f2a5c;
+  background: #1f2a5c;
+  color: #ffd5c2;
+}
+.admin-layout[data-store='kanzi'] .admin-topbar {
+  box-shadow: inset 0 3px 0 #ff5a36;
 }
