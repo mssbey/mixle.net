@@ -7,6 +7,8 @@ import { readCatalog, replaceCatalog, saveProducts } from '@/server/catalog/pers
 import { writeAudit } from '@/server/audit';
 
 export const dynamic = 'force-dynamic';
+// Yüzlerce ürünü tek tek yazar; varsayılan fonksiyon süresi yetmeyebilir.
+export const maxDuration = 300;
 
 interface ImportBody {
   format: 'json' | 'csv';

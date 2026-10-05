@@ -5,6 +5,8 @@ import { trashProducts } from '@/server/catalog/trash';
 import { writeAudit } from '@/server/audit';
 
 export const dynamic = 'force-dynamic';
+// Yüzlerce ürünü tek tek yazar; varsayılan fonksiyon süresi yetmeyebilir.
+export const maxDuration = 300;
 
 export function POST(request: Request): Promise<Response> {
   return handle('katalog:yaz', async (user) => {
