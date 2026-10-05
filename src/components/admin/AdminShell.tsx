@@ -199,6 +199,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                // Varsayılan önden yükleme her panel açılışında ~20 sayfayı
+                // sunucuda çizdirip veritabanına yük bindiriyordu.
+                prefetch={false}
                 className="admin-nav-link admin-focusable"
                 onClick={refreshPage}
                 aria-current={active ? 'page' : undefined}
