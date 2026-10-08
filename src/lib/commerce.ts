@@ -8,6 +8,12 @@ export function pickDefaultVariant(product: Product): ProductVariant {
   );
 }
 
+/** Ürün kartlarında gösterilen en düşük / en yüksek varyant fiyatı. */
+export function variantPriceRange(product: Product): { min: number; max: number } {
+  const prices = product.variants.map((v) => v.price);
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
 /** Seçenek kimliği → değer kimliği. Ürün sayfasındaki seçimin tamamı. */
 export type Selection = Record<string, string>;
 

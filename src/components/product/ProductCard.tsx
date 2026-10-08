@@ -14,8 +14,8 @@ import { QuickAddPanel } from './QuickAddPanel';
 import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
-import { pickDefaultVariant, stockLabel } from '@/lib/commerce';
-import { discountPercent } from '@/lib/site';
+import { pickDefaultVariant, stockLabel, variantPriceRange } from '@/lib/commerce';
+import { currency, discountPercent } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
 export function ProductCard({
@@ -38,6 +38,7 @@ export function ProductCard({
   const soldOut = product.stockStatus === 'out-of-stock';
   const img2 = product.images[1]?.src ?? product.images[0].src;
   const pct = discountPercent(defaultVariant.price, defaultVariant.oldPrice);
+  const range = variantPriceRange(product);
   const stock = stockLabel[product.stockStatus];
   // Öne çıkan tek rozet: indirim > çok satan > yeni > özel seri
   const badge = product.badges.includes('cok-satan')
@@ -143,7 +144,13 @@ export function ProductCard({
         )}
 
         <div className="mt-auto pt-2.5">
-          <Price price={defaultVariant.price} oldPrice={defaultVariant.oldPrice} size="md" />
+          {range.min !== range.max ? (
+            <p className="text-lg font-bold tracking-tight text-ink">
+              {currency(range.min)} – {currency(range.max)}
+            </p>
+          ) : (
+            <Price price={defaultVariant.price} oldPrice={defaultVariant.oldPrice} size="md" />
+          )}
           <p className={cn('mt-0.5 text-[11px] font-medium', stock.className)}>{stock.text}</p>
 
           <button

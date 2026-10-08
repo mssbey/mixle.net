@@ -11,7 +11,7 @@ import { QuickAddPanel } from '@/components/product/QuickAddPanel';
 import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
-import { pickDefaultVariant } from '@/lib/commerce';
+import { pickDefaultVariant, variantPriceRange } from '@/lib/commerce';
 import { discountPercent } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +37,7 @@ export function HomeProductCard({
   const single = product.variants.length === 1;
   const soldOut = product.stockStatus === 'out-of-stock';
   const pct = discountPercent(variant.price, variant.oldPrice);
+  const range = variantPriceRange(product);
   const href = `/urun/${product.slug}`;
   const rating = Math.round(product.rating);
 
@@ -96,8 +97,12 @@ export function HomeProductCard({
           <span className="block truncate text-xs font-medium uppercase text-[#6366f1]">{label}</span>
           <h3 className="mt-1 line-clamp-1 text-sm font-semibold text-[#111827] transition-colors group-hover:text-[#e31213]">{product.name}</h3>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-base font-bold tabular-nums text-[#111827]">{price.format(variant.price)}</span>
-            {pct > 0 && variant.oldPrice && (
+            <span className="text-base font-bold tabular-nums text-[#111827]">
+              {range.min !== range.max
+                ? `${price.format(range.min)} – ${price.format(range.max)}`
+                : price.format(variant.price)}
+            </span>
+            {range.min === range.max && pct > 0 && variant.oldPrice && (
               <span className="text-xs tabular-nums text-gray-400 line-through">{price.format(variant.oldPrice)}</span>
             )}
           </div>
