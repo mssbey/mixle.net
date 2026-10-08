@@ -15,7 +15,7 @@ export function RichTextArea({
   onChange,
   disabled,
   invalid,
-  minHeight = 140,
+  minHeight = 360,
 }: {
   id: string;
   value: string;
@@ -27,8 +27,29 @@ export function RichTextArea({
   const ref = useRef<HTMLTextAreaElement>(null);
   const [preview, setPreview] = useState(false);
 
-  /** Değeri değiştirir, ardından imleci/seçimi geri yükler. */
+  /**
+   * Değeri değiştirir, ardından imleci/seçimi geri yükler. Değişen kısım tarayıcının
+   * kendi "insertText" komutuyla yazılır; böylece Ctrl+Z / Ctrl+Y geçmişi bozulmaz.
+   */
   const apply = (next: string, selStart: number, selEnd: number) => {
+    const el = ref.current;
+    if (el) {
+      let start = 0;
+      while (start < value.length && start < next.length && value[start] === next[start]) start++;
+      let endOld = value.length;
+      let endNew = next.length;
+      while (endOld > start && endNew > start && value[endOld - 1] === next[endNew - 1]) {
+        endOld--;
+        endNew--;
+      }
+      el.focus();
+      el.setSelectionRange(start, endOld);
+      const ok = document.execCommand('insertText', false, next.slice(start, endNew));
+      if (ok && el.value === next) {
+        el.setSelectionRange(selStart, selEnd);
+        return;
+      }
+    }
     onChange(next);
     requestAnimationFrame(() => {
       const el = ref.current;
@@ -107,7 +128,7 @@ export function RichTextArea({
       {preview ? (
         <div
           className="admin-textarea overflow-auto text-sm leading-relaxed"
-          style={{ minHeight, maxHeight: 420 }}
+          style={{ minHeight, maxHeight: 640 }}
         >
           {value.trim() ? (
             <RichText text={value} />
