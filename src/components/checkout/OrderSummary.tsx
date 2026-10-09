@@ -5,7 +5,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { Tag, X } from 'lucide-react';
+import { BadgePercent, Tag, Truck, X } from 'lucide-react';
 import { formatMinor, bpsToPercent } from '@/lib/money';
 import type { QuoteResponse } from '@/lib/checkout-client';
 import { cn } from '@/lib/utils';
@@ -90,22 +90,49 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
               : quote.coupon.reason}
           </p>
         )}
-        {quote?.appliedDiscounts?.length ? (
-          <ul className="mt-1.5 space-y-0.5 text-xs text-success" role="status">
-            {quote.appliedDiscounts.map((d) => (
-              <li key={d.id}>
-                {d.name}: −{formatMinor(d.discountMinor)}
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </form>
+
+      {/* Otomatik kampanyalar: kod gerektirmez, öne çıkarılır. */}
+      {quote?.appliedDiscounts?.length ? (
+        <ul className="mt-4 space-y-2" role="status">
+          {quote.appliedDiscounts.map((d) => (
+            <li
+              key={d.id}
+              className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-500 text-white">
+                <BadgePercent size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Kampanya uygulandı</p>
+                <p className="truncate text-sm font-bold text-ink">{d.name}</p>
+              </div>
+              <span className="shrink-0 text-base font-bold tabular-nums text-emerald-600">
+                −{formatMinor(d.discountMinor)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {quote?.freeShippingRemainingMinor ? (
+        <p className="mt-3 flex items-center gap-2 rounded-lg bg-purple-50 px-3 py-2.5 text-sm text-purple-800">
+          <Truck size={16} className="shrink-0" />
+          <span>
+            Ücretsiz kargo için <strong className="font-bold">{formatMinor(quote.freeShippingRemainingMinor)}</strong> daha
+            ekleyin!
+          </span>
+        </p>
+      ) : null}
 
       {/* Toplamlar */}
       <dl className="mt-5 space-y-1.5 border-t border-line pt-4 text-sm">
         <Row label="Ara toplam" value={t ? formatMinor(t.itemsSubtotalMinor) : '—'} />
         {t && t.discountTotalMinor > 0 && (
-          <Row label="İndirim" value={`−${formatMinor(t.discountTotalMinor)}`} className="text-success" />
+          <div className="flex justify-between font-semibold text-emerald-600">
+            <dt>İndirim</dt>
+            <dd className="text-base font-bold tabular-nums">−{formatMinor(t.discountTotalMinor)}</dd>
+          </div>
         )}
         <Row
           label="Kargo"
@@ -135,6 +162,11 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
             {t ? formatMinor(t.grandTotalMinor) : '—'}
           </dd>
         </div>
+        {t && t.discountTotalMinor > 0 && (
+          <p className="text-right text-xs font-semibold text-emerald-600">
+            Bu siparişte {formatMinor(t.discountTotalMinor)} tasarruf ediyorsunuz
+          </p>
+        )}
       </dl>
       {quote?.pricesIncludeTax && <p className="mt-1 text-[11px] text-ink-soft">Fiyatlara KDV dahildir.</p>}
     </aside>

@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { syncAcrossTabs } from './sync-tabs';
 
 interface FavoritesState {
   ids: string[];
@@ -26,6 +27,8 @@ export const useFavorites = create<FavoritesState>()(
     { name: 'mixle-favorites', version: 1 },
   ),
 );
+
+syncAcrossTabs(useFavorites, 'mixle-favorites');
 
 interface RecentlyViewedState {
   ids: string[];

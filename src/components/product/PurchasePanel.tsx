@@ -10,6 +10,7 @@ import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import { FavoriteButton } from './FavoriteButton';
 import { stockLabel, type Selection } from '@/lib/commerce';
 import { VariantOptions } from './VariantOptions';
+import { CampaignBox, type ProductCampaign } from './CampaignBox';
 import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
@@ -24,9 +25,11 @@ interface Props {
   qty: number;
   onSelect: (next: Selection) => void;
   onQty: (n: number) => void;
+  campaigns?: ProductCampaign[];
+  renderedAt?: number;
 }
 
-export function PurchasePanel({ product, variant, selection, qty, onSelect, onQty }: Props) {
+export function PurchasePanel({ product, variant, selection, qty, onSelect, onQty, campaigns = [], renderedAt = 0 }: Props) {
   const router = useRouter();
   const add = useCart((s) => s.add);
   const openCart = useUI((s) => s.openCart);
@@ -80,6 +83,8 @@ export function PurchasePanel({ product, variant, selection, qty, onSelect, onQt
           Fiyata KDV dahildir.
         </p>
       </div>
+
+      <CampaignBox campaigns={campaigns} renderedAt={renderedAt} />
 
       <div className="mt-6 space-y-5">
         <VariantOptions product={product} selection={selection} onChange={onSelect} />

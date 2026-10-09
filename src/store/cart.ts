@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartLine } from '@/types';
+import { syncAcrossTabs } from './sync-tabs';
 
 const PROMO_CODES: Record<string, { type: 'percent' | 'amount'; value: number; label: string }> = {
   NEFIS10: { type: 'percent', value: 0.1, label: '%10 indirim' },
@@ -86,6 +87,8 @@ export const useCart = create<CartState>()(
     { name: 'mixle-cart', version: 1 },
   ),
 );
+
+syncAcrossTabs(useCart, 'mixle-cart');
 
 export function promoInfo(code: string | null) {
   if (!code) return null;

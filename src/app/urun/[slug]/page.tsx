@@ -11,6 +11,7 @@ import { PreviewBanner } from '@/components/product/PreviewBanner';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/seo';
 import type { ProductStatus } from '@/types/admin';
+import { getProductCampaigns } from '@/server/discounts/product-campaigns';
 
 type Params = Promise<{ slug: string }>;
 
@@ -64,6 +65,7 @@ export default async function ProductPage({ params }: { params: Params }) {
   }
   if (!product) notFound();
 
+  const { campaigns, renderedAt } = await getProductCampaigns(product);
   const category = categories.find((c) => c.slug === product.category);
   const related = product.relatedProductIds
     .map((id) => products.find((p) => p.id === id))
@@ -95,7 +97,7 @@ export default async function ProductPage({ params }: { params: Params }) {
       />
 
       <div className="mt-6">
-        <ProductDetailClient product={product} />
+        <ProductDetailClient product={product} campaigns={campaigns} renderedAt={renderedAt} />
       </div>
 
       <div className="mt-14 border-t border-line pt-10">

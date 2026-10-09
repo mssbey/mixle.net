@@ -8,7 +8,7 @@ import 'server-only';
 import { z } from 'zod';
 import { computeTotals, type OrderTotals } from './totals';
 import { cartLineSchema, priceCart, resolveCoupon, type PricedCart } from './pricing';
-import { quoteShipping, type ShippingQuote } from '../pricing/shipping-rates';
+import { freeShippingThreshold, quoteShipping, type ShippingQuote } from '../pricing/shipping-rates';
 import type { CouponOutcome } from '../pricing/coupons';
 import { evaluateDiscountRules, type AppliedDiscount } from '../pricing/discount-rules';
 import { loadActiveDiscountRules } from '../discounts/rules';
@@ -54,6 +54,8 @@ export interface CheckoutQuote {
   coupon: CouponOutcome | null;
   /** Kod gerektirmeden otomatik uygulanan indirim kuralları. */
   appliedDiscounts: AppliedDiscount[];
+  /** Ücretsiz kargoya kalan tutar, kuruş. Eşik yoksa, aşıldıysa veya kargo zaten ücretsizse null. */
+  freeShippingRemainingMinor: number | null;
   paymentOptions: PaymentOption[];
   selectedPayment: PaymentMethodId | null;
   /** Kullanıcıya gösterilecek uyarılar (stok düşürüldü, kupon reddedildi …). */
@@ -113,6 +115,15 @@ export async function buildQuote(
   // ve tersi: kapıda kargo seçildiyse ödeme kapıda olmalı.
   const selectedShipping =
     shippingOptions.find((s) => s.methodId === input.shippingMethodId) ?? null;
+
+  const threshold = freeShippingThreshold(zones, {
+    country: input.country || 'TR',
+    city: input.city,
+    methodId: selectedShipping?.methodId,
+  });
+  const alreadyFree = Boolean(coupon?.ok && coupon.freeShipping) || (selectedShipping != null && selectedShipping.priceMinor === 0);
+  const remaining = threshold != null ? threshold - (subtotal - discount) : 0;
+  const freeShippingRemainingMinor = !alreadyFree && remaining > 0 ? remaining : null;
 
   const grandBeforeSurcharge = subtotal - discount + (selectedShipping?.priceMinor ?? 0);
   const pay = await getPaymentSettings();
@@ -202,6 +213,7 @@ export async function buildQuote(
     selectedShipping,
     coupon,
     appliedDiscounts: ruleOutcome.applied,
+    freeShippingRemainingMinor,
     paymentOptions,
     selectedPayment,
     problems,

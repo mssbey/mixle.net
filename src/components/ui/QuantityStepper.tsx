@@ -1,6 +1,6 @@
 'use client';
 
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -10,10 +10,13 @@ interface Props {
   max?: number;
   size?: 'sm' | 'md';
   className?: string;
+  /** Verilirse adet en azdayken "−" kapanmaz; basınca bu çağrılır (sepetten çıkar). */
+  onRemove?: () => void;
 }
 
-export function QuantityStepper({ value, onChange, min = 1, max = 99, size = 'md', className }: Props) {
+export function QuantityStepper({ value, onChange, min = 1, max = 99, size = 'md', className, onRemove }: Props) {
   const dim = size === 'sm' ? 'h-8 w-8' : 'h-10 w-10';
+  const removes = !!onRemove && value <= min;
   const btn =
     'grid place-items-center rounded text-ink transition-colors hover:bg-mist disabled:opacity-30 disabled:hover:bg-transparent';
   return (
@@ -26,11 +29,11 @@ export function QuantityStepper({ value, onChange, min = 1, max = 99, size = 'md
       <button
         type="button"
         className={cn(btn, dim)}
-        onClick={() => onChange(Math.max(min, value - 1))}
-        disabled={value <= min}
-        aria-label="Adet azalt"
+        onClick={() => (removes ? onRemove?.() : onChange(Math.max(min, value - 1)))}
+        disabled={value <= min && !removes}
+        aria-label={removes ? 'Ürünü sepetten çıkar' : 'Adet azalt'}
       >
-        <Minus size={size === 'sm' ? 14 : 16} />
+        {removes ? <Trash2 size={size === 'sm' ? 13 : 15} /> : <Minus size={size === 'sm' ? 14 : 16} />}
       </button>
       <input
         type="text"

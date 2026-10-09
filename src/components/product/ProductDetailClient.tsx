@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import type { Product } from '@/types';
 import { Gallery } from './Gallery';
+import { Badge } from '@/components/ui/Badge';
+import type { ProductCampaign } from './CampaignBox';
 import { PurchasePanel } from './PurchasePanel';
 import { initialSelection, variantFor, type Selection } from '@/lib/commerce';
 import { useCart } from '@/store/cart';
@@ -10,7 +12,15 @@ import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
 import { currency } from '@/lib/site';
 
-export function ProductDetailClient({ product }: { product: Product }) {
+export function ProductDetailClient({
+  product,
+  campaigns = [],
+  renderedAt = 0,
+}: {
+  product: Product;
+  campaigns?: ProductCampaign[];
+  renderedAt?: number;
+}) {
   const [selection, setSelection] = useState<Selection>(() => initialSelection(product));
   const [qty, setQty] = useState(1);
 
@@ -32,6 +42,7 @@ export function ProductDetailClient({ product }: { product: Product }) {
         images={galleryImages}
         productName={product.name}
         activeHint={variant.id}
+        badge={product.badges.includes('yeni') ? <Badge kind="yeni" className="px-2.5 py-1 text-[13px] shadow-card" /> : undefined}
       />
       <PurchasePanel
         product={product}
@@ -43,6 +54,8 @@ export function ProductDetailClient({ product }: { product: Product }) {
           setQty(1);
         }}
         onQty={setQty}
+        campaigns={campaigns}
+        renderedAt={renderedAt}
       />
 
       {/* Mobil sabit sepete ekle çubuğu — alt navigasyonun üstünde */}

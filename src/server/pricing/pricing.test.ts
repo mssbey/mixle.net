@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { allocateMinor, parseMajorInput, taxFromGross, taxFromNet, toMinor } from '@/lib/money';
 import { taxBreakdown, taxLine } from './tax';
 import { evaluateCoupon, normalizeCouponCode, type CouponRule } from './coupons';
-import { matchZone, quoteShipping, type ShippingZoneRule } from './shipping-rates';
+import { freeShippingThreshold, matchZone, quoteShipping, type ShippingZoneRule } from './shipping-rates';
 
 describe('para yardımcıları', () => {
   it('TL → kuruş dönüşümü ikilik hatalarını kapatır', () => {
@@ -310,5 +310,17 @@ describe('kargo tarife motoru', () => {
     });
     expect(qs.find((q) => q.methodId === 'ist-std')).toMatchObject({ priceMinor: 0, freeReason: 'kupon' });
     expect(qs.find((q) => q.methodId === 'ist-kapida')?.priceMinor).toBe(6990);
+  });
+});
+
+describe('ücretsiz kargo eşiği', () => {
+  it('il yokken ülkedeki en düşük eşik (kapıda hariç)', () => {
+    expect(freeShippingThreshold(zones, { country: 'TR' })).toBe(75000);
+  });
+  it('il eşleşen bölgede eşik yoksa null', () => {
+    expect(freeShippingThreshold(zones, { country: 'TR', city: 'İzmir' })).toBeNull();
+  });
+  it('seçili yöntemin eşiği esas alınır', () => {
+    expect(freeShippingThreshold(zones, { country: 'TR', city: 'İstanbul', methodId: 'ist-std' })).toBe(75000);
   });
 });

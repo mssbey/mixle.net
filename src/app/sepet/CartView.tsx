@@ -96,6 +96,7 @@ export function CartView() {
                   <QuantityStepper
                     value={line.qty}
                     onChange={(n) => setQty(line.key, n)}
+                    onRemove={() => remove(line.key)}
                     size="sm"
                     max={Math.max(1, line.variant.stockCount || 99)}
                   />

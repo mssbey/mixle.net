@@ -89,6 +89,8 @@ export interface QuoteResponse {
     type: 'sepet-yuzde' | 'x-al-y-ode';
     discountMinor: number;
   }[];
+  /** Ücretsiz kargoya kalan tutar, kuruş; yoksa null. */
+  freeShippingRemainingMinor: number | null;
   paymentOptions: {
     id: 'kart' | 'havale' | 'kapida';
     label: string;

@@ -61,7 +61,8 @@ export function HomeProductCard({
           />
         </Link>
 
-        <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1">
+        {/* Rozetler sağ altta: sol üstteki ürün görseli yazılarını (ör. marka adı) kapatmasın. */}
+        <div className="pointer-events-none absolute bottom-2 right-2 flex flex-col items-end gap-1">
           {pct > 0 && <span className="rounded-md bg-[#e31213] px-2 py-0.5 text-[10px] font-bold text-white">%{pct} İndirim</span>}
           {product.badges.includes('cok-satan') && (
             <span className="rounded-md bg-[#f59e0b] px-2 py-0.5 text-[10px] font-bold text-white">🔥 Çok Satan</span>

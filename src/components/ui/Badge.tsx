@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import type { BadgeKind } from '@/types';
 
 const config: Record<BadgeKind, { label: string; className: string }> = {
-  yeni: { label: 'Yeni', className: 'bg-ink text-white' },
+  yeni: { label: 'Yeni', className: 'bg-[#10b981] text-white' },
   'cok-satan': { label: 'Çok Satan', className: 'bg-gold-400 text-ink' },
   'sinirli-seri': { label: 'Özel Seri', className: 'bg-purple-800 text-white' },
   indirim: { label: 'İndirim', className: 'bg-brand-500 text-white' },

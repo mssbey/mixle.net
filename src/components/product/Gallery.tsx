@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Expand, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -14,10 +14,13 @@ export function Gallery({
   images,
   productName,
   activeHint,
+  badge,
 }: {
   images: ProductImage[];
   productName: string;
   activeHint?: string;
+  /** Ana görselin sağ altında gösterilir (ör. "Yeni" rozeti) — kartlardaki konumla aynı. */
+  badge?: ReactNode;
 }) {
   const [active, setActive] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
@@ -74,19 +77,23 @@ export function Gallery({
           >
             <Expand size={17} />
           </button>
+          {badge && <div className="pointer-events-none absolute bottom-3 right-3 z-10">{badge}</div>}
         </div>
       </div>
 
       {/* Mobil: swipe galeri */}
       <div className="sm:hidden">
-        <div className="overflow-hidden rounded-lg border border-line" ref={emblaRef}>
-          <div className="flex">
-            {images.map((img, i) => (
-              <div key={img.src} className="relative aspect-square min-w-0 shrink-0 grow-0 basis-full bg-mist">
-                <Image src={img.src} alt={img.alt || productName} fill loading={i === 0 ? "eager" : "lazy"} sizes="100vw" className="object-contain bg-white" />
-              </div>
-            ))}
+        <div className="relative">
+          <div className="overflow-hidden rounded-lg border border-line" ref={emblaRef}>
+            <div className="flex">
+              {images.map((img, i) => (
+                <div key={img.src} className="relative aspect-square min-w-0 shrink-0 grow-0 basis-full bg-mist">
+                  <Image src={img.src} alt={img.alt || productName} fill loading={i === 0 ? "eager" : "lazy"} sizes="100vw" className="object-contain bg-white" />
+                </div>
+              ))}
+            </div>
           </div>
+          {badge && <div className="pointer-events-none absolute bottom-2.5 right-2.5 z-10">{badge}</div>}
         </div>
         <div className="mt-3 flex justify-center gap-1.5">
           {images.map((_, i) => (

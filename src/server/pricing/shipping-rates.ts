@@ -140,3 +140,23 @@ export function quoteShipping(zones: ShippingZoneRule[], ctx: ShippingContext): 
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((m) => quoteMethod(m, ctx));
 }
+
+/**
+ * Ücretsiz kargo eşiği, kuruş. Yöntem seçildiyse onun eşiği; seçilmediyse adrese
+ * uyan bölgedeki (il yoksa ülkedeki tüm bölgelerdeki) en düşük eşik. Kapıda ödeme
+ * kargosu hariç. Eşik yoksa null.
+ */
+export function freeShippingThreshold(
+  zones: ShippingZoneRule[],
+  opts: { country: string; city?: string; methodId?: string | null },
+): number | null {
+  const c = norm(opts.country || 'TR');
+  const pool = opts.city
+    ? [matchZone(zones, opts.country, opts.city)].filter((z): z is ShippingZoneRule => !!z)
+    : zones.filter((z) => z.countries.length === 0 || z.countries.map(norm).includes(c));
+  const methods = pool.flatMap((z) => z.methods).filter((m) => m.isActive && m.type !== 'kapıda' && m.type !== 'ücretsiz');
+  const selected = opts.methodId ? methods.find((m) => m.id === opts.methodId) : undefined;
+  if (selected) return selected.freeOverMinor;
+  const thresholds = methods.map((m) => m.freeOverMinor).filter((n): n is number => n != null && n > 0);
+  return thresholds.length ? Math.min(...thresholds) : null;
+}
