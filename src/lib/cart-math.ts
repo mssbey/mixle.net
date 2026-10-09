@@ -1,6 +1,7 @@
 import type { CartLine, CartLineDetailed, Product } from '@/types';
 import { promoInfo } from '@/store/cart';
 import { site } from '@/lib/site';
+import type { CartCampaigns } from '@/lib/cart-quote';
 
 /**
  * Sepet satırlarını ürün verisiyle eşler. Ürün listesi parametreyle gelir:
@@ -29,13 +30,22 @@ export interface CartSummary {
   subtotal: number;
   productSavings: number;
   promoDiscount: number;
+  /** Otomatik kampanya indirimi (sunucu teklifinden), TL. */
+  campaignDiscount: number;
+  campaigns: CartCampaigns['applied'];
+  /** Ücretsiz kargo eşiği, TL (sunucudan; teklif yoksa site varsayılanı). Eşik tanımlı değilse null. */
+  freeShippingThreshold: number | null;
   promoLabel: string | null;
   shipping: number;
   freeShippingRemaining: number;
   total: number;
 }
 
-export function summarize(lines: CartLineDetailed[], promo: string | null): CartSummary {
+export function summarize(
+  lines: CartLineDetailed[],
+  promo: string | null,
+  campaigns: CartCampaigns | null = null,
+): CartSummary {
   const itemCount = lines.reduce((s, l) => s + l.qty, 0);
   const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
   const productSavings = lines.reduce((s, l) => s + (l.lineOldTotal - l.lineTotal), 0);
@@ -47,16 +57,23 @@ export function summarize(lines: CartLineDetailed[], promo: string | null): Cart
       info.type === 'percent' ? Math.round(subtotal * info.value * 100) / 100 : Math.min(info.value, subtotal);
   }
 
-  const afterPromo = Math.max(0, subtotal - promoDiscount);
-  const { freeShippingThreshold, shippingFee } = site.commerce;
-  const shipping = afterPromo === 0 || afterPromo >= freeShippingThreshold ? 0 : shippingFee;
-  const freeShippingRemaining = Math.max(0, freeShippingThreshold - afterPromo);
+  // Kampanyalar boş sepette sıfır; eşik indirimler düştükten sonraki tutara uygulanır.
+  const campaignDiscount = subtotal > 0 ? Math.min(campaigns?.discount ?? 0, subtotal) : 0;
+  const afterPromo = Math.max(0, subtotal - campaignDiscount - promoDiscount);
+  const freeShippingThreshold = campaigns ? campaigns.freeShippingThreshold : site.commerce.freeShippingThreshold;
+  const { shippingFee } = site.commerce;
+  const reached = freeShippingThreshold != null && afterPromo >= freeShippingThreshold;
+  const shipping = afterPromo === 0 || reached ? 0 : shippingFee;
+  const freeShippingRemaining = freeShippingThreshold == null ? 0 : Math.max(0, freeShippingThreshold - afterPromo);
 
   return {
     itemCount,
     subtotal,
     productSavings,
     promoDiscount,
+    campaignDiscount,
+    campaigns: campaignDiscount > 0 ? campaigns?.applied.filter((c) => c.discount > 0) ?? [] : [],
+    freeShippingThreshold,
     promoLabel: info?.label ?? null,
     shipping,
     freeShippingRemaining,

@@ -11,8 +11,9 @@ import { useUI } from '@/store/ui';
 import { useCart } from '@/store/cart';
 import { useMounted } from '@/lib/hooks';
 import { detailLines, summarize } from '@/lib/cart-math';
+import { useCartCampaigns } from '@/lib/cart-quote';
 import { useSlimProducts } from '@/components/catalog/CatalogProvider';
-import { currency, site } from '@/lib/site';
+import { currency } from '@/lib/site';
 import { variantLabel } from '@/lib/commerce';
 import { clamp } from '@/lib/utils';
 
@@ -25,12 +26,11 @@ export function CartDrawer() {
   // Katalog yalnızca çekmece açıldığında indirilir.
   const { products, loading } = useSlimProducts(cartOpen);
   const detailed = mounted && !loading ? detailLines(lines, products) : [];
-  const summary = summarize(detailed, promo);
-  const progress = clamp(
-    (1 - summary.freeShippingRemaining / site.commerce.freeShippingThreshold) * 100,
-    0,
-    100,
-  );
+  const campaigns = useCartCampaigns(lines, mounted && cartOpen);
+  const summary = summarize(detailed, promo, campaigns);
+  const progress = summary.freeShippingThreshold
+    ? clamp((1 - summary.freeShippingRemaining / summary.freeShippingThreshold) * 100, 0, 100)
+    : 100;
 
   return (
     <Drawer open={cartOpen} onClose={closeCart} label="Sepetiniz" side="right" title={
@@ -133,6 +133,12 @@ export function CartDrawer() {
               <span className="text-ink-soft">Ara toplam</span>
               <span className="font-semibold tabular-nums text-ink">{currency(summary.subtotal)}</span>
             </div>
+            {summary.campaigns.map((c) => (
+              <div key={c.id} className="flex items-center justify-between text-sm text-emerald-600">
+                <span>{c.name}</span>
+                <span className="tabular-nums">−{currency(c.discount)}</span>
+              </div>
+            ))}
             {summary.promoDiscount > 0 && (
               <div className="flex items-center justify-between text-sm text-emerald-600">
                 <span>İndirim kodu ({promo})</span>

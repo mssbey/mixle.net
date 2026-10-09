@@ -8,11 +8,12 @@ import { Trash2, ShoppingBag, Tag, ArrowRight } from 'lucide-react';
 import { useCart } from '@/store/cart';
 import { useMounted } from '@/lib/hooks';
 import { detailLines, summarize } from '@/lib/cart-math';
+import { useCartCampaigns } from '@/lib/cart-quote';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import { ButtonLink } from '@/components/ui/Button';
 import { RelatedRail } from '@/components/product/RelatedRail';
-import { currency, site } from '@/lib/site';
+import { currency } from '@/lib/site';
 import { variantLabel } from '@/lib/commerce';
 import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { toast } from '@/store/toast';
@@ -28,8 +29,11 @@ export function CartView() {
   const { products, loading } = useSlimProducts();
   const ready = mounted && !loading;
   const detailed = ready ? detailLines(lines, products) : [];
-  const summary = summarize(detailed, promo);
-  const progress = clamp((1 - summary.freeShippingRemaining / site.commerce.freeShippingThreshold) * 100, 0, 100);
+  const campaigns = useCartCampaigns(lines, mounted);
+  const summary = summarize(detailed, promo, campaigns);
+  const progress = summary.freeShippingThreshold
+    ? clamp((1 - summary.freeShippingRemaining / summary.freeShippingThreshold) * 100, 0, 100)
+    : 100;
 
   if (ready && detailed.length === 0) {
     return (
@@ -172,6 +176,12 @@ export function CartView() {
               <span>−{currency(summary.productSavings)}</span>
             </div>
           )}
+          {summary.campaigns.map((c) => (
+            <div key={c.id} className="flex justify-between text-success">
+              <span>{c.name}</span>
+              <span>−{currency(c.discount)}</span>
+            </div>
+          ))}
           {summary.promoDiscount > 0 && (
             <div className="flex justify-between text-success">
               <span>Kod indirimi</span>

@@ -91,6 +91,8 @@ export interface QuoteResponse {
   }[];
   /** Ücretsiz kargoya kalan tutar, kuruş; yoksa null. */
   freeShippingRemainingMinor: number | null;
+  /** Ücretsiz kargo eşiği, kuruş; yoksa null. */
+  freeShippingThresholdMinor: number | null;
   paymentOptions: {
     id: 'kart' | 'havale' | 'kapida';
     label: string;

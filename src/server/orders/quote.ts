@@ -56,6 +56,8 @@ export interface CheckoutQuote {
   appliedDiscounts: AppliedDiscount[];
   /** Ücretsiz kargoya kalan tutar, kuruş. Eşik yoksa, aşıldıysa veya kargo zaten ücretsizse null. */
   freeShippingRemainingMinor: number | null;
+  /** Ücretsiz kargo eşiği (indirimler düşüldükten sonraki tutara uygulanır), kuruş; yoksa null. */
+  freeShippingThresholdMinor: number | null;
   paymentOptions: PaymentOption[];
   selectedPayment: PaymentMethodId | null;
   /** Kullanıcıya gösterilecek uyarılar (stok düşürüldü, kupon reddedildi …). */
@@ -214,6 +216,7 @@ export async function buildQuote(
     coupon,
     appliedDiscounts: ruleOutcome.applied,
     freeShippingRemainingMinor,
+    freeShippingThresholdMinor: threshold,
     paymentOptions,
     selectedPayment,
     problems,

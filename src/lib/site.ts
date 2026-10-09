@@ -29,7 +29,7 @@ export const site = {
   },
   // Kargo / kampanya — örnek değerler
   commerce: {
-    freeShippingThreshold: 750,
+    freeShippingThreshold: 1500,
     shippingFee: 54.9,
     currency: 'TRY',
     currencySymbol: '₺',
