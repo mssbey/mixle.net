@@ -10,7 +10,7 @@ import { productStatuses, statusLabels } from '@/types/admin';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { PriceAdjustDialog } from '@/components/admin/PriceAdjustDialog';
-import { EmptyState, StatusToggle, TableSkeleton } from '@/components/admin/primitives';
+import { EmptyState, Pagination, StatusToggle, TableSkeleton } from '@/components/admin/primitives';
 import { categoryTree, listProducts, type ProductQuery } from '@/lib/admin/mutations';
 import { COLLECTIONS_ENABLED } from '@/lib/admin/features';
 import { localId, priceRangeOf } from '@/lib/admin/variants';
@@ -133,13 +133,24 @@ function ProductsView() {
     setTogglingId(null);
   };
 
+  // Filtre, sıralama ve sayfa adreste tutulur: sayfa yenilenince (F5) ya da
+  // ürün düzenlemeden geri dönülünce liste aynı yerden açılır.
+  const sortKeys = ['created', 'updated', 'name', 'price', 'stock'] as const;
+  const initialSort = params.get('sort') as NonNullable<ProductQuery['sort']> | null;
   const [search, setSearch] = useState(params.get('search') ?? '');
-  const [categoryId, setCategoryId] = useState('');
-  const [collectionId, setCollectionId] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ProductStatus | 'all'>('all');
-  const [sort, setSort] = useState<NonNullable<ProductQuery['sort']>>('created');
-  const [dir, setDir] = useState<NonNullable<ProductQuery['dir']>>('desc');
-  const [page, setPage] = useState(1);
+  const [categoryId, setCategoryId] = useState(params.get('kategori') ?? '');
+  const [collectionId, setCollectionId] = useState(params.get('koleksiyon') ?? '');
+  const [statusFilter, setStatusFilter] = useState<ProductStatus | 'all'>(() => {
+    const s = params.get('durum') as ProductStatus | null;
+    return s && productStatuses.includes(s) ? s : 'all';
+  });
+  const [sort, setSort] = useState<NonNullable<ProductQuery['sort']>>(
+    initialSort && (sortKeys as readonly string[]).includes(initialSort) ? initialSort : 'created',
+  );
+  const [dir, setDir] = useState<NonNullable<ProductQuery['dir']>>(
+    params.get('yon') === 'asc' ? 'asc' : 'desc',
+  );
+  const [page, setPage] = useState(() => Math.max(1, Number(params.get('sayfa')) || 1));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -148,9 +159,44 @@ function ProductsView() {
 
   const debouncedSearch = useDebounced(search, 200);
 
+  // Filtre değişince ilk sayfaya dön; ilk açılışta adresteki sayfa korunur.
+  const filterKey = [debouncedSearch, categoryId, collectionId, statusFilter, sort, dir].join('|');
+  const prevFilterKey = useRef(filterKey);
   useEffect(() => {
+    if (prevFilterKey.current === filterKey) return;
+    prevFilterKey.current = filterKey;
     setPage(1);
-  }, [debouncedSearch, categoryId, collectionId, statusFilter, sort, dir]);
+  }, [filterKey]);
+
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    if (debouncedSearch) qs.set('search', debouncedSearch);
+    if (categoryId) qs.set('kategori', categoryId);
+    if (collectionId) qs.set('koleksiyon', collectionId);
+    if (statusFilter !== 'all') qs.set('durum', statusFilter);
+    if (sort !== 'created') qs.set('sort', sort);
+    if (dir !== 'desc') qs.set('yon', dir);
+    if (page > 1) qs.set('sayfa', String(page));
+    const next = qs.size ? `?${qs.toString()}` : '';
+    if (next !== window.location.search) router.replace(`/admin/urunler${next}`, { scroll: false });
+  }, [debouncedSearch, categoryId, collectionId, statusFilter, sort, dir, page, router]);
+
+  // Ürünler başka sekmede düzenlenebildiği için sekmeye dönünce liste
+  // sessizce tazelenir (görsel, fiyat, stok güncel görünür).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void reload({ silent: true });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [reload]);
+
+  // Sayfa geçişi: listeyi tazele ve tablonun başına çık.
+  const goToPage = (next: number) => {
+    setPage(next);
+    void reload({ silent: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const result = useMemo(() => {
     if (!catalog) return null;
@@ -670,29 +716,7 @@ function ProductsView() {
           </div>
 
           {/* Sayfalama */}
-          {result.pageCount > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <button
-                type="button"
-                className="admin-btn admin-btn-ghost admin-btn-sm"
-                disabled={result.page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Önceki
-              </button>
-              <span className="text-xs text-[var(--admin-ink-soft)]">
-                {result.page} / {result.pageCount}
-              </span>
-              <button
-                type="button"
-                className="admin-btn admin-btn-ghost admin-btn-sm"
-                disabled={result.page >= result.pageCount}
-                onClick={() => setPage((p) => Math.min(result.pageCount, p + 1))}
-              >
-                Sonraki
-              </button>
-            </div>
-          )}
+          <Pagination page={result.page} pageCount={result.pageCount} onChange={goToPage} />
         </>
       )}
 

@@ -23,6 +23,7 @@ import { MegaMenu } from './MegaMenu';
 import { MobileMenu } from './MobileMenu';
 import { MiniCart } from './MiniCart';
 import type { NavLink } from '@/data/nav';
+import type { MegaMenuContent } from '@/lib/mega-menu';
 import type { StorefrontContact } from '@/lib/storefront';
 import { useUI } from '@/store/ui';
 import { useCart } from '@/store/cart';
@@ -38,7 +39,15 @@ const HEADER_COLLAPSE_AT_MIN = 160;
 /** …ve ancak bu kadar yukarı çıkılınca tekrar açılır. */
 const HEADER_EXPAND_AT = 16;
 
-export function Header({ contact, navLinks }: { contact: StorefrontContact; navLinks: NavLink[] }) {
+export function Header({
+  contact,
+  navLinks,
+  megaMenu,
+}: {
+  contact: StorefrontContact;
+  navLinks: NavLink[];
+  megaMenu: MegaMenuContent | null;
+}) {
   const pathname = usePathname();
   const isHome = useIsHome();
   const router = useRouter();
@@ -353,7 +362,7 @@ export function Header({ contact, navLinks }: { contact: StorefrontContact; navL
         <AnimatePresence>
           {megaOpen && (
             <div onMouseEnter={openMega} onMouseLeave={closeMega}>
-              <MegaMenu onNavigate={() => setMegaOpen(false)} />
+              <MegaMenu content={megaMenu} onNavigate={() => setMegaOpen(false)} />
             </div>
           )}
         </AnimatePresence>

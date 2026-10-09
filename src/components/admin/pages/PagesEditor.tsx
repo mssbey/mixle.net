@@ -1,6 +1,6 @@
 'use client';
 
-// Panel > Sayfalar: SSS, ana sayfa kampanya bandı metni ve üst menü linkleri.
+// Panel > Sayfalar: SSS, ana sayfa kampanya bandı metni, üst menü linkleri ve mega menü.
 
 import { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Save, Trash2 } from 'lucide-react';
@@ -9,6 +9,7 @@ import { TableSkeleton, Field } from '@/components/admin/primitives';
 import { pagesApi, type CampaignContent, type FaqContent, type FaqGroup, type NavMenuContent, type NavMenuLink } from '@/lib/admin/pages-client';
 import { ApiError } from '@/lib/admin/client';
 import { toast } from '@/store/toast';
+import { MegaMenuEditor } from './MegaMenuEditor';
 
 function FaqEditor({ canWrite }: { canWrite: boolean }) {
   const [data, setData] = useState<FaqContent | null>(null);
@@ -212,7 +213,7 @@ function NavMenuEditor({ canWrite }: { canWrite: boolean }) {
 export function PagesEditor() {
   const { status, can } = useAdminData();
   const canWrite = can('ayar:yaz');
-  const [tab, setTab] = useState<'sss' | 'kampanya' | 'menu'>('sss');
+  const [tab, setTab] = useState<'sss' | 'kampanya' | 'menu' | 'mega'>('sss');
 
   if (status === 'loading') return <TableSkeleton rows={4} />;
 
@@ -220,11 +221,11 @@ export function PagesEditor() {
     <div className="flex flex-col gap-3">
       <header>
         <h1 className="text-lg font-semibold text-[var(--brand-purple-deep)]">Sayfalar</h1>
-        <p className="admin-hint mt-0.5">SSS, ana sayfa kampanya bandı ve üst menü linkleri. Diğer vitrin metinleri (rehber, hakkımızda, yorumlar) bu sürümde panelden düzenlenemez.</p>
+        <p className="admin-hint mt-0.5">SSS, ana sayfa kampanya bandı, üst menü linkleri ve &quot;Tüm Kategoriler&quot; menüsü. Diğer vitrin metinleri (rehber, hakkımızda, yorumlar) bu sürümde panelden düzenlenemez.</p>
       </header>
 
       <div role="tablist" aria-label="İçerik" className="flex flex-wrap gap-1 border-b border-[var(--admin-border)]">
-        {([['sss', 'SSS'], ['kampanya', 'Kampanya bandı'], ['menu', 'Üst menü']] as const).map(([id, label]) => (
+        {([['sss', 'SSS'], ['kampanya', 'Kampanya bandı'], ['menu', 'Üst menü'], ['mega', 'Tüm Kategoriler menüsü']] as const).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id}
             className={`admin-focusable -mb-px border-b-2 px-3 py-2 text-sm ${tab === id ? 'border-[var(--brand-purple)] font-semibold text-[var(--brand-purple-deep)]' : 'border-transparent text-[var(--admin-ink-soft)]'}`}
             onClick={() => setTab(id)}>
@@ -233,7 +234,15 @@ export function PagesEditor() {
         ))}
       </div>
 
-      {tab === 'sss' ? <FaqEditor canWrite={canWrite} /> : tab === 'kampanya' ? <CampaignEditor canWrite={canWrite} /> : <NavMenuEditor canWrite={canWrite} />}
+      {tab === 'sss' ? (
+        <FaqEditor canWrite={canWrite} />
+      ) : tab === 'kampanya' ? (
+        <CampaignEditor canWrite={canWrite} />
+      ) : tab === 'menu' ? (
+        <NavMenuEditor canWrite={canWrite} />
+      ) : (
+        <MegaMenuEditor canWrite={canWrite} />
+      )}
     </div>
   );
 }

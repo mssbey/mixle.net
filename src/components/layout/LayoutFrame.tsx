@@ -6,6 +6,7 @@ import { useIsHome } from '@/lib/hooks';
 import type { Category, Collection } from '@/types';
 import type { StorefrontContact } from '@/lib/storefront';
 import type { NavLink } from '@/data/nav';
+import type { MegaMenuContent } from '@/lib/mega-menu';
 import type { FlavorProfileDef } from '@/lib/flavor-profiles';
 import { CatalogProvider } from '@/components/catalog/CatalogProvider';
 import { Header } from '@/components/layout/Header';
@@ -27,6 +28,7 @@ export function LayoutFrame({
   flavorProfiles,
   contact,
   navLinks,
+  megaMenu,
   children,
 }: {
   categories: Category[];
@@ -34,6 +36,8 @@ export function LayoutFrame({
   flavorProfiles: FlavorProfileDef[];
   contact: StorefrontContact;
   navLinks: NavLink[];
+  /** Panelden düzenlenen mega menü; null ise kategori ağacından varsayılan. */
+  megaMenu: MegaMenuContent | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -52,7 +56,7 @@ export function LayoutFrame({
       >
         İçeriğe geç
       </a>
-      <Header contact={contact} navLinks={navLinks} />
+      <Header contact={contact} navLinks={navLinks} megaMenu={megaMenu} />
       <main id="main" className="pb-16 lg:pb-0">
         {children}
       </main>

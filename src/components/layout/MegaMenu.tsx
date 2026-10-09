@@ -4,14 +4,18 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { m } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
-import { buildMegaMenuColumns, buildMegaMenuCollections } from '@/data/nav';
+import { buildMegaMenuCollections } from '@/data/nav';
+import { defaultMegaMenu, resolveMegaMenu, type MegaMenuContent } from '@/lib/mega-menu';
 import { useTaxonomy } from '@/components/catalog/CatalogProvider';
 
-export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
+export function MegaMenu({ content, onNavigate }: { content: MegaMenuContent | null; onNavigate: () => void }) {
   const { categories, collections } = useTaxonomy();
-  const megaMenuColumns = buildMegaMenuColumns(categories);
-  const megaMenuCollections = buildMegaMenuCollections(collections);
+  // Panelden düzenlenen yapı (Sayfalar > Mega menü); kayıt yoksa eski sabit düzen.
+  const menu = content ?? defaultMegaMenu(categories);
+  const megaMenuColumns = resolveMegaMenu(menu, categories).filter((c) => c.links.length > 0);
+  const megaMenuCollections = menu.showCollections ? buildMegaMenuCollections(collections) : [];
   const hasCollections = megaMenuCollections.length > 0;
+  const columnCount = Math.max(1, megaMenuColumns.length);
 
   return (
     <m.div
@@ -24,42 +28,42 @@ export function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
     >
       <div className="container-page">
         <div className="pointer-events-auto grid max-h-[calc(100dvh-180px)] w-full gap-5 overflow-y-auto overscroll-contain rounded-b-lg border border-t-0 border-line bg-white p-5 shadow-lift"
-          style={{ maxWidth: hasCollections ? 920 : 700, gridTemplateColumns: hasCollections ? '1fr 220px' : '1fr' }}
+          style={{
+            maxWidth: columnCount * 230 + (hasCollections ? 240 : 0),
+            gridTemplateColumns: hasCollections ? '1fr 220px' : '1fr',
+          }}
         >
-        <div className="grid grid-cols-3 gap-4">
-          {megaMenuColumns.map((col) => (
-            <div key={col.heading}>
-              <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">
-                {col.heading}
-              </h3>
+        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}>
+          {megaMenuColumns.map((col, ci) => (
+            <div key={ci}>
+              {col.heading && (
+                <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">
+                  {col.heading}
+                </h3>
+              )}
               <ul className="space-y-0.5">
-                {col.links.map((l) => (
-                  <li key={l.href + l.label}>
+                {col.links.map((l, li) => (
+                  <li key={`${li}-${l.href}`}>
                     <Link
                       href={l.href}
                       onClick={onNavigate}
                       className="group flex flex-col rounded-md px-2 py-1 transition-colors hover:bg-mist"
-                      style={
-                        'depth' in l && l.depth ? { paddingLeft: 8 + l.depth * 12 } : undefined
-                      }
+                      style={l.depth ? { paddingLeft: 8 + l.depth * 12 } : undefined}
                     >
                       <span
                         className={
-                          'depth' in l && l.depth
+                          l.depth
                             ? 'text-sm font-medium text-ink-soft group-hover:text-brand-500'
                             : 'text-sm font-semibold text-ink group-hover:text-brand-500'
                         }
                       >
-                        {'depth' in l && l.depth ? (
+                        {l.depth ? (
                           <span aria-hidden="true" className="mr-1 text-line">
                             └
                           </span>
                         ) : null}
                         {l.label}
                       </span>
-                      {'hint' in l && l.hint && !('depth' in l && l.depth) && (
-                        <span className="text-xs text-ink-soft">{l.hint}</span>
-                      )}
                     </Link>
                   </li>
                 ))}

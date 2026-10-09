@@ -17,7 +17,7 @@ import { Drawer } from '@/components/ui/Drawer';
 import { cn } from '@/lib/utils';
 import { sortVolumeLabels } from '@/lib/commerce';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 48;
 
 export function ProductBrowser({
   baseProducts,

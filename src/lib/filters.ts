@@ -6,6 +6,8 @@ export type SortKey =
   | 'cok-satan'
   | 'fiyat-artan'
   | 'fiyat-azalan'
+  | 'ad-artan'
+  | 'ad-azalan'
   | 'puan'
   | 'indirim';
 
@@ -15,6 +17,8 @@ export const sortOptions: { key: SortKey; label: string }[] = [
   { key: 'cok-satan', label: 'Çok satanlar' },
   { key: 'fiyat-artan', label: 'Fiyat: artan' },
   { key: 'fiyat-azalan', label: 'Fiyat: azalan' },
+  { key: 'ad-artan', label: 'İsim: A → Z' },
+  { key: 'ad-azalan', label: 'İsim: Z → A' },
   { key: 'puan', label: 'En yüksek puan' },
   { key: 'indirim', label: 'İndirim oranı' },
 ];
@@ -88,6 +92,12 @@ export function applyFilters(source: Product[], f: FilterState): Product[] {
     case 'fiyat-azalan':
       list = [...list].sort((a, b) => minVariantPrice(b) - minVariantPrice(a));
       break;
+    case 'ad-artan':
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'tr', { numeric: true }));
+      break;
+    case 'ad-azalan':
+      list = [...list].sort((a, b) => b.name.localeCompare(a.name, 'tr', { numeric: true }));
+      break;
     case 'puan':
       list = [...list].sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);
       break;
@@ -95,10 +105,10 @@ export function applyFilters(source: Product[], f: FilterState): Product[] {
       list = [...list].sort((a, b) => maxDiscount(b) - maxDiscount(a));
       break;
     default:
-      // Stoktakiler önce; ardından öne çıkan / çok satan / puan.
+      // Öne çıkan / çok satan / puan. Stokta olmayanlar sona itilmez; her ürün
+      // kendi yerinde "Tükendi" olarak görünür.
       list = [...list].sort(
         (a, b) =>
-          Number(b.stockStatus !== 'out-of-stock') - Number(a.stockStatus !== 'out-of-stock') ||
           Number(b.featured) - Number(a.featured) ||
           Number(b.bestSeller) - Number(a.bestSeller) ||
           b.rating - a.rating,

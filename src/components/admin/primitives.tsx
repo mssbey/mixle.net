@@ -133,3 +133,82 @@ export function SectionCard({
     </section>
   );
 }
+
+/** Gösterilecek sayfa numaraları; aradaki boşluklar `null` (… olarak çizilir). */
+function pageWindow(page: number, pageCount: number): (number | null)[] {
+  if (pageCount <= 9) return Array.from({ length: pageCount }, (_, i) => i + 1);
+  const pages = new Set([1, 2, page - 1, page, page + 1, pageCount - 1, pageCount]);
+  const sorted = [...pages].filter((p) => p >= 1 && p <= pageCount).sort((a, b) => a - b);
+  return sorted.flatMap((p, i) => (i > 0 && p - sorted[i - 1] > 1 ? [null, p] : [p]));
+}
+
+/** Önceki / numaralı sayfalar / Sonraki + doğrudan sayfaya git kutusu. */
+export function Pagination({
+  page,
+  pageCount,
+  onChange,
+}: {
+  page: number;
+  pageCount: number;
+  onChange: (page: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+  const go = (p: number) => {
+    const next = Math.min(pageCount, Math.max(1, Math.round(p)));
+    if (next !== page) onChange(next);
+  };
+  return (
+    <nav aria-label="Sayfalama" className="flex flex-wrap items-center justify-center gap-1.5">
+      <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={page <= 1} onClick={() => go(page - 1)}>
+        Önceki
+      </button>
+      {pageWindow(page, pageCount).map((p, i) =>
+        p === null ? (
+          <span key={`gap-${i}`} className="px-1 text-xs text-[var(--admin-ink-soft)]" aria-hidden="true">
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            type="button"
+            className={cn('admin-btn admin-btn-sm tabular-nums', p === page ? 'admin-btn-primary' : 'admin-btn-ghost')}
+            style={{ minWidth: 32, justifyContent: 'center' }}
+            aria-label={`${p}. sayfa`}
+            aria-current={p === page ? 'page' : undefined}
+            onClick={() => go(p)}
+          >
+            {p}
+          </button>
+        ),
+      )}
+      <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={page >= pageCount} onClick={() => go(page + 1)}>
+        Sonraki
+      </button>
+      <form
+        className="ml-2 flex items-center gap-1 text-xs text-[var(--admin-ink-soft)]"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const input = e.currentTarget.elements.namedItem('sayfa') as HTMLInputElement;
+          if (input.value) go(Number(input.value));
+          input.value = '';
+        }}
+      >
+        <label htmlFor="pagination-go">Sayfaya git</label>
+        <input
+          id="pagination-go"
+          name="sayfa"
+          type="number"
+          min={1}
+          max={pageCount}
+          placeholder={String(page)}
+          className="admin-input admin-btn-sm tabular-nums"
+          style={{ width: 64 }}
+          onWheel={(e) => e.currentTarget.blur()}
+        />
+        <button type="submit" className="admin-btn admin-btn-ghost admin-btn-sm">
+          Git
+        </button>
+      </form>
+    </nav>
+  );
+}
