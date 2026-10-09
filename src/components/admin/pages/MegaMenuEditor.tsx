@@ -1,7 +1,7 @@
 'use client';
 
 // Panel > Sayfalar > Mega menü: vitrindeki "Tüm Kategoriler" açılır menüsünün
-// sütunları, başlıkları, öğe sırası ve koleksiyon kutusu.
+// sütunları, başlıkları ve öğe sırası.
 
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, FolderTree, Link2, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
@@ -139,16 +139,6 @@ export function MegaMenuEditor({ canWrite }: { canWrite: boolean }) {
         )}
       </div>
       {error && <p className="admin-error" role="alert">{error}</p>}
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          disabled={!canWrite}
-          checked={data.showCollections}
-          onChange={(e) => setData({ ...data, showCollections: e.target.checked })}
-        />
-        Sağda &quot;Öne Çıkan Koleksiyonlar&quot; kutusunu göster
-      </label>
 
       {missing.length > 0 && (
         <div className="admin-card flex flex-wrap items-center gap-2" style={{ padding: 12 }}>

@@ -1,20 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { m } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
-import { buildMegaMenuCollections } from '@/data/nav';
 import { defaultMegaMenu, resolveMegaMenu, type MegaMenuContent } from '@/lib/mega-menu';
 import { useTaxonomy } from '@/components/catalog/CatalogProvider';
 
 export function MegaMenu({ content, onNavigate }: { content: MegaMenuContent | null; onNavigate: () => void }) {
-  const { categories, collections } = useTaxonomy();
+  const { categories } = useTaxonomy();
   // Panelden düzenlenen yapı (Sayfalar > Mega menü); kayıt yoksa eski sabit düzen.
   const menu = content ?? defaultMegaMenu(categories);
   const megaMenuColumns = resolveMegaMenu(menu, categories).filter((c) => c.links.length > 0);
-  const megaMenuCollections = menu.showCollections ? buildMegaMenuCollections(collections) : [];
-  const hasCollections = megaMenuCollections.length > 0;
   const columnCount = Math.max(1, megaMenuColumns.length);
 
   return (
@@ -29,8 +24,7 @@ export function MegaMenu({ content, onNavigate }: { content: MegaMenuContent | n
       <div className="container-page">
         <div className="pointer-events-auto grid max-h-[calc(100dvh-180px)] w-full gap-5 overflow-y-auto overscroll-contain rounded-b-lg border border-t-0 border-line bg-white p-5 shadow-lift"
           style={{
-            maxWidth: columnCount * 230 + (hasCollections ? 240 : 0),
-            gridTemplateColumns: hasCollections ? '1fr 220px' : '1fr',
+            maxWidth: columnCount * 230,
           }}
         >
         <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}>
@@ -72,42 +66,6 @@ export function MegaMenu({ content, onNavigate }: { content: MegaMenuContent | n
           ))}
         </div>
 
-        {hasCollections && (
-        <div>
-          <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">
-            Öne Çıkan Koleksiyonlar
-          </h3>
-          <div className="grid gap-2">
-            {megaMenuCollections.map((c) => (
-              <Link
-                key={c.href}
-                href={c.href}
-                onClick={onNavigate}
-                className="group relative flex items-center gap-3 overflow-hidden rounded-md border border-line bg-white p-2 transition-shadow hover:shadow-soft"
-              >
-                <Image
-                  src={c.cover}
-                  alt=""
-                  width={56}
-                  height={44}
-                  className="h-11 shrink-0 rounded object-contain bg-white"
-                  style={{ width: 56 }}
-                />
-                <div className="min-w-0">
-                  <p className="flex items-center gap-1 text-sm font-semibold text-ink">
-                    {c.label}
-                    <ArrowUpRight
-                      size={14}
-                      className="text-brand-500 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                    />
-                  </p>
-                  <p className="truncate text-xs text-ink-soft">{c.subtitle}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-        )}
         </div>
       </div>
     </m.div>

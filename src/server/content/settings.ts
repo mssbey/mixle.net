@@ -78,7 +78,7 @@ const hrefSchema = z
   .max(200)
   .refine((v) => v.startsWith('/') || /^https?:\/\//.test(v), 'Bağlantı / ile ya da http(s):// ile başlamalı');
 
-/** "Tüm Kategoriler" mega menüsü: sütunlar, sıraları ve koleksiyon kutusu. */
+/** "Tüm Kategoriler" mega menüsü: sütunlar ve sıraları. */
 export const megaMenuContentSchema = z.object({
   columns: z
     .array(
@@ -105,7 +105,6 @@ export const megaMenuContentSchema = z.object({
     )
     .min(1, 'En az bir sütun gerekli')
     .max(MEGA_MENU_MAX_COLUMNS, `En fazla ${MEGA_MENU_MAX_COLUMNS} sütun`),
-  showCollections: z.boolean().default(true),
 }) satisfies z.ZodType<MegaMenuContent, z.ZodTypeDef, unknown>;
 
 const KEYS = { faq: 'sayfa-sss', campaign: 'sayfa-kampanya', navMenu: 'menu-ust', megaMenu: 'menu-mega' } as const;

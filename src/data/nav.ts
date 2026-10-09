@@ -1,4 +1,4 @@
-import type { Category, Collection } from '@/types';
+import type { Category } from '@/types';
 
 export interface NavLink {
   label: string;
@@ -48,15 +48,6 @@ export function flattenCategoryTree(
 }
 
 // Mega menü sütunları panelden düzenlenir: bkz. `src/lib/mega-menu.ts`.
-export function buildMegaMenuCollections(collections: Collection[]) {
-  return collections.map((c) => ({
-    label: c.name,
-    href: `/koleksiyon/${c.slug}`,
-    subtitle: c.subtitle,
-    cover: c.cover,
-  }));
-}
-
 export const footerNav = [
   {
     heading: 'Kurumsal',

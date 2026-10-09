@@ -27,7 +27,6 @@ export interface MegaMenuColumn {
 
 export interface MegaMenuContent {
   columns: MegaMenuColumn[];
-  showCollections: boolean;
 }
 
 export const MEGA_MENU_MAX_COLUMNS = 4;
@@ -64,7 +63,6 @@ export function defaultMegaMenu(categories: CategoryLike[]): MegaMenuContent {
         ],
       },
     ],
-    showCollections: true,
   };
 }
 
