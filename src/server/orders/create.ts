@@ -82,7 +82,7 @@ export interface CreateOrderContext {
 export class CheckoutError extends Error {
   constructor(
     message: string,
-    public readonly status: 400 | 409 | 422 = 422,
+    public readonly status: 400 | 401 | 409 | 422 = 422,
     public readonly issues: Record<string, string> = {},
   ) {
     super(message);
@@ -202,6 +202,10 @@ export async function createOrder(
   const input = parsed.data;
   const email = input.email.toLocaleLowerCase('tr');
   const source = ctx.source ?? 'web';
+  // Misafir siparişi kapalı: vitrinden yalnız oturum açmış müşteri sipariş verir.
+  if (source === 'web' && !ctx.customerId) {
+    throw new CheckoutError('Sipariş vermek için giriş yapın veya üye olun.', 401);
+  }
   if (source === 'web' && !input.consents) {
     throw new CheckoutError('Yasal onaylar zorunludur.', 422, { consents: 'Onayları işaretleyin' });
   }

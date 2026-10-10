@@ -197,7 +197,7 @@ export function ProductEditor({ initial, mode }: Props) {
     }
   };
 
-  /** "Kopyala": taslak kopya oluşturur ve kopyanın düzenleme ekranını yeni sekmede açar. */
+  /** "Kopyala": yayında bir kopya oluşturur ve kopyanın düzenleme ekranını yeni sekmede açar. */
   const duplicate = async () => {
     setDuplicating(true);
     // Sekme tıklama anında açılır; sonradan açılanı açılır pencere engelleyicisi keser.

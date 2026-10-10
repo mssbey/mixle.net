@@ -16,6 +16,8 @@ interface CartState {
   promo: string | null;
   add: (productId: string, variantId: string, qty?: number) => void;
   remove: (key: string) => void;
+  /** Sunucunun "satışta değil" dediği varyantları sepetten atar. */
+  removeVariants: (variantIds: string[]) => void;
   setQty: (key: string, qty: number) => void;
   changeVariant: (key: string, nextVariantId: string) => void;
   clear: () => void;
@@ -47,6 +49,13 @@ export const useCart = create<CartState>()(
           };
         }),
       remove: (key) => set((state) => ({ lines: state.lines.filter((l) => l.key !== key) })),
+      removeVariants: (variantIds) =>
+        set((state) => {
+          if (!variantIds.length) return state;
+          const drop = new Set(variantIds);
+          const lines = state.lines.filter((l) => !drop.has(l.variantId));
+          return lines.length === state.lines.length ? state : { lines };
+        }),
       setQty: (key, qty) =>
         set((state) => ({
           lines:

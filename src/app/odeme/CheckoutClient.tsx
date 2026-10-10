@@ -71,6 +71,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
   const cartLines = useCart((s) => s.lines);
   const cartPromo = useCart((s) => s.promo);
   const clearCart = useCart((s) => s.clear);
+  const removeVariants = useCart((s) => s.removeVariants);
 
   // Manuel useMemo yok: React Compiler türetilmiş değerleri kendisi memoize eder.
   const lines = cartLines.map((l) => ({ variantId: l.variantId, quantity: l.qty }));
@@ -136,6 +137,9 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
       })
       .then((q) => {
         if (!alive) return;
+        // Yayından kalkmış/silinmiş ürünler sepetten atılır; satırlar değişince
+        // teklif yeniden alınır ve sipariş bu yüzden engellenmez.
+        if (q.removedVariantIds?.length) removeVariants(q.removedVariantIds);
         setQuote(q);
         // Sunucu seçili kargoyu geçersiz saydıysa (adres değişti) sıfırla.
         if (shippingMethodId && !q.selectedShippingId) setShippingMethodId('');
@@ -356,9 +360,9 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
                 </p>
               ) : (
                 <p className="text-sm text-ink-soft">
-                  Üye olmadan devam edebilirsiniz. Hesabınız varsa{' '}
-                  <Link href="/giris?next=/odeme" className="link-underline font-semibold text-ink">giriş yapın</Link>;
-                  adresleriniz ve sipariş geçmişiniz hazır gelsin.
+                  Sipariş vermek için{' '}
+                  <Link href="/giris?next=/odeme" className="link-underline font-semibold text-ink">giriş yapın</Link>{' '}
+                  veya üye olun.
                 </p>
               )}
               <div>

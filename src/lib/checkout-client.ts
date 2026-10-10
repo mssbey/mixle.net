@@ -107,6 +107,8 @@ export interface QuoteResponse {
   problems: string[];
   pricesIncludeTax: boolean;
   availability: { variantId: string; requested: number; available: number }[];
+  /** Satışta olmayan varyantlar — sepetten silinir. */
+  removedVariantIds: string[];
 }
 
 export interface QuoteRequest {

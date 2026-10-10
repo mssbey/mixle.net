@@ -5,6 +5,7 @@
 // (localStorage); tutarlar her adımda /api/checkout/quote ile sunucuda hesaplanır.
 
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { getCurrentCustomer } from '@/server/customers/auth';
 import { listAddresses } from '@/server/customers/addresses';
 import { ensureDefaultLegalDocuments, getCurrentLegal } from '@/server/legal/documents';
@@ -30,13 +31,15 @@ export default async function CheckoutPage() {
     getCurrentLegal('on-bilgilendirme'),
     getCurrentLegal('kvkk-aydinlatma'),
   ]);
-  const addresses = customer ? await listAddresses(customer.id) : [];
+  // Misafir siparişi kapalı: önce giriş/üyelik, sonra ödemeye geri dönülür.
+  if (!customer) redirect('/giris?next=/odeme');
+  const addresses = await listAddresses(customer.id);
 
   return (
     <div className="container-page section !pt-6">
       <Breadcrumbs items={[{ label: 'Sepet', href: '/sepet' }, { label: 'Ödeme' }]} />
       <CheckoutClient
-        customer={customer ? publicCustomer(customer) : null}
+        customer={publicCustomer(customer)}
         addresses={addresses}
         legal={{
           distanceSales: { version: ds.version, title: ds.title, body: ds.body },

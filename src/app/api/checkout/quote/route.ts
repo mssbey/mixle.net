@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       problems: quote.problems,
       pricesIncludeTax: quote.pricesIncludeTax,
       availability: quote.cart.availability,
+      removedVariantIds: quote.cart.removedVariantIds,
     });
   } catch (err) {
     return storefrontError(err);

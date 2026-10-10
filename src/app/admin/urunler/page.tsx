@@ -111,7 +111,7 @@ function ProductsView() {
   // Aynı satıra iki kez basılmasın diye çoğaltılan ürün kilitlenir.
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
-  // "Kopyala": taslak kopya oluşturulur ve düzenleme ekranı YENİ SEKMEDE açılır;
+  // "Kopyala": yayında bir kopya oluşturulur ve düzenleme ekranı YENİ SEKMEDE açılır;
   // liste bu sekmede kalır. Sekme tıklama anında açılır (sonradan açılan pencereyi
   // tarayıcı açılır pencere engelleyicisine takar), adresi kopya hazır olunca verilir.
   const duplicate = async (id: string) => {
@@ -645,7 +645,7 @@ function ProductsView() {
                             disabled={!canWrite || duplicatingId === p.id}
                             onClick={() => void duplicate(p.id)}
                             aria-label={`${p.name} ürününü kopyala`}
-                            title="Kopyala — taslak kopyayı yeni sekmede düzenlemeye aç"
+                            title="Kopyala — kopyayı yeni sekmede düzenlemeye aç"
                           >
                             <Copy size={13} />
                           </button>

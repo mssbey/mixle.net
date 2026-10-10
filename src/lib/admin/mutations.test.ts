@@ -135,11 +135,11 @@ describe('kategori ağacı', () => {
 describe('ürün çoğaltma (WordPress "Çoğalt")', () => {
   const base = catalog([cat('ana')], [product('mango', ['ana'])]);
 
-  it('taslak kopya üretir, slug ve adı numaralandırır', () => {
+  it('yayında kopya üretir, slug ve adı numaralandırır', () => {
     const { product: copy } = duplicateProduct(base, 'mango');
     expect(copy.slug).toBe('mango-kopya');
     expect(copy.name).toBe('MANGO (Kopya)');
-    expect(copy.status).toBe('taslak');
+    expect(copy.status).toBe('yayında');
     expect(copy.id).not.toBe('mango');
   });
 

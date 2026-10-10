@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { CartLine } from '@/types';
+import { useCart } from '@/store/cart';
 import { checkoutApi } from './checkout-client';
 import { useDebounced } from './hooks';
 
@@ -33,6 +34,8 @@ export function useCartCampaigns(lines: CartLine[], enabled = true): CartCampaig
       .quote({ lines: JSON.parse(key) as { variantId: string; quantity: number }[] })
       .then((q) => {
         if (cancelled) return;
+        // Sepet sayfası bu satırları zaten gizliyor; ödemede hataya dönüşmesinler.
+        if (q.removedVariantIds?.length) useCart.getState().removeVariants(q.removedVariantIds);
         const applied = q.appliedDiscounts.map((d) => ({ id: d.id, name: d.name, discount: d.discountMinor / 100 }));
         setResult({
           applied,
