@@ -8,7 +8,7 @@ import 'server-only';
 import { z } from 'zod';
 import { computeTotals, type OrderTotals } from './totals';
 import { cartLineSchema, priceCart, resolveCoupon, type PricedCart } from './pricing';
-import { freeShippingThreshold, quoteShipping, type ShippingQuote } from '../pricing/shipping-rates';
+import { baseShippingFee, freeShippingThreshold, quoteShipping, type ShippingQuote } from '../pricing/shipping-rates';
 import type { CouponOutcome } from '../pricing/coupons';
 import { evaluateDiscountRules, type AppliedDiscount } from '../pricing/discount-rules';
 import { loadActiveDiscountRules } from '../discounts/rules';
@@ -58,6 +58,8 @@ export interface CheckoutQuote {
   freeShippingRemainingMinor: number | null;
   /** Ücretsiz kargo eşiği (indirimler düşüldükten sonraki tutara uygulanır), kuruş; yoksa null. */
   freeShippingThresholdMinor: number | null;
+  /** Eşik/kupon öncesi kargo ücreti, kuruş — sepet adres bilinmeden gösterir; yöntem yoksa null. */
+  shippingFeeMinor: number | null;
   paymentOptions: PaymentOption[];
   selectedPayment: PaymentMethodId | null;
   /** Kullanıcıya gösterilecek uyarılar (stok düşürüldü, kupon reddedildi …). */
@@ -122,6 +124,12 @@ export async function buildQuote(
     country: input.country || 'TR',
     city: input.city,
     methodId: selectedShipping?.methodId,
+  });
+  const shippingFeeMinor = baseShippingFee(zones, {
+    country: input.country || 'TR',
+    city: input.city,
+    methodId: selectedShipping?.methodId,
+    cartTotalMinor: subtotal - discount,
   });
   const alreadyFree = Boolean(coupon?.ok && coupon.freeShipping) || (selectedShipping != null && selectedShipping.priceMinor === 0);
   const remaining = threshold != null ? threshold - (subtotal - discount) : 0;
@@ -217,6 +225,7 @@ export async function buildQuote(
     appliedDiscounts: ruleOutcome.applied,
     freeShippingRemainingMinor,
     freeShippingThresholdMinor: threshold,
+    shippingFeeMinor,
     paymentOptions,
     selectedPayment,
     problems,

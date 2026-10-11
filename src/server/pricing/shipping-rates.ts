@@ -160,3 +160,29 @@ export function freeShippingThreshold(
   const thresholds = methods.map((m) => m.freeOverMinor).filter((n): n is number => n != null && n > 0);
   return thresholds.length ? Math.min(...thresholds) : null;
 }
+
+/**
+ * Eşik/kupon uygulanmadan önceki kargo ücreti, kuruş — sepet adres bilinmeden
+ * bunu gösterir. Yöntem seçildiyse onun; seçilmediyse adrese (il yoksa ülkeye)
+ * uyan ilk ücretli yöntemin ücreti. Kapıda ödeme kargosu hariç. Yöntem yoksa null.
+ */
+export function baseShippingFee(
+  zones: ShippingZoneRule[],
+  opts: { country: string; city?: string; methodId?: string | null; cartTotalMinor: number },
+): number | null {
+  const c = norm(opts.country || 'TR');
+  const pool = opts.city
+    ? [matchZone(zones, opts.country, opts.city)].filter((z): z is ShippingZoneRule => !!z)
+    : [...zones]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .filter((z) => z.countries.length === 0 || z.countries.map(norm).includes(c));
+  const methods = pool
+    .flatMap((z) => [...z.methods].sort((a, b) => a.sortOrder - b.sortOrder))
+    .filter((m) => m.isActive && m.type !== 'kapıda' && m.type !== 'ücretsiz');
+  const method = (opts.methodId ? methods.find((m) => m.id === opts.methodId) : undefined) ?? methods[0];
+  if (!method) return null;
+  return quoteMethod(
+    { ...method, freeOverMinor: null },
+    { country: opts.country, city: opts.city ?? '', cartTotalMinor: opts.cartTotalMinor, desi: 0, freeShippingCoupon: false },
+  ).priceMinor;
+}

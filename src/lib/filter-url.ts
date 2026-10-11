@@ -1,5 +1,5 @@
 import type { FilterState, SortKey } from '@/lib/filters';
-import { defaultFilters } from '@/lib/filters';
+import { DEFAULT_SORT, defaultFilters } from '@/lib/filters';
 import type { FlavorProfile } from '@/types';
 import { flavorProfileIdSchema } from '@/lib/flavor-profiles';
 
@@ -70,7 +70,7 @@ export function filtersToParams(f: FilterState, priceMin: number, priceMax: numb
   for (const key of BOOL_KEYS) {
     if (f[key]) sp.set(REVERSE[key], '1');
   }
-  if (f.sort !== 'onerilen') sp.set('sirala', f.sort);
+  if (f.sort !== DEFAULT_SORT) sp.set('sirala', f.sort);
   if (f.freshness[0] !== 0 || f.freshness[1] !== 10) sp.set('ferahlik', f.freshness.join('-'));
   if (f.sweetness[0] !== 0 || f.sweetness[1] !== 10) sp.set('tatlilik', f.sweetness.join('-'));
   if (f.price[0] !== priceMin || f.price[1] !== priceMax) sp.set('fiyat', f.price.join('-'));

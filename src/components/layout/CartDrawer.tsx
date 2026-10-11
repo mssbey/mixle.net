@@ -20,7 +20,7 @@ import { clamp } from '@/lib/utils';
 export function CartDrawer() {
   const mounted = useMounted();
   const { cartOpen, closeCart } = useUI();
-  const { lines, setQty, remove, changeVariant } = useCart();
+  const { lines, setQty, remove } = useCart();
   const promo = useCart((s) => s.promo);
 
   // Katalog yalnızca çekmece açıldığında indirilir.
@@ -100,19 +100,9 @@ export function CartDrawer() {
                       <Trash2 size={15} />
                     </button>
                   </div>
-                  <select
-                    value={line.variantId}
-                    onChange={(e) => changeVariant(line.key, e.target.value)}
-                    aria-label="Varyasyon seç"
-                    className="mt-1.5 max-w-full rounded-md border border-line bg-white px-2 py-1 text-xs font-medium text-ink-soft focus:border-ink/30 focus:outline-none"
-                  >
-                    {line.product.variants.map((v) => (
-                      <option key={v.id} value={v.id} disabled={v.stock === 'out-of-stock'}>
-                        {variantLabel(line.product, v)}
-                        {v.stock === 'out-of-stock' ? ' (tükendi)' : ''}
-                      </option>
-                    ))}
-                  </select>
+                  {variantLabel(line.product, line.variant) && (
+                    <p className="mt-1 text-xs font-medium text-ink-soft">{variantLabel(line.product, line.variant)}</p>
+                  )}
                   <div className="mt-2 flex items-center justify-between">
                     <QuantityStepper
                       value={line.qty}

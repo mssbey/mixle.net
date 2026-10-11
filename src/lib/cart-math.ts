@@ -1,5 +1,4 @@
 import type { CartLine, CartLineDetailed, Product } from '@/types';
-import { promoInfo } from '@/store/cart';
 import { site } from '@/lib/site';
 import type { CartCampaigns } from '@/lib/cart-quote';
 
@@ -35,7 +34,10 @@ export interface CartSummary {
   campaigns: CartCampaigns['applied'];
   /** Ücretsiz kargo eşiği, TL (sunucudan; teklif yoksa site varsayılanı). Eşik tanımlı değilse null. */
   freeShippingThreshold: number | null;
+  /** Kupon reddedildiyse nedeni; ücretsiz kargo kuponuysa bilgi metni. */
   promoLabel: string | null;
+  /** Sunucu kuponu kabul etti mi; kod yoksa veya teklif bekleniyorsa null. */
+  promoValid: boolean | null;
   shipping: number;
   freeShippingRemaining: number;
   total: number;
@@ -50,21 +52,23 @@ export function summarize(
   const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
   const productSavings = lines.reduce((s, l) => s + (l.lineOldTotal - l.lineTotal), 0);
 
-  const info = promoInfo(promo);
-  let promoDiscount = 0;
-  if (info && subtotal > 0) {
-    promoDiscount =
-      info.type === 'percent' ? Math.round(subtotal * info.value * 100) / 100 : Math.min(info.value, subtotal);
-  }
+  // Kupon sunucuda (gerçek kupon tablosu) değerlendirilir. Teklif henüz yeni
+  // koda yetişmediyse eski kodun sonucu kullanılmaz.
+  const coupon = promo && campaigns?.coupon?.code === promo ? campaigns.coupon : null;
+  const promoDiscount = coupon?.ok && subtotal > 0 ? Math.min(coupon.discount, subtotal) : 0;
 
-  // Kampanyalar boş sepette sıfır; eşik indirimler düştükten sonraki tutara uygulanır.
+  // Kampanyalar boş sepette sıfır. Ücretsiz kargo eşiği TÜM indirimler (kampanya +
+  // kupon) düştükten sonraki tutara uygulanır: 1600 ₺ sepet − 150 ₺ kupon = 1450 ₺
+  // → eşik (1500 ₺) altında, kargo ücreti yansır.
   const campaignDiscount = subtotal > 0 ? Math.min(campaigns?.discount ?? 0, subtotal) : 0;
   const afterPromo = Math.max(0, subtotal - campaignDiscount - promoDiscount);
   const freeShippingThreshold = campaigns ? campaigns.freeShippingThreshold : site.commerce.freeShippingThreshold;
-  const { shippingFee } = site.commerce;
+  const shippingFee = campaigns?.shippingFee ?? site.commerce.shippingFee;
+  const couponFreeShipping = Boolean(coupon?.ok && coupon.freeShipping);
   const reached = freeShippingThreshold != null && afterPromo >= freeShippingThreshold;
-  const shipping = afterPromo === 0 || reached ? 0 : shippingFee;
-  const freeShippingRemaining = freeShippingThreshold == null ? 0 : Math.max(0, freeShippingThreshold - afterPromo);
+  const shipping = afterPromo === 0 || reached || couponFreeShipping ? 0 : shippingFee;
+  const freeShippingRemaining =
+    freeShippingThreshold == null || couponFreeShipping ? 0 : Math.max(0, freeShippingThreshold - afterPromo);
 
   return {
     itemCount,
@@ -74,7 +78,8 @@ export function summarize(
     campaignDiscount,
     campaigns: campaignDiscount > 0 ? campaigns?.applied.filter((c) => c.discount > 0) ?? [] : [],
     freeShippingThreshold,
-    promoLabel: info?.label ?? null,
+    promoLabel: coupon ? (coupon.ok ? (coupon.freeShipping ? 'Ücretsiz kargo' : null) : coupon.reason) : null,
+    promoValid: coupon ? coupon.ok : null,
     shipping,
     freeShippingRemaining,
     total: afterPromo + shipping,

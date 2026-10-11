@@ -93,6 +93,8 @@ export interface QuoteResponse {
   freeShippingRemainingMinor: number | null;
   /** Ücretsiz kargo eşiği, kuruş; yoksa null. */
   freeShippingThresholdMinor: number | null;
+  /** Eşik/kupon öncesi kargo ücreti, kuruş; kargo yöntemi yoksa null. */
+  shippingFeeMinor: number | null;
   paymentOptions: {
     id: 'kart' | 'havale' | 'kapida';
     label: string;

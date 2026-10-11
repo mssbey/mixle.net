@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { SlidersHorizontal, LayoutGrid, List, ChevronDown, PackageSearch } from 'lucide-react';
 import type { Product } from '@/types';
@@ -14,10 +14,12 @@ import { QuickView } from '@/components/product/QuickView';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Drawer } from '@/components/ui/Drawer';
+import { Pagination } from '@/components/ui/Pagination';
 import { cn } from '@/lib/utils';
 import { sortVolumeLabels } from '@/lib/commerce';
 
-const PAGE_SIZE = 48;
+/** Sayfa başına ürün; fazlası numaralı sayfalara bölünür (`?sayfa=2`). */
+const PAGE_SIZE = 100;
 
 export function ProductBrowser({
   baseProducts,
@@ -41,7 +43,6 @@ export function ProductBrowser({
     parseFilters(searchParams, priceMin, priceMax),
   );
   const [loading, setLoading] = useState(false);
-  const [visible, setVisible] = useState(PAGE_SIZE);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [quick, setQuick] = useState<Product | null>(null);
@@ -56,7 +57,6 @@ export function ProductBrowser({
       setLoading(true);
       const next = { ...filters, ...patch };
       setFilters(next);
-      setVisible(PAGE_SIZE);
       const params = new URLSearchParams(filtersToParams(next, priceMin, priceMax));
       const query = searchParams.get("q");
       if (query) params.set("q", query);
@@ -80,7 +80,21 @@ export function ProductBrowser({
   );
 
   const filtered = useMemo(() => applyFilters(baseProducts, filters), [baseProducts, filters]);
-  const shown = filtered.slice(0, visible);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const requestedPage = Number(searchParams.get('sayfa')) || 1;
+  const page = Math.min(Math.max(1, Math.floor(requestedPage)), pageCount);
+  const shown = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const listTop = useRef<HTMLDivElement>(null);
+
+  // Filtre değişince `set` adresi `sayfa` olmadan yeniden kurar → 1. sayfaya döner.
+  const goToPage = (next: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next <= 1) params.delete('sayfa');
+    else params.set('sayfa', String(next));
+    const qs = params.size ? '?' + params.toString() : '';
+    router.push(`${pathname}${qs}`, { scroll: false });
+    listTop.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const activeCount = countActive(filters, priceMin, priceMax);
 
   return (
@@ -100,7 +114,7 @@ export function ProductBrowser({
         </div>
       </aside>
 
-      <div className="min-w-0">
+      <div ref={listTop} className="min-w-0 scroll-mt-[calc(var(--header-h-scrolled)+16px)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
           <p aria-live="polite" className="text-sm text-ink-soft">
             <strong className="text-ink">{filtered.length}</strong> ürün bulundu
@@ -189,13 +203,7 @@ export function ProductBrowser({
           )}
         </div>
 
-        {!loading && visible < filtered.length && (
-          <div className="mt-10 text-center">
-            <button type="button" onClick={() => setVisible((v) => v + PAGE_SIZE)} className="btn-ghost">
-              Daha Fazla Göster ({filtered.length - visible})
-            </button>
-          </div>
-        )}
+        {!loading && <Pagination page={page} pageCount={pageCount} onChange={goToPage} className="mt-10" />}
       </div>
 
       <Drawer open={sheetOpen} onClose={() => setSheetOpen(false)} label="Filtreler" side="bottom" title="Filtreler">

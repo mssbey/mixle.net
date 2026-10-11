@@ -20,7 +20,7 @@ export function AnnouncementBar() {
       <div className="container-page flex h-9 items-center justify-center gap-2 !px-10 text-[11px] font-medium sm:text-xs">
         <Truck size={14} className="shrink-0 text-brand-300" />
         <span className="truncate">
-          Güvenli ve sızdırmaz paketleme · 750 ₺ üzeri siparişlerde kargo bizden
+          Güvenli ve sızdırmaz paketleme · 1500 ₺ üzeri siparişlerde kargo bizden
         </span>
       </div>
       <button

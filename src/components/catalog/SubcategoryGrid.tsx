@@ -5,6 +5,8 @@ export interface SubcategoryCard {
   slug: string;
   name: string;
   image: string;
+  /** Fotoğraf yoksa logo gösterilir; kırpılmadan, küçük ve ortalı. */
+  isLogo?: boolean;
   count: number;
 }
 
@@ -22,7 +24,11 @@ export function SubcategoryGrid({ items }: { items: SubcategoryCard[] }) {
                   alt={c.name}
                   fill
                   sizes="(min-width: 1024px) 240px, (min-width: 640px) 33vw, 50vw"
-                  className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                  className={
+                    c.isLogo
+                      ? 'bg-white object-contain p-6 opacity-80'
+                      : 'object-cover transition-transform duration-300 group-hover:scale-[1.03]'
+                  }
                 />
               ) : (
                 <span className="absolute inset-0 grid place-items-center px-3 text-lg font-bold text-ink-soft">

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { allocateMinor, parseMajorInput, taxFromGross, taxFromNet, toMinor } from '@/lib/money';
 import { taxBreakdown, taxLine } from './tax';
 import { evaluateCoupon, normalizeCouponCode, type CouponRule } from './coupons';
-import { freeShippingThreshold, matchZone, quoteShipping, type ShippingZoneRule } from './shipping-rates';
+import { baseShippingFee, freeShippingThreshold, matchZone, quoteShipping, type ShippingZoneRule } from './shipping-rates';
 
 describe('para yardımcıları', () => {
   it('TL → kuruş dönüşümü ikilik hatalarını kapatır', () => {
@@ -322,5 +322,35 @@ describe('ücretsiz kargo eşiği', () => {
   });
   it('seçili yöntemin eşiği esas alınır', () => {
     expect(freeShippingThreshold(zones, { country: 'TR', city: 'İstanbul', methodId: 'ist-std' })).toBe(75000);
+  });
+});
+
+describe('ücretsiz kargo eşiği indirim sonrası tutara uygulanır', () => {
+  const zones: ShippingZoneRule[] = [
+    {
+      id: 'z', name: 'Türkiye', countries: ['TR'], cities: [], sortOrder: 0,
+      methods: [
+        { id: 'std', zoneId: 'z', name: 'Standart', type: 'sabit', priceMinor: 15_000, freeOverMinor: 150_000, tiers: null, estimatedDays: '', carrier: null, isActive: true, sortOrder: 0 },
+        { id: 'cod', zoneId: 'z', name: 'Kapıda', type: 'kapıda', priceMinor: 15_000, freeOverMinor: null, tiers: null, estimatedDays: '', carrier: null, isActive: true, sortOrder: 1 },
+      ],
+    },
+  ];
+  const ctx = (cartTotalMinor: number) => ({ country: 'TR', city: 'İstanbul', cartTotalMinor, desi: 0, freeShippingCoupon: false });
+
+  it('1600 ₺ sepet, kuponsuz → kargo ücretsiz', () => {
+    expect(quoteShipping(zones, ctx(160_000))[0].priceMinor).toBe(0);
+  });
+
+  it('1600 ₺ sepet − 150 ₺ kupon = 1450 ₺ → 150 ₺ kargo', () => {
+    expect(quoteShipping(zones, ctx(145_000))[0].priceMinor).toBe(15_000);
+  });
+
+  it('tam eşikte (1500 ₺) kargo ücretsiz', () => {
+    expect(quoteShipping(zones, ctx(150_000))[0].priceMinor).toBe(0);
+  });
+
+  it('sepet için eşik öncesi ücret: kapıda hariç ilk yöntem', () => {
+    expect(baseShippingFee(zones, { country: 'TR', cartTotalMinor: 200_000 })).toBe(15_000);
+    expect(baseShippingFee([], { country: 'TR', cartTotalMinor: 0 })).toBeNull();
   });
 });

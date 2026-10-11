@@ -20,6 +20,7 @@ import {
 } from '@/server/catalog/queries';
 import { taxonomySlugMap, toStorefrontProduct } from './catalog-adapter';
 import { getCategoryTreeSlugs } from './categories';
+import { noPhotoPlaceholder, storefrontLogo } from '@/lib/storefront-images';
 
 /**
  * Yayındaki ürünler, vitrin tipine indirgenmiş ve ilgili ürünleri doldurulmuş.
@@ -103,13 +104,20 @@ export const getProductsByCategory = async (slug: string): Promise<Product[]> =>
  */
 export async function getCategoryCards(categories: Category[]) {
   const lists = await Promise.all(categories.map((c) => getProductsByCategory(c.slug)));
-  return categories.map((c, i) => ({
-    slug: c.slug,
-    name: c.name,
-    image: c.cover || lists[i].find((p) => p.images[0]?.src)?.images[0]?.src || '',
-    count: lists[i].length,
-    products: lists[i],
-  }));
+  const isPhoto = (src?: string) => !!src && src !== storefrontLogo && src !== noPhotoPlaceholder;
+  return categories.map((c, i) => {
+    // Panelden kapak girilmemişse adapter logoyu koyar; o durumda ürün fotoğrafı tercih edilir.
+    const productPhoto = lists[i].map((p) => p.images[0]?.src).find(isPhoto);
+    const image = (isPhoto(c.cover) ? c.cover : productPhoto) || storefrontLogo;
+    return {
+      slug: c.slug,
+      name: c.name,
+      image,
+      isLogo: image === storefrontLogo,
+      count: lists[i].length,
+      products: lists[i],
+    };
+  });
 }
 
 export const getProductsByCollection = async (slug: string): Promise<Product[]> =>

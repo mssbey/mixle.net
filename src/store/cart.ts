@@ -5,12 +5,6 @@ import { persist } from 'zustand/middleware';
 import type { CartLine } from '@/types';
 import { syncAcrossTabs } from './sync-tabs';
 
-const PROMO_CODES: Record<string, { type: 'percent' | 'amount'; value: number; label: string }> = {
-  NEFIS10: { type: 'percent', value: 0.1, label: '%10 indirim' },
-  ILKAROMA: { type: 'amount', value: 60, label: '60 ₺ indirim' },
-  GOLDENDROP: { type: 'percent', value: 0.15, label: '%15 Golden Drop indirimi' },
-};
-
 interface CartState {
   lines: CartLine[];
   promo: string | null;
@@ -21,7 +15,8 @@ interface CartState {
   setQty: (key: string, qty: number) => void;
   changeVariant: (key: string, nextVariantId: string) => void;
   clear: () => void;
-  applyPromo: (code: string) => { ok: boolean; message: string };
+  /** Kodu saklar; geçerliliği sepet teklifinde sunucu belirler (`useCartCampaigns`). */
+  applyPromo: (code: string) => boolean;
   removePromo: () => void;
   count: () => number;
 }
@@ -84,11 +79,10 @@ export const useCart = create<CartState>()(
         }),
       clear: () => set({ lines: [], promo: null }),
       applyPromo: (code) => {
-        const normalized = code.trim().toUpperCase();
-        if (!normalized) return { ok: false, message: 'Bir kod girin.' };
-        if (!PROMO_CODES[normalized]) return { ok: false, message: 'Bu kod geçerli değil.' };
+        const normalized = code.trim().replace(/\s+/g, '').toLocaleUpperCase('tr');
+        if (!normalized) return false;
         set({ promo: normalized });
-        return { ok: true, message: `Kod uygulandı: ${PROMO_CODES[normalized].label}` };
+        return true;
       },
       removePromo: () => set({ promo: null }),
       count: () => get().lines.reduce((sum, l) => sum + l.qty, 0),
@@ -98,8 +92,3 @@ export const useCart = create<CartState>()(
 );
 
 syncAcrossTabs(useCart, 'mixle-cart');
-
-export function promoInfo(code: string | null) {
-  if (!code) return null;
-  return PROMO_CODES[code] ?? null;
-}

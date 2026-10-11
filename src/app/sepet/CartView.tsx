@@ -22,7 +22,7 @@ import { clamp } from '@/lib/utils';
 export function CartView() {
   const mounted = useMounted();
   const router = useRouter();
-  const { lines, setQty, remove, changeVariant, applyPromo, removePromo, clear } = useCart();
+  const { lines, setQty, remove, applyPromo, removePromo, clear } = useCart();
   const promo = useCart((s) => s.promo);
   const [code, setCode] = useState('');
 
@@ -82,19 +82,11 @@ export function CartView() {
                   </button>
                 </div>
 
-                <select
-                  value={line.variantId}
-                  onChange={(e) => changeVariant(line.key, e.target.value)}
-                  aria-label="Varyasyon seç"
-                  className="mt-2 w-full max-w-full truncate rounded-md border border-line bg-white px-2.5 py-1.5 text-xs text-ink-soft sm:w-auto"
-                >
-                  {line.product.variants.map((v) => (
-                    <option key={v.id} value={v.id} disabled={v.stock === 'out-of-stock'}>
-                      {[variantLabel(line.product, v), v.type].filter(Boolean).join(' · ')}
-                      {v.stock === 'out-of-stock' ? ' (tükendi)' : ''}
-                    </option>
-                  ))}
-                </select>
+                {[variantLabel(line.product, line.variant), line.variant.type].filter(Boolean).length > 0 && (
+                  <p className="mt-2 text-xs text-ink-soft">
+                    {[variantLabel(line.product, line.variant), line.variant.type].filter(Boolean).join(' · ')}
+                  </p>
+                )}
 
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                   <QuantityStepper
@@ -131,21 +123,29 @@ export function CartView() {
 
         <div className="mt-4">
           {promo ? (
-            <div className="flex items-center justify-between rounded-md bg-success/10 px-3 py-2 text-xs font-semibold text-success">
-              <span className="flex items-center gap-1.5">
-                <Tag size={13} /> {promo} uygulandı
-              </span>
-              <button type="button" onClick={removePromo} className="underline">
-                Kaldır
-              </button>
+            <div
+              className={
+                summary.promoValid === false
+                  ? 'rounded-md bg-brand-500/10 px-3 py-2 text-xs font-semibold text-brand-600'
+                  : 'rounded-md bg-success/10 px-3 py-2 text-xs font-semibold text-success'
+              }
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Tag size={13} /> {promo}{' '}
+                  {summary.promoValid === null ? 'kontrol ediliyor…' : summary.promoValid ? 'uygulandı' : 'geçersiz'}
+                </span>
+                <button type="button" onClick={removePromo} className="underline">
+                  Kaldır
+                </button>
+              </div>
+              {summary.promoLabel && <p className="mt-1 font-normal">{summary.promoLabel}</p>}
             </div>
           ) : (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                const res = applyPromo(code);
-                if (res.ok) toast.success(res.message);
-                else toast.error(res.message);
+                if (!applyPromo(code)) toast.error('Bir kod girin.');
                 setCode('');
               }}
               className="flex gap-2"
@@ -162,7 +162,6 @@ export function CartView() {
               </button>
             </form>
           )}
-          <p className="mt-1.5 text-[11px] text-ink-soft">Örnek kodlar: NEFIS10, ILKAROMA, GOLDENDROP</p>
         </div>
 
         <div className="mt-4 space-y-2 border-t border-line pt-4 text-sm">

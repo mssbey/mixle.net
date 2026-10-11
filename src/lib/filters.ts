@@ -11,13 +11,16 @@ export type SortKey =
   | 'puan'
   | 'indirim';
 
+/** Varsayılan sıralama: ürün adına göre A → Z. */
+export const DEFAULT_SORT: SortKey = 'ad-artan';
+
 export const sortOptions: { key: SortKey; label: string }[] = [
+  { key: 'ad-artan', label: 'İsim: A → Z' },
   { key: 'onerilen', label: 'Önerilen' },
   { key: 'yeniler', label: 'En yeniler' },
   { key: 'cok-satan', label: 'Çok satanlar' },
   { key: 'fiyat-artan', label: 'Fiyat: artan' },
   { key: 'fiyat-azalan', label: 'Fiyat: azalan' },
-  { key: 'ad-artan', label: 'İsim: A → Z' },
   { key: 'ad-azalan', label: 'İsim: Z → A' },
   { key: 'puan', label: 'En yüksek puan' },
   { key: 'indirim', label: 'İndirim oranı' },
@@ -132,7 +135,7 @@ export function defaultFilters(priceMin: number, priceMax: number): FilterState 
     onSaleOnly: false,
     newOnly: false,
     bestSellerOnly: false,
-    sort: 'onerilen',
+    sort: DEFAULT_SORT,
   };
 }
 
