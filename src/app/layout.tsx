@@ -10,6 +10,7 @@ import { getStoreInfo } from '@/server/settings';
 import { getFlavorProfiles } from '@/server/catalog/flavor-profiles';
 import { resolveStorefrontContact } from '@/lib/storefront';
 import { getMegaMenuContent, getNavMenuContent } from '@/server/content/settings';
+import { getShippingPolicy } from '@/server/shipping/policy';
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.domain),
@@ -58,12 +59,13 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Kategori/koleksiyon listesi küçüktür (~10 KB) ve neredeyse her client
   // bileşeni ister; bu yüzden tek seferde sunucuda okunup context'e verilir.
-  const [{ categories, collections }, storeInfo, flavorProfiles, navMenu, megaMenu] = await Promise.all([
+  const [{ categories, collections }, storeInfo, flavorProfiles, navMenu, megaMenu, shipping] = await Promise.all([
     getTaxonomy(),
     getStoreInfo(),
     getFlavorProfiles(),
     getNavMenuContent(),
     getMegaMenuContent(),
+    getShippingPolicy(),
   ]);
   const contact = resolveStorefrontContact(storeInfo);
 
@@ -73,7 +75,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={webSiteJsonLd()} />
         <MotionProvider>
-          <LayoutFrame categories={categories} collections={collections} flavorProfiles={flavorProfiles} contact={contact} navLinks={navMenu.links} megaMenu={megaMenu}>
+          <LayoutFrame categories={categories} collections={collections} flavorProfiles={flavorProfiles} contact={contact} navLinks={navMenu.links} megaMenu={megaMenu}
+            shippingPolicy={{ thresholdMinor: shipping.thresholdMinor, feeMinor: shipping.feeMinor, varies: shipping.varies }}>
             {children}
           </LayoutFrame>
         </MotionProvider>

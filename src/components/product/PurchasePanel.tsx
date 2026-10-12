@@ -15,6 +15,8 @@ import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/toast';
 import { site, currency } from '@/lib/site';
+import { freeShippingShort } from '@/lib/shipping-text';
+import { useShippingPolicy } from '@/components/layout/ShippingPolicyProvider';
 import { useCategories } from '@/components/catalog/CatalogProvider';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +36,7 @@ export function PurchasePanel({ product, variant, selection, qty, onSelect, onQt
   const add = useCart((s) => s.add);
   const openCart = useUI((s) => s.openCart);
   const categories = useCategories();
+  const freeShipping = freeShippingShort(useShippingPolicy());
   const category = categories.find((c) => c.slug === product.category);
   const soldOut = variant.stock === 'out-of-stock';
   // Çok varyantlı üründe stok durumu seçili kombinasyonu izler.
@@ -144,7 +147,7 @@ export function PurchasePanel({ product, variant, selection, qty, onSelect, onQt
         <div className="flex items-start gap-2.5">
           <RotateCcw size={17} className="mt-0.5 shrink-0 text-ink-soft" />
           <Link href="/iade-ve-teslimat" className="link-underline">
-            {site.commerce.freeShippingThreshold} ₺ üzeri ücretsiz kargo · kolay iade
+            {freeShipping ? `${freeShipping} · kolay iade` : 'Kargo ve iade koşulları'}
           </Link>
         </div>
         <div className="flex items-start gap-2.5">

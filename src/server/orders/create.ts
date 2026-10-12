@@ -54,6 +54,12 @@ export const createOrderSchema = quoteInputSchema
     consents: consentsSchema.optional(),
     /** Misafir, sipariş sonunda hesap açmak isterse. */
     createAccountPassword: z.string().min(10).max(200).optional(),
+    /**
+     * Müşterinin onay ekranında gördüğü genel toplam, kuruş. Sunucunun yeniden
+     * hesapladığı tutardan farklıysa (fiyat/kupon/kargo değişti) sipariş yazılmaz,
+     * güncel tutar gösterilir. Panel siparişinde gönderilmez.
+     */
+    expectedGrandTotalMinor: z.number().int().min(0).optional(),
   })
   .superRefine((v, ctx) => {
     if (!v.shippingAddress && !v.shippingAddressId) {
@@ -88,6 +94,16 @@ export class CheckoutError extends Error {
     super(message);
     this.name = 'CheckoutError';
   }
+}
+
+/** Gösterilen tutar sunucunun yeniden hesapladığından farklıysa hata. */
+export function assertExpectedTotal(expectedMinor: number | undefined, actualMinor: number): void {
+  if (expectedMinor === undefined || expectedMinor === actualMinor) return;
+  throw new CheckoutError(
+    'Sipariş tutarı güncellendi (fiyat, kupon veya kargo değişmiş olabilir). Lütfen güncel toplamı kontrol edip tekrar onaylayın.',
+    409,
+    { total: 'Toplam güncellendi' },
+  );
 }
 
 /** Adres defterindeki kaydı form girdisine çevirir (TCKN şifresi çözülerek maskelenir). */
@@ -263,6 +279,7 @@ export async function createOrder(
   if (quote.coupon && !quote.coupon.ok) {
     throw new CheckoutError(quote.coupon.reason, 422, { couponCode: quote.coupon.reason });
   }
+  assertExpectedTotal(input.expectedGrandTotalMinor, quote.totals.grandTotalMinor);
 
   const [settings, legalDs, legalPi, legalKvkk] = await Promise.all([
     getStoreSettings(),

@@ -104,6 +104,9 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const installmentChoices = quote?.paymentOptions.find((p) => p.id === 'kart')?.installments ?? [];
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  // Girdiler aynıyken teklifi yeniden istemek için (stok/tutar değişti, hata sonrası).
+  const [quoteNonce, setQuoteNonce] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -118,10 +121,10 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
   const activeShipping: AddressFormValues = selectedBookAddress ? viewToForm(selectedBookAddress) : shipping;
 
   // ---- Teklif: girdiler değişince sunucudan yeniden hesapla (debounce) ----
-  const quoteKey = useDebounced(
-    JSON.stringify({ lines, city: activeShipping.city, shippingMethodId, paymentMethod, couponCode, email }),
-    300,
-  );
+  const rawQuoteKey = JSON.stringify({ lines, city: activeShipping.city, shippingMethodId, paymentMethod, couponCode, email, quoteNonce });
+  const quoteKey = useDebounced(rawQuoteKey, 300);
+  // Debounce süresince ekrandaki teklif girdilere ait değildir; sipariş gönderilmez.
+  const quotePending = quoteLoading || rawQuoteKey !== quoteKey;
   useEffect(() => {
     if (!mounted || lines.length === 0) return;
     let alive = true;
@@ -140,12 +143,18 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
         // Yayından kalkmış/silinmiş ürünler sepetten atılır; satırlar değişince
         // teklif yeniden alınır ve sipariş bu yüzden engellenmez.
         if (q.removedVariantIds?.length) removeVariants(q.removedVariantIds);
+        setQuoteError(null);
         setQuote(q);
         // Sunucu seçili kargoyu geçersiz saydıysa (adres değişti) sıfırla.
         if (shippingMethodId && !q.selectedShippingId) setShippingMethodId('');
         if (paymentMethod && !q.selectedPayment) setPaymentMethod('');
       })
-      .catch((err: unknown) => alive && setSubmitError(err instanceof Error ? err.message : 'Teklif alınamadı'))
+      .catch((err: unknown) => {
+        if (!alive) return;
+        // Eski teklif güncel tutar gibi kalmasın: toplam gizlenir, sipariş gönderilemez.
+        setQuote(null);
+        setQuoteError(err instanceof Error ? err.message : 'Tutar hesaplanamadı');
+      })
       .finally(() => alive && setQuoteLoading(false));
     return () => {
       alive = false;
@@ -228,6 +237,8 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
       customerNote: customerNote || undefined,
       installment: paymentMethod === 'kart' ? installment : undefined,
       consents,
+      // Sunucu toplamı yeniden hesaplar; bu tutardan farklıysa sipariş yazılmaz.
+      expectedGrandTotalMinor: quote?.totals.grandTotalMinor,
     };
     if (shippingSel !== 'yeni') body.shippingAddressId = shippingSel;
     else {
@@ -257,9 +268,10 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
         if (err.issues.shippingAddress || err.issues.city) goTo(2);
         else if (err.issues.shippingMethodId) goTo(3);
         else if (err.issues.paymentMethod) goTo(4);
-        else if (err.code === 'stock' || err.issues.lines) {
-          // Stok değişti: teklif tazelensin, kullanıcı görsün.
+        else if (err.code === 'stock' || err.issues.lines || err.issues.total || err.issues.couponCode) {
+          // Stok, fiyat veya kupon değişti: teklif tazelensin, kullanıcı güncel toplamı görsün.
           setQuote(null);
+          setQuoteNonce((n) => n + 1);
         }
       } else {
         setSubmitError('Sipariş oluşturulamadı. Lütfen tekrar deneyin.');
@@ -539,7 +551,14 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
           )}
 
           {/* Hata + gezinme */}
-          <p className="mt-4 min-h-5 text-sm text-brand-600" role="alert" aria-live="polite">{submitError ?? ''}</p>
+          <p className="mt-4 min-h-5 text-sm text-brand-600" role="alert" aria-live="polite">
+            {submitError ?? quoteError ?? ''}
+            {!submitError && quoteError && (
+              <button type="button" className="ml-2 font-semibold underline" onClick={() => setQuoteNonce((n) => n + 1)}>
+                Tekrar dene
+              </button>
+            )}
+          </p>
           {quote?.problems.length ? (
             <ul className="mt-1 space-y-1 text-xs text-amber-700" aria-live="polite">
               {quote.problems.map((p, i) => <li key={i}>• {p}</li>)}
@@ -553,11 +572,11 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
               <Link href="/sepet" className="btn-ghost"><ArrowLeft size={16} /> Sepete dön</Link>
             )}
             {step < 5 ? (
-              <button type="button" className="btn-primary" onClick={next} disabled={quoteLoading && step >= 3}>
+              <button type="button" className="btn-primary" onClick={next} disabled={quotePending && step >= 3}>
                 Devam <ArrowRight size={16} />
               </button>
             ) : (
-              <button type="button" className="btn-primary" onClick={submit} disabled={submitting || quoteLoading || !quote}>
+              <button type="button" className="btn-primary" onClick={submit} disabled={submitting || quotePending || !quote}>
                 {submitting ? 'Sipariş oluşturuluyor…' : `Siparişi tamamla${quote ? ` · ${formatMinor(quote.totals.grandTotalMinor)}` : ''}`}
               </button>
             )}
@@ -567,7 +586,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
 
       <OrderSummary
         quote={quote}
-        loading={quoteLoading}
+        loading={quotePending}
         couponCode={couponCode}
         onCouponChange={setCouponCode}
         couponEnabled={Boolean(activeShipping.city) || step >= 3}

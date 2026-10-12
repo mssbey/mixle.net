@@ -27,10 +27,9 @@ export const site = {
   legal: {
     sslNote: 'Kredi kartı bilgileriniz 256bit SSL sertifikası ile korunmaktadır.',
   },
-  // Kargo / kampanya — örnek değerler
+  // Kargo ücreti ve ücretsiz kargo eşiği burada TUTULMAZ: tek kaynak panel →
+  // Kargo bölgeleri/yöntemleri (bkz. server/shipping/policy.ts).
   commerce: {
-    freeShippingThreshold: 1500,
-    shippingFee: 150,
     currency: 'TRY',
     currencySymbol: '₺',
     estimatedDelivery: '1–3 iş günü içinde kargoda',
@@ -43,7 +42,6 @@ export const site = {
   },
   announcements: [
     'Güvenli ve sızdırmaz paketleme',
-    '1500 ₺ üzeri siparişlerde kargo bizden',
     'WhatsApp destek hattı hafta içi 09:00 – 19:00',
   ],
   // Hakkımızda / kurumsal — DOĞRULANMAMIŞ bilgiler placeholder olarak işaretli

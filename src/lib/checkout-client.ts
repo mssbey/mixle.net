@@ -52,6 +52,7 @@ export interface QuoteLine {
   taxRateBps: number;
   lineTotalMinor: number;
   discountMinor: number;
+  couponDiscountMinor: number;
   netLineMinor: number;
   taxMinor: number;
 }
@@ -95,6 +96,14 @@ export interface QuoteResponse {
   freeShippingThresholdMinor: number | null;
   /** Eşik/kupon öncesi kargo ücreti, kuruş; kargo yöntemi yoksa null. */
   shippingFeeMinor: number | null;
+  /** Sepette gösterilecek kargo (seçili veya tek tahmini yöntem); yöntem yoksa null. */
+  shippingEstimate: {
+    methodId: string;
+    name: string;
+    priceMinor: number;
+    freeReason: 'eşik' | 'kupon' | 'yöntem' | null;
+    varies: boolean;
+  } | null;
   paymentOptions: {
     id: 'kart' | 'havale' | 'kapida';
     label: string;
@@ -137,6 +146,8 @@ export interface CreateOrderRequest {
   customerNote?: string;
   installment?: number;
   consents: { distanceSales: boolean; preInfo: boolean; kvkk: boolean; marketing: boolean };
+  /** Onay ekranında gösterilen toplam; sunucu farklı hesaplarsa 409 döner. */
+  expectedGrandTotalMinor?: number;
 }
 
 export interface CreateOrderResponse {

@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       freeShippingRemainingMinor: quote.freeShippingRemainingMinor,
       freeShippingThresholdMinor: quote.freeShippingThresholdMinor,
       shippingFeeMinor: quote.shippingFeeMinor,
+      shippingEstimate: quote.shippingEstimate,
       paymentOptions: quote.paymentOptions,
       selectedPayment: quote.selectedPayment,
       problems: quote.problems,

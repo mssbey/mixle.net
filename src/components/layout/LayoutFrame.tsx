@@ -17,6 +17,8 @@ import { CartDrawer } from '@/components/layout/CartDrawer';
 import { SearchOverlay } from '@/components/layout/SearchOverlay';
 import { Toaster } from '@/components/layout/Toaster';
 import { WhatsAppFab } from '@/components/layout/WhatsAppFab';
+import { ShippingPolicyProvider } from '@/components/layout/ShippingPolicyProvider';
+import type { PublicShippingPolicy } from '@/lib/shipping-text';
 
 /**
  * Vitrin çerçevesi (header/footer/drawer'lar) yalnızca vitrin rotalarında görünür.
@@ -29,6 +31,7 @@ export function LayoutFrame({
   contact,
   navLinks,
   megaMenu,
+  shippingPolicy,
   children,
 }: {
   categories: Category[];
@@ -38,6 +41,8 @@ export function LayoutFrame({
   navLinks: NavLink[];
   /** Panelden düzenlenen mega menü; null ise kategori ağacından varsayılan. */
   megaMenu: MegaMenuContent | null;
+  /** Mağazanın kargo özeti (panel kargo ayarlarından). */
+  shippingPolicy: PublicShippingPolicy;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -49,6 +54,7 @@ export function LayoutFrame({
   }
 
   return (
+    <ShippingPolicyProvider value={shippingPolicy}>
     <CatalogProvider categories={categories} collections={collections} flavorProfiles={flavorProfiles}>
       <a
         href="#main"
@@ -67,5 +73,6 @@ export function LayoutFrame({
       <WhatsAppFab alwaysVisible={isHome} href={isHome ? `https://wa.me/${contact.phone.replace(/\D/g, '').replace(/^0/, '90')}` : undefined} />
       <Toaster />
     </CatalogProvider>
+    </ShippingPolicyProvider>
   );
 }

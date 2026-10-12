@@ -102,7 +102,10 @@ function MethodRow({ method, canWrite, onSaved, onDeleted }: { method: AdminShip
           {METHOD_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
         {m.type !== 'ücretsiz' && !showTiers && <MoneyInput value={m.priceMinor} onChange={(v) => setM({ ...m, priceMinor: v ?? 0 })} />}
-        <label className="flex items-center gap-1 text-xs text-[var(--admin-ink-soft)]">Ücretsiz eşik <MoneyInput value={m.freeOverMinor} onChange={(v) => setM({ ...m, freeOverMinor: v })} /></label>
+        {/* Kapıda ödeme ve ücretsiz yöntemde eşik uygulanmaz (motor kuralı). */}
+        {m.type !== 'kapıda' && m.type !== 'ücretsiz' && (
+          <label className="flex items-center gap-1 text-xs text-[var(--admin-ink-soft)]" title="İndirimler düşüldükten sonraki ürün tutarına uygulanır; boş veya 0 = eşik yok">Ücretsiz eşik <MoneyInput value={m.freeOverMinor} onChange={(v) => setM({ ...m, freeOverMinor: v })} /></label>
+        )}
         <input className="admin-input admin-btn-sm" style={{ width: 110 }} placeholder="1-3 iş günü" disabled={!canWrite} value={m.estimatedDays} onChange={(e) => setM({ ...m, estimatedDays: e.target.value })} aria-label="Tahmini süre" />
         <select className="admin-select admin-btn-sm" style={{ width: 'auto' }} disabled={!canWrite} value={m.carrier ?? ''} onChange={(e) => setM({ ...m, carrier: e.target.value || null })} aria-label="Kargo firması">
           <option value="">Firma seçilmedi</option>
@@ -117,6 +120,12 @@ function MethodRow({ method, canWrite, onSaved, onDeleted }: { method: AdminShip
         )}
       </div>
       {showTiers && <TiersEditor tiers={m.tiers ?? []} onChange={(tiers) => setM({ ...m, tiers })} />}
+      {m.type === 'desi' && (
+        <p className="admin-hint mt-1.5">
+          Kademe ölçüsü sepetin toplam ağırlığıdır (kg). Ağırlığı girilmemiş ürün içeren sepette bu yöntem
+          sunulmaz — Stok Yönetimi&apos;nden ürün ağırlıklarını girin.
+        </p>
+      )}
       <ConfirmDialog open={confirmDelete} title="Yöntemi sil?" description={`"${m.name}" kalıcı olarak silinecek.`} confirmLabel="Sil" destructive onConfirm={() => void remove()} onCancel={() => setConfirmDelete(false)} />
     </div>
   );

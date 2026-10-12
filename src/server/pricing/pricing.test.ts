@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { allocateMinor, parseMajorInput, taxFromGross, taxFromNet, toMinor } from '@/lib/money';
 import { taxBreakdown, taxLine } from './tax';
 import { evaluateCoupon, normalizeCouponCode, type CouponRule } from './coupons';
-import { baseShippingFee, freeShippingThreshold, matchZone, quoteShipping, type ShippingZoneRule } from './shipping-rates';
+import { estimateShipping, matchZone, quoteShipping, type ShippingZoneRule } from './shipping-rates';
 
 describe('para yardımcıları', () => {
   it('TL → kuruş dönüşümü ikilik hatalarını kapatır', () => {
@@ -159,6 +159,23 @@ describe('kupon kuralları', () => {
     expect(evaluateCoupon({ ...baseRule, isActive: false }, ctx).ok).toBe(false);
   });
 
+  it('alt limit yalnız kuponun geçerli olduğu ürünlerin indirim öncesi tutarıyla dolar', () => {
+    const rule = { ...baseRule, minCartTotalMinor: 10_000, excludeProductIds: ['hariç'] };
+    const lines = [
+      { productId: 'uygun', categoryIds: [], lineTotalMinor: 6_000 },
+      { productId: 'hariç', categoryIds: [], lineTotalMinor: 50_000 },
+    ];
+    const r = evaluateCoupon(rule, { lines, customerUsageCount: 0, hasPreviousOrders: false });
+    expect(r.ok).toBe(false);
+    const ok = evaluateCoupon(rule, { lines: [{ ...lines[0], lineTotalMinor: 10_000 }, lines[1]], customerUsageCount: 0, hasPreviousOrders: false });
+    expect(ok.ok).toBe(true);
+  });
+
+  it('ücretsiz kargo kuponu da ürün/kategori kısıtına uyar', () => {
+    const rule = { ...baseRule, type: 'ücretsiz-kargo' as const, includeProductIds: ['x'] };
+    expect(evaluateCoupon(rule, { lines: [{ productId: 'y', categoryIds: [], lineTotalMinor: 5_000 }], customerUsageCount: 0, hasPreviousOrders: false }).ok).toBe(false);
+  });
+
   it('kod normalizasyonu Türkçe harfleri ASCII\'ye katlar', () => {
     expect(normalizeCouponCode(' nefis 10 ')).toBe('NEFIS10');
     expect(normalizeCouponCode('ilkaroma')).toBe('ILKAROMA');
@@ -313,15 +330,22 @@ describe('kargo tarife motoru', () => {
   });
 });
 
-describe('ücretsiz kargo eşiği', () => {
-  it('il yokken ülkedeki en düşük eşik (kapıda hariç)', () => {
-    expect(freeShippingThreshold(zones, { country: 'TR' })).toBe(75000);
+describe('ücretsiz kargo eşiği (tahmini yöntem)', () => {
+  const est = (opts: { city?: string; methodId?: string }) =>
+    estimateShipping(zones, { country: 'TR', cartTotalMinor: 0, desi: null, freeShippingCoupon: false, ...opts });
+  it('il yokken ülke geneli bölgenin ilk uygun yöntemi; ücret ve eşik aynı yöntemden', () => {
+    // tr-desi ağırlık bilinmediği için atlanır → tr-tutar (eşik yok).
+    const e = est({});
+    expect(e?.method.id).toBe('tr-tutar');
+    expect(e?.thresholdMinor).toBeNull();
+    // İstanbul'da eşikli sabit yöntem var: tahmin bölgeye göre değişir.
+    expect(e?.varies).toBe(true);
   });
   it('il eşleşen bölgede eşik yoksa null', () => {
-    expect(freeShippingThreshold(zones, { country: 'TR', city: 'İzmir' })).toBeNull();
+    expect(est({ city: 'İzmir' })?.thresholdMinor).toBeNull();
   });
   it('seçili yöntemin eşiği esas alınır', () => {
-    expect(freeShippingThreshold(zones, { country: 'TR', city: 'İstanbul', methodId: 'ist-std' })).toBe(75000);
+    expect(est({ city: 'İstanbul', methodId: 'ist-std' })?.thresholdMinor).toBe(75000);
   });
 });
 
@@ -350,7 +374,8 @@ describe('ücretsiz kargo eşiği indirim sonrası tutara uygulanır', () => {
   });
 
   it('sepet için eşik öncesi ücret: kapıda hariç ilk yöntem', () => {
-    expect(baseShippingFee(zones, { country: 'TR', cartTotalMinor: 200_000 })).toBe(15_000);
-    expect(baseShippingFee([], { country: 'TR', cartTotalMinor: 0 })).toBeNull();
+    const opts = { country: 'TR', cartTotalMinor: 200_000, desi: null, freeShippingCoupon: false };
+    expect(estimateShipping(zones, opts)?.baseFeeMinor).toBe(15_000);
+    expect(estimateShipping([], opts)).toBeNull();
   });
 });

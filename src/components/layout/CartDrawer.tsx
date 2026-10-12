@@ -10,7 +10,7 @@ import { ButtonLink } from '@/components/ui/Button';
 import { useUI } from '@/store/ui';
 import { useCart } from '@/store/cart';
 import { useMounted } from '@/lib/hooks';
-import { detailLines, summarize } from '@/lib/cart-math';
+import { detailLines, shippingLabel, summarize } from '@/lib/cart-math';
 import { useCartCampaigns } from '@/lib/cart-quote';
 import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { currency } from '@/lib/site';
@@ -56,18 +56,23 @@ export function CartDrawer() {
         </div>
       ) : (
         <>
-          <div className="border-b border-line px-5 py-3">
-            {summary.freeShippingRemaining > 0 ? (
-              <p className="text-xs text-ink-soft">
-                Ücretsiz kargoya <strong className="font-semibold text-ink">{currency(summary.freeShippingRemaining)}</strong> kaldı
-              </p>
-            ) : (
-              <p className="text-xs font-semibold text-emerald-600">Ücretsiz kargo kazandınız.</p>
-            )}
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-purple-100">
-              <div className="h-full rounded-full bg-gold-400 transition-all duration-500" style={{ width: `${progress}%` }} />
+          {/* Eşik yoksa veya kargo henüz bilinmiyorsa ücretsiz kargo vaadi gösterilmez. */}
+          {summary.shipping != null && (summary.freeShippingRemaining > 0 || summary.shipping === 0) && (
+            <div className="border-b border-line px-5 py-3">
+              {summary.freeShippingRemaining > 0 ? (
+                <p className="text-xs text-ink-soft">
+                  Ücretsiz kargoya <strong className="font-semibold text-ink">{currency(summary.freeShippingRemaining)}</strong> kaldı
+                </p>
+              ) : (
+                <p className="text-xs font-semibold text-emerald-600">Ücretsiz kargo kazandınız.</p>
+              )}
+              {summary.freeShippingThreshold != null && (
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-purple-100">
+                  <div className="h-full rounded-full bg-gold-400 transition-all duration-500" style={{ width: `${progress}%` }} />
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           <ul className="flex-1 divide-y divide-line overflow-y-auto px-5">
             {detailed.map((line) => (
@@ -136,13 +141,11 @@ export function CartDrawer() {
               </div>
             )}
             <div className="flex items-center justify-between text-sm">
-              <span className="text-ink-soft">Kargo</span>
-              <span className="font-semibold tabular-nums text-ink">
-                {summary.shipping === 0 ? 'Ücretsiz' : currency(summary.shipping)}
-              </span>
+              <span className="text-ink-soft">Kargo{summary.shippingVaries && summary.shipping != null ? ' (tahmini)' : ''}</span>
+              <span className="font-semibold tabular-nums text-ink">{shippingLabel(summary, currency)}</span>
             </div>
             <div className="flex items-center justify-between border-t border-line pt-3 text-base">
-              <span className="font-bold text-ink">Toplam</span>
+              <span className="font-bold text-ink">Toplam{summary.shipping == null ? ' (kargo hariç)' : ''}</span>
               <span className="text-xl font-extrabold tracking-tight tabular-nums text-ink">{currency(summary.total)}</span>
             </div>
             <ButtonLink href="/sepet" onClick={closeCart} variant="primary" className="w-full">

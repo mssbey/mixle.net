@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Trash2, ShoppingBag, Tag, ArrowRight } from 'lucide-react';
 import { useCart } from '@/store/cart';
 import { useMounted } from '@/lib/hooks';
-import { detailLines, summarize } from '@/lib/cart-math';
+import { detailLines, shippingLabel, summarize } from '@/lib/cart-math';
 import { useCartCampaigns } from '@/lib/cart-quote';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QuantityStepper } from '@/components/ui/QuantityStepper';
@@ -188,8 +188,8 @@ export function CartView() {
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-ink-soft">Kargo</span>
-            <span className="font-semibold text-ink">{summary.shipping === 0 ? 'Ücretsiz' : currency(summary.shipping)}</span>
+            <span className="text-ink-soft">Kargo{summary.shippingVaries && summary.shipping != null ? ' (tahmini)' : ''}</span>
+            <span className="font-semibold text-ink">{shippingLabel(summary, currency)}</span>
           </div>
         </div>
 
@@ -205,7 +205,7 @@ export function CartView() {
         )}
 
         <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
-          <span className="font-semibold text-ink">Toplam</span>
+          <span className="font-semibold text-ink">Toplam{summary.shipping == null ? ' (kargo hariç)' : ''}</span>
           <span className="text-xl font-bold text-brand-600">{currency(summary.total)}</span>
         </div>
 

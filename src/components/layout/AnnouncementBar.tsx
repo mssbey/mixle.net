@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { X, Truck } from 'lucide-react';
+import { freeShippingClaim } from '@/lib/shipping-text';
+import { useShippingPolicy } from './ShippingPolicyProvider';
 
 /** İnce duyuru şeridi — header'ın en üstünde, oturum boyunca kapatılabilir. */
 export function AnnouncementBar() {
   const [hidden, setHidden] = useState(false);
+  // Eşik panelden; tanımlı değilse ücretsiz kargo vaadi yazılmaz.
+  const claim = freeShippingClaim(useShippingPolicy());
 
   useEffect(() => {
     try {
@@ -20,7 +24,7 @@ export function AnnouncementBar() {
       <div className="container-page flex h-9 items-center justify-center gap-2 !px-10 text-[11px] font-medium sm:text-xs">
         <Truck size={14} className="shrink-0 text-brand-300" />
         <span className="truncate">
-          Güvenli ve sızdırmaz paketleme · 1500 ₺ üzeri siparişlerde kargo bizden
+          Güvenli ve sızdırmaz paketleme{claim ? ` · ${claim}` : ''}
         </span>
       </div>
       <button

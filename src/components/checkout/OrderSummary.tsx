@@ -85,7 +85,9 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
           <p className={cn('mt-1.5 text-xs', quote.coupon.ok ? 'text-success' : 'text-brand-600')} role="status">
             {quote.coupon.ok
               ? quote.coupon.freeShipping
-                ? `${quote.coupon.code}: ücretsiz kargo uygulandı`
+                ? quote.shippingOptions.find((s) => s.methodId === quote.selectedShippingId)?.type === 'kapıda'
+                  ? `${quote.coupon.code}: ücretsiz kargo kapıda ödeme kargosunda geçerli değil`
+                  : `${quote.coupon.code}: ücretsiz kargo uygulandı`
                 : `${quote.coupon.code}: ${formatMinor(quote.coupon.discountMinor)} indirim`
               : quote.coupon.reason}
           </p>
