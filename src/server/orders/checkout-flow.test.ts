@@ -165,10 +165,20 @@ describe('ücretsiz kargo kuponu ve kapıda ödeme', () => {
     expect(q.freeShippingRemainingMinor).toBeNull();
   });
 
-  it('kapıda kargoya uygulanmaz, uyarı verilir; hizmet bedeli bir kez eklenir', async () => {
+  it('vitrinde kapıda ödeme ve kapıda kargo sunulmaz', async () => {
+    state.cart = cartOf([{ id: 'a', unit: 10_000, qty: 1 }]);
+    const q = await buildQuote({ lines: [{ variantId: 'a', quantity: 1 }], country: 'TR', city: 'Ankara', shippingMethodId: 'cod', paymentMethod: 'kapida' }, who);
+    expect(q.paymentOptions.some((p) => p.id === 'kapida')).toBe(false);
+    expect(q.shippingOptions.some((s) => s.type === 'kapıda')).toBe(false);
+    expect(q.selectedShipping).toBeNull();
+    expect(q.selectedPayment).toBeNull();
+    expect(q.paymentOptions.find((p) => p.id === 'kart')?.installments).toBeUndefined();
+  });
+
+  it('panelde kapıda kargoya uygulanmaz, uyarı verilir; hizmet bedeli bir kez eklenir', async () => {
     state.cart = cartOf([{ id: 'a', unit: 10_000, qty: 1 }]);
     state.coupon = freeShip;
-    const q = await buildQuote({ lines: [{ variantId: 'a', quantity: 1 }], country: 'TR', city: 'Ankara', shippingMethodId: 'cod', paymentMethod: 'kapida', couponCode: 'KARGO' }, who);
+    const q = await buildQuote({ lines: [{ variantId: 'a', quantity: 1 }], country: 'TR', city: 'Ankara', shippingMethodId: 'cod', paymentMethod: 'kapida', couponCode: 'KARGO' }, { ...who, panel: true });
     expect(q.selectedPayment).toBe('kapida');
     expect(q.totals.shippingTotalMinor).toBe(15_000);
     expect(q.totals.freeShipping).toBe(false);
@@ -181,7 +191,7 @@ describe('ücretsiz kargo kuponu ve kapıda ödeme', () => {
 
   it('kapıda ödeme, normal kargo seçiliyken kullanılamaz (bedel eklenmez)', async () => {
     state.cart = cartOf([{ id: 'a', unit: 10_000, qty: 1 }]);
-    const q = await buildQuote({ lines: [{ variantId: 'a', quantity: 1 }], country: 'TR', city: 'Ankara', shippingMethodId: 'std', paymentMethod: 'kapida' }, who);
+    const q = await buildQuote({ lines: [{ variantId: 'a', quantity: 1 }], country: 'TR', city: 'Ankara', shippingMethodId: 'std', paymentMethod: 'kapida' }, { ...who, panel: true });
     expect(q.selectedPayment).toBeNull();
     expect(q.totals.surchargeMinor).toBe(0);
   });

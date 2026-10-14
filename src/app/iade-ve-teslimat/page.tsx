@@ -33,7 +33,7 @@ export default async function ReturnsPage() {
               <p>
                 Kargo ücreti teslimat adresinize ve seçtiğiniz kargo yöntemine göre ödeme adımında
                 kesinleşir. Ücretsiz kargo eşikleri kampanya ve kupon indirimleri düşüldükten sonraki
-                ürün tutarına uygulanır; kapıda ödeme ile gönderimde ücretsiz kargo uygulanmaz.
+                ürün tutarına uygulanır.
               </p>
               {shipping.zones.map((z) => (
                 <div key={z.name} className="mt-3">

@@ -51,9 +51,9 @@ describe('vitrin kargo özeti', () => {
     expect(freeShippingClaim(p)).toContain('bölgeye göre değişebilir');
     expect(p.zones).toHaveLength(2);
   });
-  it('kapıda yöntemin eşiği listelenmez; pasif yöntem listelenmez', () => {
+  it('kapıda yöntem ve pasif yöntem listelenmez', () => {
     const p = buildShippingPolicy([z([m({}), m({ id: 'c', type: 'kapıda', freeOverMinor: 99 }), m({ id: 'p', isActive: false })])]);
-    expect(p.zones[0].methods.map((x) => [x.type, x.thresholdMinor])).toEqual([['sabit', 150_000], ['kapıda', null]]);
+    expect(p.zones[0].methods.map((x) => [x.type, x.thresholdMinor])).toEqual([['sabit', 150_000]]);
   });
   it('bölge yoksa boş özet', () => {
     expect(buildShippingPolicy([])).toMatchObject({ thresholdMinor: null, feeMinor: null, zones: [] });
