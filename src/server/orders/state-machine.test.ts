@@ -41,8 +41,23 @@ describe('sipariş durum makinesi', () => {
   it('kapıda ödeme: ödeme beklerken hazırlığa geçer ve stok kesinleşir', () => {
     expect(canTransition('ödeme-bekliyor', 'hazırlanıyor')).toBe(true);
     expect(effectsOf('ödeme-bekliyor', 'hazırlanıyor').commitStock).toBe(true);
-    // ödendi → hazırlanıyor geçişinde stok zaten kesinleşmiştir, tekrar yapılmaz
-    expect(effectsOf('ödendi', 'hazırlanıyor').commitStock).toBe(false);
+    // ödendi → hazırlanıyor: commitStock açık rezervasyon yoksa işlem yapmaz (idempotent).
+    expect(effectsOf('ödendi', 'hazırlanıyor').commitStock).toBe(true);
+  });
+
+  it('eski panel durumları: beklemede, sipariş hazırlandı, kuryeye teslim', () => {
+    expect(canTransition('ödendi', 'hazırlandı')).toBe(true);
+    expect(canTransition('hazırlanıyor', 'beklemede')).toBe(true);
+    expect(canTransition('beklemede', 'hazırlanıyor')).toBe(true);
+    expect(canTransition('hazırlandı', 'kuryeye-teslim')).toBe(true);
+    expect(canTransition('kuryeye-teslim', 'teslim-edildi')).toBe(true);
+    // Sevk edilmiş sipariş iptal edilemez, beklemeye alınamaz.
+    expect(canTransition('kuryeye-teslim', 'iptal')).toBe(false);
+    expect(canTransition('kargolandı', 'beklemede')).toBe(false);
+    // Beklemede ödeme durumunu değiştirmez; kuryeye teslim kargo e-postası göndermez.
+    expect(derivedStatuses('beklemede')).toEqual({});
+    expect(effectsOf('hazırlandı', 'kuryeye-teslim').email).toBeNull();
+    expect(effectsOf('beklemede', 'kargolandı').email).toBe('kargoya-verildi');
   });
 
   it('ödeme bekleyen başarısız olabilir, başarısızdan yeniden denenebilir', () => {
@@ -68,7 +83,7 @@ describe('sipariş durum makinesi', () => {
     } catch (e) {
       const err = e as InvalidTransitionError;
       expect(err.status).toBe(409);
-      expect(err.message).toContain('Kargolandı');
+      expect(err.message).toContain('Kargoya verildi');
       expect(err.message).toContain('İptal edildi');
     }
   });

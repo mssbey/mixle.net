@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Download, Plus, ChevronLeft, ChevronRight, Filter, X, Printer, FileText } from 'lucide-react';
+import { Search, Download, Plus, ChevronLeft, ChevronRight, Filter, X, Printer, FileText, Truck } from 'lucide-react';
 import { ordersApi, type OrderListParams } from '@/lib/admin/orders-client';
 import { ApiError } from '@/lib/admin/client';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
@@ -16,7 +16,7 @@ import { formatMinor } from '@/lib/money';
 import type { OrderListResult } from '@/server/orders/admin-view';
 import { ORDER_TABS, type OrderTab } from '@/server/orders/order-tabs';
 import { ORDER_STATUSES, orderStatusLabels, type OrderStatus } from '@/server/orders/state-machine';
-import { CARRIERS, carrierLabels } from '@/server/shipping/carriers';
+import { CARRIERS, carrierLabels, type Carrier } from '@/server/shipping/carriers';
 import { OrderStatusChip, dateTime } from './status';
 import { PaymentStatusMenu } from './PaymentStatusMenu';
 import { cn } from '@/lib/utils';
@@ -61,6 +61,7 @@ export function OrderList() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(Boolean(params.from || params.to || params.paymentMethod || params.carrier || params.minMinor || params.maxMinor || params.source));
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkCarrier, setBulkCarrier] = useState<Carrier>('yurtici');
 
   const setParams = (patch: Partial<OrderListParams>, resetPage = true) => {
     const next = new URLSearchParams(sp.toString());
@@ -277,11 +278,16 @@ export function OrderList() {
             <option value="" disabled>Durum değiştir…</option>
             {ORDER_STATUSES.filter((s) => s !== 'taslak').map((s) => <option key={s} value={s}>{orderStatusLabels[s]}</option>)}
           </select>
-          <select className="admin-select admin-btn-sm" style={{ width: 'auto' }} defaultValue="" disabled={bulkBusy} aria-label="Toplu kargoya ver"
-            onChange={(e) => { const c = e.target.value as (typeof CARRIERS)[number]; e.currentTarget.value = ''; if (c) void runBulk({ action: 'kargo', ids: [...selected], carrier: c }); }}>
-            <option value="" disabled>Kargoya ver…</option>
-            {CARRIERS.map((c) => <option key={c} value={c}>{carrierLabels[c]}</option>)}
-          </select>
+          <span className="inline-flex items-center gap-1">
+            <select className="admin-select admin-btn-sm" style={{ width: 'auto' }} value={bulkCarrier} disabled={bulkBusy} aria-label="Toplu kargo firması"
+              onChange={(e) => setBulkCarrier(e.target.value as Carrier)}>
+              {CARRIERS.map((c) => <option key={c} value={c}>{carrierLabels[c]}</option>)}
+            </select>
+            <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={bulkBusy}
+              onClick={() => void runBulk({ action: 'kargo', ids: [...selected], carrier: bulkCarrier })}>
+              <Truck size={13} /> Kargoya ver
+            </button>
+          </span>
           <select className="admin-select admin-btn-sm" style={{ width: 'auto' }} defaultValue="" disabled={bulkBusy} aria-label="Toplu ödeme durumu"
             onChange={(e) => { const to = e.target.value as 'ödendi' | 'bekliyor'; e.currentTarget.value = ''; if (to) void runBulkPayment(to); }}>
             <option value="" disabled>Ödeme durumu…</option>

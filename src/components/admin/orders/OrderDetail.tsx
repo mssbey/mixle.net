@@ -56,7 +56,7 @@ export function OrderDetail({ id }: { id: string }) {
   const editable = ['ödeme-bekliyor', 'ödendi', 'hazırlanıyor'].includes(o.status);
   const cancellable = o.allowedTransitions.includes('iptal');
   const canPay = o.paymentStatus !== 'ödendi' && !['iptal', 'iade-edildi', 'başarısız'].includes(o.status);
-  const canCreateShipment = ['ödendi', 'hazırlanıyor', 'kargolandı'].includes(o.status) && o.items.some((i) => i.quantity - i.refundedQuantity - i.shippedQuantity > 0);
+  const canCreateShipment = ['ödendi', 'hazırlanıyor', 'hazırlandı', 'beklemede', 'kargolandı'].includes(o.status) && o.items.some((i) => i.quantity - i.refundedQuantity - i.shippedQuantity > 0);
   const refundable = o.refundableMinor > 0 && !['ödeme-bekliyor', 'başarısız', 'iptal', 'iade-edildi'].includes(o.status);
   const sameAddress = JSON.stringify(o.shippingAddress) === JSON.stringify(o.billingAddress);
 
