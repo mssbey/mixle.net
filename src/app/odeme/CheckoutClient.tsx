@@ -255,7 +255,13 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
 
     try {
       const result = await checkoutApi.createOrder(body, idempotencyKey);
-      if (result.nextUrl) {
+      if (result.nextUrl && /^https?:\/\//.test(result.nextUrl)) {
+        // Kart, gerçek sağlayıcı (Tosla vb.): ödeme sayfası dış alan adında, adrese
+        // ek yapılmaz. Sipariş oluştu, sepet boşalır; ödeme başarısız olursa
+        // sipariş sayfasından yeniden denenir.
+        clearCart();
+        window.location.assign(result.nextUrl);
+      } else if (result.nextUrl) {
         // Kart: mock 3DS sayfası sepeti ödeme onayından sonra temizler.
         router.push(`${result.nextUrl}&d=${encodeURIComponent(result.thankYouUrl)}`);
       } else {
