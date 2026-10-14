@@ -47,7 +47,7 @@ export function TrackOrderForm({ initialNo, initialEmail }: { initialNo: string;
       >
         <div>
           <label htmlFor="track-no" className="mb-1.5 block text-xs font-semibold text-purple-800">Sipariş numarası</label>
-          <input id="track-no" className={`${input} uppercase`} placeholder="NA-2026-000123" value={no} onChange={(e) => setNo(e.target.value)} required />
+          <input id="track-no" className={`${input} uppercase`} placeholder="1001" value={no} onChange={(e) => setNo(e.target.value)} required />
         </div>
         <div>
           <label htmlFor="track-email" className="mb-1.5 block text-xs font-semibold text-purple-800">E-posta</label>

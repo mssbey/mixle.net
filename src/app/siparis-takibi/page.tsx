@@ -20,7 +20,7 @@ export default async function TrackOrderPage({
       <Breadcrumbs items={[{ label: 'Sipariş Takibi' }]} />
       <h1 className="mt-4 text-display-sm">Sipariş takibi</h1>
       <p className="mt-2 max-w-xl text-ink-soft">
-        Sipariş numaranızı (NA-YYYY-000000) ve sipariş verirken kullandığınız e-posta adresini girin.
+        Sipariş numaranızı (ör. 1001) ve sipariş verirken kullandığınız e-posta adresini girin.
         Hesabınız varsa <Link href="/hesabim/siparisler" className="link-underline font-semibold text-purple-700">Siparişlerim</Link> sayfasından da ulaşabilirsiniz.
       </p>
       <TrackOrderForm initialNo={no ?? ''} initialEmail={eposta ?? ''} />
