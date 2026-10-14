@@ -2,8 +2,7 @@
 // Uygunluk checkout'taki motorla aynı: ürün listesi + kategori listesi (boşsa hepsi).
 
 import 'server-only';
-import type { Product } from '@/types';
-import type { ProductCampaign } from '@/components/product/CampaignBox';
+import type { Product, ProductCampaign } from '@/types';
 import { getAdminCategories } from '../catalog/queries';
 import { formatMinor, bpsToPercent } from '@/lib/money';
 import { getStorefrontCampaignRules } from './campaigns';

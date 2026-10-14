@@ -2,16 +2,9 @@
 
 import { BadgePercent } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { ProductCampaign } from '@/types';
 
-/** Ürüne uyan otomatik indirim kuralı, vitrin metniyle (sunucuda hazırlanır). */
-export interface ProductCampaign {
-  id: string;
-  /** "10 Al 9 Öde!" / "%10 İndirim" */
-  title: string;
-  detail: string;
-  startsAt: string | null;
-  endsAt: string | null;
-}
+export type { ProductCampaign };
 
 const inWindow = (c: ProductCampaign, now: number) =>
   (!c.startsAt || now >= Date.parse(c.startsAt)) && (!c.endsAt || now <= Date.parse(c.endsAt));
