@@ -11,7 +11,7 @@ export default async function MyProfilePage() {
   return (
     <div>
       <h1 className="text-display-sm">Bilgilerim</h1>
-      <ProfileForm initial={publicCustomer(me)} />
+      <ProfileForm initial={publicCustomer(me)} hasPassword={me.hasPassword} linkedProviders={me.linkedProviders} />
     </div>
   );
 }

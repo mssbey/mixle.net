@@ -11,7 +11,7 @@ import { site } from '@/lib/site';
 const socials = ['Instagram', 'Twitter', 'TikTok', 'Behance', 'WhatsApp', 'YouTube', 'Snapchat', 'LinkedIn', 'Dribbble', 'Pinterest', 'Spotify', 'Facebook'];
 const payments = ['Visa', 'Mastercard', 'Troy', 'Axess', 'Bonus', 'Maximum', 'Paraf', 'World'];
 const legal = [
-  ['Kullanım Koşulları', '/mesafeli-satis-sozlesmesi'], ['Gizlilik Politikası', '/gizlilik-politikasi'], ['KVKK', '/gizlilik-politikasi#kvkk'], ['Mesafeli Satış', '/mesafeli-satis-sozlesmesi'], ['İade Politikası', '/iade-ve-teslimat'], ['Çerez Politikası', '/cerez-politikasi'],
+  ['Üyelik Sözleşmesi', '/uyelik-sozlesmesi'], ['Gizlilik Politikası', '/gizlilik-politikasi'], ['KVKK', '/kvkk-aydinlatma-metni'], ['Mesafeli Satış', '/mesafeli-satis-sozlesmesi'], ['İade Politikası', '/iade-ve-teslimat'], ['Çerez Politikası', '/cerez-politikasi'],
 ];
 export function HomeFooter({ contact }: { contact: StorefrontContact }) {
   const socialLinks: Record<string, string> = { Instagram: site.social.instagram, Twitter: site.social.x, YouTube: site.social.youtube, WhatsApp: contact.phoneUrl.replace('tel:', 'https://wa.me/').replace('+', '') };

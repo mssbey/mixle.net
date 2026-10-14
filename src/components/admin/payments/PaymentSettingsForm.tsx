@@ -63,7 +63,7 @@ export function PaymentSettingsForm() {
 
   const s = settings;
   const patch = (p: Partial<PaymentSettingsView>) => setSettings({ ...s, ...p });
-  const patchSection = <K extends 'iyzico' | 'paytr' | 'stripe' | 'havale'>(k: K, p: Partial<PaymentSettingsView[K]>) => setSettings({ ...s, [k]: { ...s[k], ...p } });
+  const patchSection = <K extends 'iyzico' | 'paytr' | 'stripe' | 'tosla' | 'havale'>(k: K, p: Partial<PaymentSettingsView[K]>) => setSettings({ ...s, [k]: { ...s[k], ...p } });
 
   const save = async () => {
     setBusy(true);
@@ -128,13 +128,33 @@ export function PaymentSettingsForm() {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Aktif sağlayıcı" htmlFor="cardProvider" hint="DEMO_MODE açıkken her zaman mock kullanılır.">
             <select id="cardProvider" className="admin-select" value={s.cardProvider} onChange={(e) => patch({ cardProvider: e.target.value as PaymentSettingsView['cardProvider'] })}>
-              {(['mock', 'iyzico', 'paytr', 'stripe'] as const).map((p) => <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>)}
+              {(['mock', 'tosla', 'iyzico', 'paytr', 'stripe'] as const).map((p) => <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>)}
             </select>
           </Field>
           <label className="flex items-center gap-2 self-end pb-2 text-sm">
             <input type="checkbox" checked={s.require3DS} onChange={(e) => patch({ require3DS: e.target.checked })} /> 3D Secure zorunlu
           </label>
         </div>
+      </section>
+
+      <section className="admin-card" style={{ padding: 16 }}>
+        <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">Tosla İşim</h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={s.tosla.enabled} onChange={(e) => patchSection('tosla', { enabled: e.target.checked })} /> Etkin</label>
+          <Field label="Ortam" htmlFor="tosla-mode">
+            <select id="tosla-mode" className="admin-select" value={s.tosla.mode} onChange={(e) => patchSection('tosla', { mode: e.target.value as 'test' | 'live' })}>
+              <option value="test">Test</option><option value="live">Canlı</option>
+            </select>
+          </Field>
+          <Field label="Client ID" htmlFor="tosla-clientId">
+            <input id="tosla-clientId" className="admin-input" value={s.tosla.clientId} onChange={(e) => patchSection('tosla', { clientId: e.target.value })} />
+          </Field>
+          <Field label="API kullanıcı (ApiUser)" htmlFor="tosla-apiUser">
+            <input id="tosla-apiUser" className="admin-input" value={s.tosla.apiUser} onChange={(e) => patchSection('tosla', { apiUser: e.target.value })} />
+          </Field>
+          <SecretInput id="tosla-apiPass" label="API parola (ApiPass)" value={s.tosla.apiPass} isSet={s.tosla.apiPassSet} onChange={(v) => patchSection('tosla', { apiPass: v })} />
+        </div>
+        <p className="admin-hint mt-2">Ortak ödeme sayfası (3D). Dönüş: <code>/api/payments/tosla/donus</code></p>
       </section>
 
       <section className="admin-card" style={{ padding: 16 }}>

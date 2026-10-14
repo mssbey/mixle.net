@@ -195,7 +195,30 @@ export const accountApi = {
     phone?: string;
     marketingOptIn: boolean;
     kvkkAccepted: boolean;
+    termsAccepted: boolean;
   }) => request<{ ok: true; customer: PublicCustomer }>('/api/hesap/kayit', { method: 'POST', body: JSON.stringify(body) }),
+
+  /** Google/Apple ile gelen yeni üyenin sözleşme onayı (bkz. /kayit/tamamla). */
+  completeSocialSignup: (body: {
+    firstName: string;
+    lastName: string;
+    marketingOptIn: boolean;
+    kvkkAccepted: boolean;
+    termsAccepted: boolean;
+  }) =>
+    request<{ ok: true; customer: PublicCustomer; next: string }>('/api/hesap/kayit/tamamla', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  forgotPassword: (email: string) =>
+    request<{ ok: true }>('/api/hesap/parola/unuttum', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: true; customer: PublicCustomer }>('/api/hesap/parola/sifirla', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    }),
 
   login: (email: string, password: string) =>
     request<{ ok: true; customer: PublicCustomer }>('/api/hesap/giris', {

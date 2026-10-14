@@ -45,10 +45,16 @@ export default function PrivacyPage() {
         </LegalSection>
         <LegalSection title="5. KVKK Aydınlatma Metni" id="kvkk">
           <p>
-            6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında, gerçek bir üyelik ve sipariş
-            sistemine geçildiğinde bu bölüm; veri sorumlusunun kimliği, işleme amaçları, aktarım koşulları
-            ve ilgili kişi haklarını içerecek şekilde güncellenecektir. Bu sürümde kişisel veri toplayan bir
-            sunucu bileşeni bulunmamaktadır.
+            6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında veri sorumlusunun kimliği, işleme
+            amaçları, aktarım koşulları ve ilgili kişi hakları{' '}
+            <a href="/kvkk-aydinlatma-metni" className="font-semibold text-purple-700 link-underline">
+              KVKK Aydınlatma Metni
+            </a>
+            &apos;nde yer alır. Üyelik koşulları için{' '}
+            <a href="/uyelik-sozlesmesi" className="font-semibold text-purple-700 link-underline">
+              Üyelik Sözleşmesi
+            </a>
+            &apos;ni inceleyebilirsiniz.
           </p>
         </LegalSection>
         <LegalSection title="6. İletişim">

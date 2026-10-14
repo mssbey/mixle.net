@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import type { PublicCustomer } from '@/server/customers/public';
 import { accountApi, CheckoutApiError } from '@/lib/checkout-client';
 import { maskPhoneInput } from '@/lib/validators/phone';
@@ -14,7 +15,16 @@ const inputCls = (bad?: boolean) =>
   );
 const labelCls = 'mb-1.5 block text-xs font-semibold text-purple-800';
 
-export function ProfileForm({ initial }: { initial: PublicCustomer }) {
+export function ProfileForm({
+  initial,
+  hasPassword = true,
+  linkedProviders = [],
+}: {
+  initial: PublicCustomer;
+  /** Yalnız Google/Apple ile üye olanlarda false. */
+  hasPassword?: boolean;
+  linkedProviders?: ('google' | 'apple')[];
+}) {
   const [profile, setProfile] = useState({
     firstName: initial.firstName,
     lastName: initial.lastName,
@@ -103,6 +113,18 @@ export function ProfileForm({ initial }: { initial: PublicCustomer }) {
         <button type="submit" className="btn-primary mt-5" disabled={busy !== null}>{busy === 'profile' ? 'Kaydediliyor…' : 'Kaydet'}</button>
       </form>
 
+      {!hasPassword ? (
+        <div className="rounded-2xl border border-purple-100 bg-white p-5">
+          <h2 className="text-sm font-semibold text-purple-900">Parola</h2>
+          <p className="mt-3 text-sm text-ink-soft">
+            Hesabınız {linkedProviders.map((p) => (p === 'google' ? 'Google' : 'Apple')).join(' ve ')} ile oluşturuldu ve parolanız yok.
+            E-posta ve parolayla da giriş yapabilmek için size gönderilecek bağlantıyla parola belirleyebilirsiniz.
+          </p>
+          <Link href={`/sifremi-unuttum?eposta=${encodeURIComponent(initial.email)}`} className="btn-primary mt-5">
+            Parola belirle
+          </Link>
+        </div>
+      ) : (
       <form onSubmit={savePassword} noValidate className="rounded-2xl border border-purple-100 bg-white p-5">
         <h2 className="text-sm font-semibold text-purple-900">Parola değiştir</h2>
         <div className="mt-4 grid gap-4">
@@ -123,7 +145,13 @@ export function ProfileForm({ initial }: { initial: PublicCustomer }) {
           </div>
         </div>
         <button type="submit" className="btn-primary mt-5" disabled={busy !== null || !pw.currentPassword || !pw.password}>{busy === 'password' ? 'Değiştiriliyor…' : 'Parolayı değiştir'}</button>
+        {linkedProviders.length > 0 && (
+          <p className="mt-3 text-xs text-ink-soft">
+            {linkedProviders.map((p) => (p === 'google' ? 'Google' : 'Apple')).join(' ve ')} hesabınızla da giriş yapabilirsiniz.
+          </p>
+        )}
       </form>
+      )}
     </div>
   );
 }
