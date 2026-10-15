@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { useSlimProducts } from '@/components/catalog/CatalogProvider';
 import { detailLines, summarize } from '@/lib/cart-math';
 import { currency } from '@/lib/site';
+import { accountApi } from '@/lib/checkout-client';
 
 /** Header en az bu kadar kaydırılınca daralır (açık header yüksekliği daha büyükse o esas alınır)… */
 const HEADER_COLLAPSE_AT_MIN = 160;
@@ -58,6 +59,9 @@ export function Header({
   const { products: cartProducts } = useSlimProducts(mounted && cartCount > 0 && isHome);
   const cartTotal = summarize(mounted ? detailLines(cartLines, cartProducts) : [], null).subtotal;
   const favCount = useFavorites((s) => s.ids.length);
+  // Sayfalar statik önbellekten gelebildiği için oturum durumu istemcide okunur;
+  // giriş/çıkış sonrası yönlendirmeyle güncellensin diye her sayfa geçişinde yenilenir.
+  const [customerName, setCustomerName] = useState<string | null>(null);
 
   const [scrolled, setScrolled] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
@@ -98,6 +102,17 @@ export function Header({
       window.removeEventListener('scroll', onScroll);
     };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    accountApi
+      .me()
+      .then(({ customer }) => alive && setCustomerName(customer ? customer.firstName || 'Hesabım' : null))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     setMegaOpen(false);
@@ -223,9 +238,15 @@ export function Header({
               <Link href="/favoriler" className="inline-flex items-center gap-1.5 hover:text-ink">
                 <Heart size={13} /> Favori Ürünlerim
               </Link>
-              <Link href="/giris" className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-brand-500">
-                <User size={13} /> Giriş Yap / Üye Ol
-              </Link>
+              {customerName ? (
+                <Link href="/hesabim" className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-brand-500">
+                  <User size={13} /> Hesabım ({customerName})
+                </Link>
+              ) : (
+                <Link href="/giris" className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-brand-500">
+                  <User size={13} /> Giriş Yap / Üye Ol
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -272,7 +293,7 @@ export function Header({
                   className="hidden h-11 flex-col items-center justify-center rounded-md px-2 text-ink hover:bg-mist sm:flex"
                 >
                   <User size={20} />
-                  <span className="mt-0.5 hidden text-[11px] font-medium xl:block">{isHome ? <>Giriş Yap<strong className="block text-brand-500">veya Üye Ol</strong></> : 'Hesabım'}</span>
+                  <span className="mt-0.5 hidden text-[11px] font-medium xl:block">{isHome && !customerName ? <>Giriş Yap<strong className="block text-brand-500">veya Üye Ol</strong></> : 'Hesabım'}</span>
                 </Link>
 
                 <div className="relative" onMouseEnter={openMini} onMouseLeave={closeMini}>

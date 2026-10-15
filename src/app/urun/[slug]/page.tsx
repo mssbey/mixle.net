@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { draftMode } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getProducts, getProductBySlug, getProductPreview } from '@/data/products';
 import { getCategories } from '@/data/categories';
 import { ProductDetailClient } from '@/components/product/ProductDetailClient';
@@ -55,6 +55,12 @@ export default async function ProductPage({ params }: { params: Params }) {
   // Yayındaki ürün her zaman; yayında olmayan ürün YALNIZCA panelden açılan
   // önizlemede (Draft Mode çerezi) görünür. Çerez yoksa 404 — müşteri için fark yok.
   let product = products.find((p) => p.slug === slug);
+  // Sipariş kalemleri ürüne kimlikle bağlanır (slug sonradan değişebilir);
+  // kimlikle gelinirse güncel slug adresine yönlendir.
+  if (!product) {
+    const byId = products.find((p) => p.id === slug);
+    if (byId) permanentRedirect(`/urun/${byId.slug}`);
+  }
   let previewStatus: ProductStatus | null = previewing && product ? 'yayında' : null;
   if (!product && previewing) {
     const preview = await getProductPreview(slug);
