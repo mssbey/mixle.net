@@ -5,39 +5,22 @@ import { HomeBanners, type HomeBanner } from '@/components/home/HomeBanners';
 import { FadeInUp } from '@/components/home/FadeInUp';
 import { getProducts } from '@/data/products';
 import { getCategories } from '@/data/categories';
+import { getHomeBannersContent } from '@/server/content/settings';
 
 export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 const RAIL_SIZE = 20;
 
-const search = (q: string) => `/arama?q=${encodeURIComponent(q)}`;
-const banner = (n: number, alt: string, href: string, width: number, height: number): HomeBanner => ({
-  image: `/images/reference/${n}.jpg`,
-  alt,
-  href,
-  width,
-  height,
-});
-
-// Bloklar ve sıraları mixle.net ana sayfasıyla aynıdır.
-const brandsTop = [
-  banner(3, 'Santa aromaları', search('Santa'), 289, 165),
-  banner(4, 'Halo aromaları', search('Halo'), 289, 165),
-  banner(5, 'Twelve Monkeys aromaları', search('Twelve Monkeys'), 289, 165),
-  banner(6, 'Cuttwood aromaları', search('Cuttwood'), 289, 165),
-];
-const brandsMiddle = [
-  banner(7, 'Cosmic Fog aromaları', search('Cosmic Fog'), 389, 170),
-  banner(8, 'Suicide Bunny aromaları', search('Suicide Bunny'), 389, 170),
-  banner(9, 'Capella aromaları', '/kategori/capella', 389, 170),
-];
-const brandsBottom = [
-  banner(10, 'Humble Juice aromaları', search('Humble'), 592, 136),
-  banner(11, 'One Hit Wonder aromaları', search('One Hit Wonder'), 592, 136),
-];
+// Bloklar ve sıraları mixle.net ana sayfasıyla aynıdır; görseller ve bağlantılar
+// panelden (Sayfalar > Ana sayfa bannerları) düzenlenir. Boyut satırın oranını verir.
+const toBanners = (items: { image: string; alt: string; href: string }[], width: number, height: number): HomeBanner[] =>
+  items.map((b) => ({ ...b, width, height }));
 
 export default async function HomePage() {
-  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+  const [products, categories, banners] = await Promise.all([getProducts(), getCategories(), getHomeBannersContent()]);
+  const brandsTop = toBanners(banners.top, 289, 165);
+  const brandsMiddle = toBanners(banners.middle, 389, 170);
+  const brandsBottom = toBanners(banners.bottom, 592, 136);
   const available = products.filter((p) => p.stockStatus !== 'out-of-stock');
   const labelOf = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const inCategory = (slug: string) => available.filter((p) => p.categories.includes(slug)).slice(0, RAIL_SIZE);

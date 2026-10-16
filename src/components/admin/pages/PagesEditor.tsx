@@ -1,6 +1,6 @@
 'use client';
 
-// Panel > Sayfalar: SSS, ana sayfa kampanya bandı metni, üst menü linkleri ve mega menü.
+// Panel > Sayfalar: SSS, ana sayfa kampanya bandı metni, ana sayfa bannerları, üst menü linkleri ve mega menü.
 
 import { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Save, Trash2 } from 'lucide-react';
@@ -10,6 +10,7 @@ import { pagesApi, type CampaignContent, type FaqContent, type FaqGroup, type Na
 import { ApiError } from '@/lib/admin/client';
 import { toast } from '@/store/toast';
 import { MegaMenuEditor } from './MegaMenuEditor';
+import { HomeBannersEditor } from './HomeBannersEditor';
 
 function FaqEditor({ canWrite }: { canWrite: boolean }) {
   const [data, setData] = useState<FaqContent | null>(null);
@@ -213,7 +214,7 @@ function NavMenuEditor({ canWrite }: { canWrite: boolean }) {
 export function PagesEditor() {
   const { status, can } = useAdminData();
   const canWrite = can('ayar:yaz');
-  const [tab, setTab] = useState<'sss' | 'kampanya' | 'menu' | 'mega'>('sss');
+  const [tab, setTab] = useState<'sss' | 'kampanya' | 'bannerlar' | 'menu' | 'mega'>('sss');
 
   if (status === 'loading') return <TableSkeleton rows={4} />;
 
@@ -221,11 +222,11 @@ export function PagesEditor() {
     <div className="flex flex-col gap-3">
       <header>
         <h1 className="text-lg font-semibold text-[var(--brand-purple-deep)]">Sayfalar</h1>
-        <p className="admin-hint mt-0.5">SSS, ana sayfa kampanya bandı, üst menü linkleri ve &quot;Tüm Kategoriler&quot; menüsü. Diğer vitrin metinleri (rehber, hakkımızda, yorumlar) bu sürümde panelden düzenlenemez.</p>
+        <p className="admin-hint mt-0.5">SSS, ana sayfa kampanya bandı, ana sayfa bannerları, üst menü linkleri ve &quot;Tüm Kategoriler&quot; menüsü. Diğer vitrin metinleri (rehber, hakkımızda, yorumlar) bu sürümde panelden düzenlenemez.</p>
       </header>
 
       <div role="tablist" aria-label="İçerik" className="flex flex-wrap gap-1 border-b border-[var(--admin-border)]">
-        {([['sss', 'SSS'], ['kampanya', 'Kampanya bandı'], ['menu', 'Üst menü'], ['mega', 'Tüm Kategoriler menüsü']] as const).map(([id, label]) => (
+        {([['sss', 'SSS'], ['kampanya', 'Kampanya bandı'], ['bannerlar', 'Ana sayfa bannerları'], ['menu', 'Üst menü'], ['mega', 'Tüm Kategoriler menüsü']] as const).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id}
             className={`admin-focusable -mb-px border-b-2 px-3 py-2 text-sm ${tab === id ? 'border-[var(--brand-purple)] font-semibold text-[var(--brand-purple-deep)]' : 'border-transparent text-[var(--admin-ink-soft)]'}`}
             onClick={() => setTab(id)}>
@@ -238,6 +239,8 @@ export function PagesEditor() {
         <FaqEditor canWrite={canWrite} />
       ) : tab === 'kampanya' ? (
         <CampaignEditor canWrite={canWrite} />
+      ) : tab === 'bannerlar' ? (
+        <HomeBannersEditor canWrite={canWrite} />
       ) : tab === 'menu' ? (
         <NavMenuEditor canWrite={canWrite} />
       ) : (
