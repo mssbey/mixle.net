@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { MessageCircle, ShieldCheck, Truck, RotateCcw, PackageCheck } from 'lucide-react';
 import type { Product, ProductVariant } from '@/types';
 import { Price } from '@/components/ui/Price';
@@ -32,7 +31,6 @@ interface Props {
 }
 
 export function PurchasePanel({ product, variant, selection, qty, onSelect, onQty, campaigns = [], renderedAt = 0 }: Props) {
-  const router = useRouter();
   const add = useCart((s) => s.add);
   const openCart = useUI((s) => s.openCart);
   const categories = useCategories();
@@ -46,11 +44,6 @@ export function PurchasePanel({ product, variant, selection, qty, onSelect, onQt
     add(product.id, variant.id, qty);
     openCart();
     toast.success('Sepete eklendi', `${product.name} · ${qty} adet`);
-  };
-
-  const handleBuyNow = () => {
-    add(product.id, variant.id, qty);
-    router.push('/odeme');
   };
 
   return (
@@ -119,14 +112,6 @@ export function PurchasePanel({ product, variant, selection, qty, onSelect, onQt
           className="h-12 w-12 shrink-0 border border-line bg-white"
         />
       </div>
-      <button
-        type="button"
-        onClick={handleBuyNow}
-        disabled={soldOut}
-        className="btn-dark mt-3 h-12 w-full disabled:opacity-40"
-      >
-        Hemen Al
-      </button>
 
       <Link
         href="/iletisim?konu=urun"

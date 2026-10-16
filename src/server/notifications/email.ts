@@ -32,6 +32,7 @@ export type EmailTemplateKey =
   | 'iade-talebi-reddedildi'
   | 'iade-tamamlandi'
   | 'parola-sifirla'
+  | 'parola-uyelik-yok'
   | 'yeni-siparis-yonetici'
   | 'hesap-olusturuldu';
 
@@ -48,7 +49,7 @@ interface Template {
 interface HtmlTemplate {
   heading: string;
   intro: string;
-  /** Buton: `takipLinki` değişkenine gider. */
+  /** Buton: `butonLinki`, yoksa `takipLinki` değişkenine gider. */
   cta?: string;
   /** Sipariş kalemleri ve toplamlar gösterilsin mi (varsayılan: sipariş varsa evet). */
   showOrder?: boolean;
@@ -137,6 +138,29 @@ Sorularınız için bize ulaşabilirsiniz.`,
     intro: `Merhaba {{musteriAdi}},
 
 Siparişinizin iadesi tamamlandı. {{iadeTutari}} ödeme yönteminize iade edildi.`,
+  },
+  'parola-sifirla': {
+    heading: 'Parolanızı yenileyin',
+    intro: `Merhaba,
+
+Hesabınız için parola sıfırlama isteği aldık. Aşağıdaki butonla yeni parolanızı belirleyebilirsiniz. Bağlantı 1 saat geçerlidir ve yalnız bir kez kullanılabilir.
+
+Buton çalışmazsa bu adresi tarayıcınıza yapıştırın:
+{{sifirlamaLinki}}
+
+Bu isteği siz yapmadıysanız bu e-postayı yok sayın; parolanız değişmez.`,
+    cta: 'Yeni parola belirle',
+  },
+  'parola-uyelik-yok': {
+    heading: 'Bu e-postayla bir üyelik bulunmuyor',
+    intro: `Merhaba,
+
+Parola sıfırlama isteği aldık ancak bu e-posta adresiyle daha önce yalnız üye olmadan (misafir olarak) sipariş verilmiş. Misafir siparişlerinde parola oluşmaz.
+
+Aşağıdaki butonla aynı e-postayla ücretsiz üye olabilirsiniz; önceki siparişleriniz hesabınızda görünür.
+
+Bu isteği siz yapmadıysanız bu e-postayı yok sayın.`,
+    cta: 'Üye ol',
   },
   'yeni-siparis-yonetici': {
     heading: 'Yeni sipariş',
@@ -258,6 +282,18 @@ Bu isteği siz yapmadıysanız bu e-postayı yok sayın.
 
 {{magazaAdi}}`,
   },
+  'parola-uyelik-yok': {
+    subject: 'Parola sıfırlama isteğiniz',
+    body: `Merhaba,
+
+Parola sıfırlama isteği aldık ancak bu e-posta adresiyle yalnız misafir olarak sipariş verilmiş; misafir siparişlerinde parola oluşmaz.
+
+Aynı e-postayla üye olmak için: {{kayitLinki}}
+
+Bu isteği siz yapmadıysanız bu e-postayı yok sayın.
+
+{{magazaAdi}}`,
+  },
   'yeni-siparis-yonetici': {
     subject: 'Yeni sipariş: {{siparisNo}} — {{toplam}}',
     body: `Yeni sipariş alındı.
@@ -316,7 +352,7 @@ export function renderTemplateHtml(
   const fill = filler(vars, brand);
   const h = HTML_TEMPLATES[key];
   const plain = renderTemplate(key, vars, brand);
-  const link = fill(String(vars.takipLinki ?? ''));
+  const link = fill(String(vars.butonLinki ?? vars.takipLinki ?? ''));
   return renderEmailHtml({
     brand,
     logoUrl: opts.logoUrl ?? null,
