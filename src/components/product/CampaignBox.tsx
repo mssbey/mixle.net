@@ -31,7 +31,7 @@ export function CampaignBox({ campaigns, renderedAt }: { campaigns: ProductCampa
           </span>
           <div className="min-w-0">
             <p className="text-base font-extrabold text-brand-600">{c.title}</p>
-            <p className="text-xs leading-snug text-ink-soft">{c.detail}</p>
+            <p className="whitespace-pre-line text-xs leading-snug text-ink-soft">{c.detail}</p>
           </div>
         </div>
       ))}
