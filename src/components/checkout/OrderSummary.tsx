@@ -1,11 +1,10 @@
 'use client';
 
-// Checkout yan paneli: kalemler, kupon, toplamlar. Tüm tutarlar sunucudan
+// Checkout yan paneli: kalemler, kampanyalar, toplamlar. Tüm tutarlar sunucudan
 // (quote) gelir; burada yalnız biçimlendirilir.
 
 import Image from 'next/image';
-import { useState } from 'react';
-import { BadgePercent, Tag, Truck, X } from 'lucide-react';
+import { BadgePercent, Truck } from 'lucide-react';
 import { formatMinor, bpsToPercent } from '@/lib/money';
 import type { QuoteResponse } from '@/lib/checkout-client';
 import { cn } from '@/lib/utils';
@@ -13,15 +12,10 @@ import { cn } from '@/lib/utils';
 interface Props {
   quote: QuoteResponse | null;
   loading: boolean;
-  couponCode: string;
-  onCouponChange: (code: string) => void;
-  /** Kupon alanı yalnız adres girildikten sonra anlamlı. */
-  couponEnabled: boolean;
   className?: string;
 }
 
-export function OrderSummary({ quote, loading, couponCode, onCouponChange, couponEnabled, className }: Props) {
-  const [draft, setDraft] = useState(couponCode);
+export function OrderSummary({ quote, loading, className }: Props) {
   const t = quote?.totals;
 
   return (
@@ -49,50 +43,6 @@ export function OrderSummary({ quote, loading, couponCode, onCouponChange, coupo
         ))}
         {!quote && loading && <li className="py-6 text-center text-sm text-ink-soft">Hesaplanıyor…</li>}
       </ul>
-
-      {/* Kupon */}
-      <form
-        className="mt-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onCouponChange(draft.trim());
-        }}
-      >
-        <label htmlFor="checkout-coupon" className="mb-1.5 block text-xs font-semibold text-ink">
-          Kupon kodu
-        </label>
-        <div className="flex gap-2">
-          <input
-            id="checkout-coupon"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm uppercase outline-none focus:border-line focus-visible:ring-2 focus-visible:ring-brand-200 disabled:bg-mist/50"
-            value={draft}
-            disabled={!couponEnabled}
-            placeholder={couponEnabled ? 'NEFIS10' : 'Önce adres girin'}
-            onChange={(e) => setDraft(e.target.value)}
-          />
-          {couponCode ? (
-            <button type="button" className="btn-ghost px-3" aria-label="Kuponu kaldır"
-              onClick={() => { setDraft(''); onCouponChange(''); }}>
-              <X size={16} />
-            </button>
-          ) : (
-            <button type="submit" className="btn-ghost px-3" disabled={!couponEnabled || !draft.trim()}>
-              <Tag size={16} /> Uygula
-            </button>
-          )}
-        </div>
-        {quote?.coupon && (
-          <p className={cn('mt-1.5 text-xs', quote.coupon.ok ? 'text-success' : 'text-brand-600')} role="status">
-            {quote.coupon.ok
-              ? quote.coupon.freeShipping
-                ? quote.shippingOptions.find((s) => s.methodId === quote.selectedShippingId)?.type === 'kapıda'
-                  ? `${quote.coupon.code}: ücretsiz kargo kapıda ödeme kargosunda geçerli değil`
-                  : `${quote.coupon.code}: ücretsiz kargo uygulandı`
-                : `${quote.coupon.code}: ${formatMinor(quote.coupon.discountMinor)} indirim`
-              : quote.coupon.reason}
-          </p>
-        )}
-      </form>
 
       {/* Otomatik kampanyalar: kod gerektirmez, öne çıkarılır. */}
       {quote?.appliedDiscounts?.length ? (

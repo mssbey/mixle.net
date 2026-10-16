@@ -101,7 +101,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
 
   const [shippingMethodId, setShippingMethodId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'kart' | 'havale' | 'kapida' | ''>('');
-  const [couponCode, setCouponCode] = useState<string>(cartPromo ?? '');
+  const [couponCode] = useState<string>(cartPromo ?? '');
   const [customerNote, setCustomerNote] = useState('');
   const [consents, setConsents] = useState<Consents>({ distanceSales: false, preInfo: false, kvkk: false, marketing: false });
   const [consentError, setConsentError] = useState<string | null>(null);
@@ -547,9 +547,6 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
       <OrderSummary
         quote={quote}
         loading={quotePending}
-        couponCode={couponCode}
-        onCouponChange={setCouponCode}
-        couponEnabled={Boolean(activeShipping.city) || step >= 3}
         className="lg:sticky lg:top-24 lg:self-start"
       />
     </div>
