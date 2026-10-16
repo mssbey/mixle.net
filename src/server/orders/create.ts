@@ -18,6 +18,7 @@ import { seal, isEncryptionConfigured, tryOpen } from '../crypto/secret-box';
 import { reserveStock, releaseExpiredReservations } from '../inventory/reserve';
 import { getCurrentLegal } from '../legal/documents';
 import { orderEmailVars, queueEmail } from '../notifications/email';
+import { getEmailSettings } from '../notifications/settings';
 import { getStoreInfo, getStoreSettings } from '../settings';
 import { addressInputSchema, type AddressInput, type AddressSnapshot } from '../customers/address-schema';
 import { nextOrderNumber } from './numbering';
@@ -497,8 +498,26 @@ export async function createOrder(
     odemeTalimati: await paymentInstruction(input.paymentMethod, info),
   };
   await queueEmail({ to: email, template: 'siparis-alindi', vars, orderId: created.id });
-  if (info.notifyEmail) {
-    await queueEmail({ to: info.notifyEmail, template: 'yeni-siparis-yonetici', vars, orderId: created.id });
+  // Mağaza sahibine bilgi e-postası: panelde ayrı adres yoksa gönderen adrese (ör. info@mixle.net).
+  const notifyTo = info.notifyEmail || (await getEmailSettings().catch(() => null))?.fromEmail || '';
+  if (notifyTo) {
+    const s = shippingSnapshot;
+    const panelLinki = `{{siteUrl}}/admin/siparisler/${created.id}`;
+    await queueEmail({
+      to: notifyTo,
+      template: 'yeni-siparis-yonetici',
+      vars: {
+        ...vars,
+        musteriAdi: `${s.firstName} ${s.lastName}`.trim(),
+        musteriEposta: email,
+        musteriTelefon: s.phone,
+        teslimatAdresi: [s.addressLine, s.neighborhood, `${s.district} / ${s.city}`, s.postalCode].filter(Boolean).join(', '),
+        musteriNotu: input.customerNote || '—',
+        panelLinki,
+        butonLinki: panelLinki,
+      },
+      orderId: created.id,
+    });
   }
 
   return {

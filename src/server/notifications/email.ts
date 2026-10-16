@@ -163,8 +163,19 @@ Bu isteği siz yapmadıysanız bu e-postayı yok sayın.`,
     cta: 'Üye ol',
   },
   'yeni-siparis-yonetici': {
-    heading: 'Yeni sipariş',
-    intro: `Müşteri: {{musteriAdi}} ({{musteriEposta}})`,
+    heading: 'Yeni sipariş: {{siparisNo}}',
+    intro: `Yeni bir sipariş oluşturuldu.
+
+Sipariş no: {{siparisNo}}
+Ödeme yöntemi: {{odemeYontemi}}
+Toplam: {{toplam}}
+
+Müşteri: {{musteriAdi}}
+E-posta: {{musteriEposta}}
+Telefon: {{musteriTelefon}}
+Teslimat adresi: {{teslimatAdresi}}
+Sipariş notu: {{musteriNotu}}`,
+    cta: 'Panelde aç',
   },
 };
 
@@ -299,7 +310,9 @@ Bu isteği siz yapmadıysanız bu e-postayı yok sayın.
     body: `Yeni sipariş alındı.
 
 No: {{siparisNo}}
-Müşteri: {{musteriAdi}} ({{musteriEposta}})
+Müşteri: {{musteriAdi}} ({{musteriEposta}}, {{musteriTelefon}})
+Teslimat adresi: {{teslimatAdresi}}
+Sipariş notu: {{musteriNotu}}
 Toplam: {{toplam}}
 Ödeme: {{odemeYontemi}}
 
