@@ -216,7 +216,7 @@ export function PaymentSettingsForm() {
           <Field label="Banka" htmlFor="havale-bank"><input id="havale-bank" className="admin-input" value={s.havale.bankName} onChange={(e) => patchSection('havale', { bankName: e.target.value })} /></Field>
           <Field label="Hesap sahibi" htmlFor="havale-holder"><input id="havale-holder" className="admin-input" value={s.havale.accountHolder} onChange={(e) => patchSection('havale', { accountHolder: e.target.value })} /></Field>
           <Field label="IBAN" htmlFor="havale-iban" className="sm:col-span-2"><input id="havale-iban" className="admin-input" placeholder="TR00 0000 0000 0000 0000 0000 00" value={s.havale.iban} onChange={(e) => patchSection('havale', { iban: e.target.value })} /></Field>
-          <Field label="Müşteriye not" htmlFor="havale-note" className="sm:col-span-2"><textarea id="havale-note" className="admin-input" rows={2} value={s.havale.instructions} onChange={(e) => patchSection('havale', { instructions: e.target.value })} /></Field>
+          <Field label="Müşteriye not" htmlFor="havale-note" className="sm:col-span-2" hint="Banka bilgileriyle birlikte sipariş sayfasında ve sipariş e-postasında görünür."><textarea id="havale-note" className="admin-input" rows={6} value={s.havale.instructions} onChange={(e) => patchSection('havale', { instructions: e.target.value })} /></Field>
         </div>
       </section>
     </form>

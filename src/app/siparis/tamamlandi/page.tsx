@@ -14,6 +14,7 @@ import { getCurrentCustomer } from '@/server/customers/auth';
 import { verifyOrderAccessToken } from '@/server/orders/access';
 import { publicOrderInclude, publicOrderView } from '@/server/orders/view';
 import { getStoreInfo } from '@/server/settings';
+import { getPaymentSettings, havaleDetails } from '@/server/payments/settings';
 import { OrderDetail } from '@/components/orders/OrderDetail';
 import { ButtonLink } from '@/components/ui/Button';
 import { formatMinor } from '@/lib/money';
@@ -68,6 +69,7 @@ export default async function OrderCompletePage({
 
   const order = publicOrderView(row);
   const info = await getStoreInfo();
+  const havale = havaleDetails(await getPaymentSettings());
   const email = row.customer?.email ?? row.guestEmail ?? '';
 
   return (
@@ -93,15 +95,35 @@ export default async function OrderCompletePage({
             {order.paymentMethod === 'havale' && order.status === 'ödeme-bekliyor' && (
               <div className="mt-4 rounded-xl border border-purple-100 bg-white p-4 text-sm">
                 <p className="flex items-center gap-2 font-semibold text-purple-900"><Landmark size={16} /> Havale / EFT bilgileri</p>
-                <p className="mt-2 text-ink-soft">
-                  Alıcı: <strong className="text-ink">{info.legalName}</strong><br />
-                  Tutar: <strong className="text-ink">{formatMinor(order.grandTotalMinor)}</strong><br />
-                  Açıklama: <strong className="text-ink">{order.orderNumber}</strong>
-                </p>
-                <p className="mt-2 flex items-start gap-1.5 text-xs text-ink-soft">
-                  <Info size={14} className="mt-0.5 shrink-0" />
-                  IBAN bilgisi mağaza ayarlarından tanımlanacak (F7). Ödemeniz onaylandığında siparişiniz hazırlanmaya başlar.
-                </p>
+                {/* Banka bilgisi ve açıklama metni Panel > Ödemeler > Havale/EFT'den gelir. */}
+                {havale.iban ? (
+                  <>
+                    <p className="mt-2 text-ink-soft">
+                      Alıcı: <strong className="text-ink">{havale.accountHolder || info.legalName}</strong><br />
+                      {havale.bankName && <>Banka: <strong className="text-ink">{havale.bankName}</strong><br /></>}
+                      IBAN: <strong className="select-all break-all text-ink">{havale.iban}</strong><br />
+                      Tutar: <strong className="text-ink">{formatMinor(order.grandTotalMinor)}</strong>
+                    </p>
+                    {havale.instructions && (
+                      <p className="mt-3 flex items-start gap-1.5 whitespace-pre-line text-xs leading-relaxed text-ink-soft">
+                        <Info size={14} className="mt-0.5 shrink-0" />
+                        <span>{havale.instructions}</span>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-2 text-ink-soft">
+                      Alıcı: <strong className="text-ink">{info.legalName}</strong><br />
+                      Tutar: <strong className="text-ink">{formatMinor(order.grandTotalMinor)}</strong><br />
+                      Açıklama: <strong className="text-ink">{order.orderNumber}</strong>
+                    </p>
+                    <p className="mt-2 flex items-start gap-1.5 text-xs text-ink-soft">
+                      <Info size={14} className="mt-0.5 shrink-0" />
+                      IBAN bilgisi e-posta ile iletilecektir. Ödemeniz onaylandığında siparişiniz hazırlanmaya başlar.
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
