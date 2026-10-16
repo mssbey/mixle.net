@@ -1,39 +1,26 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { AnimatePresence } from 'framer-motion';
-import { ShoppingBag, SlidersHorizontal, Eye } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { Product } from '@/types';
 import { Price } from '@/components/ui/Price';
 import { Badge } from '@/components/ui/Badge';
 import { Rating } from '@/components/ui/Rating';
 import { FavoriteButton } from './FavoriteButton';
-import { QuickAddPanel } from './QuickAddPanel';
-import { useCart } from '@/store/cart';
-import { useUI } from '@/store/ui';
-import { toast } from '@/store/toast';
 import { pickDefaultVariant, stockLabel, variantPriceRange } from '@/lib/commerce';
 import { currency, discountPercent } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
 export function ProductCard({
   product,
-  onQuickView,
   priority = false,
   className,
 }: {
   product: Product;
-  onQuickView?: (p: Product) => void;
   priority?: boolean;
   className?: string;
 }) {
-  const [panelOpen, setPanelOpen] = useState(false);
-  const add = useCart((s) => s.add);
-  const openCart = useUI((s) => s.openCart);
-
-  const singleVariant = product.variants.length === 1;
   const defaultVariant = pickDefaultVariant(product);
   const soldOut = product.stockStatus === 'out-of-stock';
   const img2 = product.images[1]?.src ?? product.images[0].src;
@@ -48,19 +35,6 @@ export function ProductCard({
       : product.badges.includes('sinirli-seri')
         ? 'sinirli-seri'
         : null;
-
-  const doAdd = (variantId: string) => {
-    add(product.id, variantId, 1);
-    setPanelOpen(false);
-    openCart();
-    toast.success('Sepete eklendi', product.name);
-  };
-
-  const handleCta = () => {
-    if (soldOut) return;
-    if (singleVariant) doAdd(defaultVariant.id);
-    else setPanelOpen((v) => !v);
-  };
 
   return (
     <article
@@ -101,19 +75,6 @@ export function ProductCard({
 
         <div className="absolute right-2.5 top-2.5 z-10 flex flex-col gap-2">
           <FavoriteButton productId={product.id} productName={product.name} className="h-9 w-9" />
-          {onQuickView && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                onQuickView(product);
-              }}
-              aria-label="Hızlı incele"
-              className="grid h-9 w-9 place-items-center rounded-full border border-line bg-white/95 text-ink-soft opacity-0 shadow-card backdrop-blur transition-opacity hover:text-ink group-hover:opacity-100 max-lg:opacity-100"
-            >
-              <Eye size={16} />
-            </button>
-          )}
         </div>
 
         {soldOut && (
@@ -123,10 +84,6 @@ export function ProductCard({
             </span>
           </div>
         )}
-
-        <AnimatePresence>
-          {panelOpen && <QuickAddPanel product={product} onConfirm={doAdd} />}
-        </AnimatePresence>
       </div>
 
       <div className="flex flex-1 flex-col p-3 sm:p-3.5">
@@ -153,32 +110,17 @@ export function ProductCard({
           )}
           <p className={cn('mt-0.5 text-[11px] font-medium', stock.className)}>{stock.text}</p>
 
-          <button
-            type="button"
-            onClick={handleCta}
-            disabled={soldOut}
+          {/* Sepete yalnız ürün sayfasından eklenir; kart ürüne götürür. */}
+          <Link
+            href={`/urun/${product.slug}`}
+            tabIndex={-1}
             className={cn(
               'mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-md text-[13px] font-semibold transition-colors',
-              soldOut
-                ? 'cursor-not-allowed bg-purple-100 text-ink-soft'
-                : singleVariant
-                  ? 'bg-brand-500 text-white hover:bg-brand-600'
-                  : 'border border-brand-500 bg-white text-brand-500 hover:bg-brand-50',
+              soldOut ? 'bg-purple-100 text-ink-soft' : 'bg-brand-500 text-white hover:bg-brand-600',
             )}
           >
-            {soldOut ? (
-              'Tükendi'
-            ) : singleVariant ? (
-              <>
-                <ShoppingBag size={15} /> Sepete Ekle
-              </>
-            ) : (
-              <>
-                <SlidersHorizontal size={15} className={cn('transition-transform', panelOpen && 'rotate-90')} />
-                Seçenekleri Gör
-              </>
-            )}
-          </button>
+            {soldOut ? 'Tükendi' : <>Ürünü İncele <ArrowRight size={15} /></>}
+          </Link>
         </div>
       </div>
     </article>

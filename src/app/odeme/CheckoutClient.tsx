@@ -1,6 +1,7 @@
 'use client';
 
-// Çok adımlı checkout: (1) iletişim (2) adres (3) kargo (4) ödeme (5) özet + onaylar.
+// Çok adımlı checkout: (1) iletişim (2) adres (3) ödeme (4) özet + onaylar.
+// Kargo adımı yok: yöntem teklif gelince otomatik seçilir (Yurtiçi öncelikli, bkz. `autoShipping`).
 //
 // İlkeler:
 //  - Tutar HİÇBİR ZAMAN istemcide hesaplanmaz; her değişiklikte sunucudan teklif alınır.
@@ -11,7 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Check, ShoppingBag, Truck, CreditCard, FileText, User, MapPin } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ShoppingBag, CreditCard, FileText, User, MapPin } from 'lucide-react';
 import { useCart } from '@/store/cart';
 import { useMounted, useDebounced } from '@/lib/hooks';
 import { formatMinor } from '@/lib/money';
@@ -41,10 +42,15 @@ interface Props {
 const STEPS = [
   { id: 1, label: 'İletişim', icon: User },
   { id: 2, label: 'Adres', icon: MapPin },
-  { id: 3, label: 'Kargo', icon: Truck },
-  { id: 4, label: 'Ödeme', icon: CreditCard },
-  { id: 5, label: 'Onay', icon: FileText },
+  { id: 3, label: 'Ödeme', icon: CreditCard },
+  { id: 4, label: 'Onay', icon: FileText },
 ] as const;
+
+type ShippingOption = QuoteResponse['shippingOptions'][number];
+
+/** Müşteri kargo seçmez: Yurtiçi Kargo, yoksa kapıda olmayan ilk yöntem kullanılır. */
+const autoShipping = (options: ShippingOption[]): ShippingOption | undefined =>
+  options.find((o) => o.carrier === 'yurtici' && o.type !== 'kapıda') ?? options.find((o) => o.type !== 'kapıda') ?? options[0];
 
 type Consents = { distanceSales: boolean; preInfo: boolean; kvkk: boolean; marketing: boolean };
 
@@ -143,8 +149,8 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
         if (q.removedVariantIds?.length) removeVariants(q.removedVariantIds);
         setQuoteError(null);
         setQuote(q);
-        // Sunucu seçili kargoyu geçersiz saydıysa (adres değişti) sıfırla.
-        if (shippingMethodId && !q.selectedShippingId) setShippingMethodId('');
+        // Kargo otomatik seçilir; sunucu seçimi geçersiz saydıysa (adres değişti) yeniden seçilir.
+        if (!shippingMethodId || !q.selectedShippingId) setShippingMethodId(autoShipping(q.shippingOptions)?.methodId ?? '');
         if (paymentMethod && !q.selectedPayment) setPaymentMethod('');
       })
       .catch((err: unknown) => {
@@ -196,23 +202,19 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
         }
         setBillingErrors({});
       }
+      if (!shippingMethodId) {
+        setSubmitError('Bu adrese kargo gönderilemiyor. Adresi kontrol edin.');
+        return;
+      }
       goTo(3);
       return;
     }
     if (step === 3) {
-      if (!shippingMethodId) {
-        setSubmitError('Bir kargo yöntemi seçin.');
-        return;
-      }
-      goTo(4);
-      return;
-    }
-    if (step === 4) {
       if (!paymentMethod || !quote?.selectedPayment) {
         setSubmitError('Bir ödeme yöntemi seçin.');
         return;
       }
-      goTo(5);
+      goTo(4);
     }
   };
 
@@ -268,9 +270,8 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
     } catch (err) {
       if (err instanceof CheckoutApiError) {
         setSubmitError(err.message);
-        if (err.issues.shippingAddress || err.issues.city) goTo(2);
-        else if (err.issues.shippingMethodId) goTo(3);
-        else if (err.issues.paymentMethod) goTo(4);
+        if (err.issues.shippingAddress || err.issues.city || err.issues.shippingMethodId) goTo(2);
+        else if (err.issues.paymentMethod) goTo(3);
         else if (err.code === 'stock' || err.issues.lines || err.issues.total || err.issues.couponCode) {
           // Stok, fiyat veya kupon değişti: teklif tazelensin, kullanıcı güncel toplamı görsün.
           setQuote(null);
@@ -455,33 +456,8 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
             </div>
           )}
 
-          {/* ADIM 3 — Kargo */}
+          {/* ADIM 3 — Ödeme */}
           {step === 3 && (
-            <div className="mt-5">
-              {!quote?.shippingOptions.length ? (
-                <p className="text-sm text-ink-soft">{quoteLoading ? 'Kargo seçenekleri hesaplanıyor…' : 'Bu adres için kargo seçeneği bulunamadı.'}</p>
-              ) : (
-                <div className="grid gap-2" role="radiogroup" aria-label="Kargo yöntemi">
-                  {quote.shippingOptions.map((s) => (
-                    <label key={s.methodId} className={cn('flex cursor-pointer items-center gap-3 rounded-md border p-4 text-sm', shippingMethodId === s.methodId ? 'border-brand-500 bg-mist/50' : 'border-line')}>
-                      <input type="radio" name="co-shipping" checked={shippingMethodId === s.methodId} onChange={() => { setShippingMethodId(s.methodId); setSubmitError(null); if (s.type !== 'kapıda' && paymentMethod === 'kapida') setPaymentMethod(''); }} />
-                      <span className="flex-1">
-                        <strong>{s.name}</strong>
-                        {s.estimatedDays && <span className="block text-xs text-ink-soft">Tahmini {s.estimatedDays}</span>}
-                      </span>
-                      <span className="font-semibold">
-                        {s.priceMinor === 0 ? <span className="text-success">Ücretsiz</span> : formatMinor(s.priceMinor)}
-                        {s.freeReason === 'eşik' && <span className="block text-[11px] font-normal text-ink-soft">tutar eşiği</span>}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ADIM 4 — Ödeme */}
-          {step === 4 && (
             <div className="mt-5 grid gap-2" role="radiogroup" aria-label="Ödeme yöntemi">
               {quote?.paymentOptions.map((p) => (
                 <label key={p.id} className={cn('flex gap-3 rounded-md border p-4 text-sm', p.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-60', paymentMethod === p.id ? 'border-brand-500 bg-mist/50' : 'border-line')}>
@@ -498,8 +474,8 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
             </div>
           )}
 
-          {/* ADIM 5 — Onay */}
-          {step === 5 && (
+          {/* ADIM 4 — Onay */}
+          {step === 4 && (
             <div className="mt-5 space-y-5">
               <div className="grid gap-3 text-sm sm:grid-cols-2">
                 <div className="rounded-md bg-mist/60 p-3">
@@ -510,7 +486,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
                 <div className="rounded-md bg-mist/60 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Kargo ve ödeme</p>
                   <p className="mt-1">{legalVars.kargoYontemi}<br />{legalVars.odemeYontemi}</p>
-                  <button type="button" className="mt-1 text-xs font-semibold text-ink link-underline" onClick={() => goTo(3)}>Değiştir</button>
+                  <button type="button" className="mt-1 text-xs font-semibold text-ink link-underline" onClick={() => goTo(3)}>Ödemeyi değiştir</button>
                 </div>
               </div>
 
@@ -555,8 +531,8 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
             ) : (
               <Link href="/sepet" className="btn-ghost"><ArrowLeft size={16} /> Sepete dön</Link>
             )}
-            {step < 5 ? (
-              <button type="button" className="btn-primary" onClick={next} disabled={quotePending && step >= 3}>
+            {step < 4 ? (
+              <button type="button" className="btn-primary" onClick={next} disabled={quotePending && step >= 2}>
                 Devam <ArrowRight size={16} />
               </button>
             ) : (

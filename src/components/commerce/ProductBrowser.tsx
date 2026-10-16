@@ -10,7 +10,6 @@ import { FilterPanel } from './FilterPanel';
 import { ActiveFilterChips } from './ActiveFilterChips';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { ProductCard } from '@/components/product/ProductCard';
-import { QuickView } from '@/components/product/QuickView';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Drawer } from '@/components/ui/Drawer';
@@ -45,7 +44,6 @@ export function ProductBrowser({
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [quick, setQuick] = useState<Product | null>(null);
 
   useEffect(() => {
     setFilters(parseFilters(searchParams, priceMin, priceMax));
@@ -196,7 +194,7 @@ export function ProductBrowser({
             <div className="space-y-4">
               {shown.map((p) => (
                 <div key={p.id} className="product-list-item">
-                  <ProductCard product={p} onQuickView={setQuick} />
+                  <ProductCard product={p} />
                 </div>
               ))}
             </div>
@@ -225,8 +223,6 @@ export function ProductBrowser({
           </button>
         </div>
       </Drawer>
-
-      <QuickView product={quick} onClose={() => setQuick(null)} />
     </div>
   );
 }

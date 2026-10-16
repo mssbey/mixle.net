@@ -5,7 +5,6 @@ import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Product } from '@/types';
 import { ProductCard } from './ProductCard';
-import { QuickView } from './QuickView';
 import { cn } from '@/lib/utils';
 
 export function ProductRail({ products, className, pagination = false }: { products: Product[]; className?: string; pagination?: boolean }) {
@@ -14,7 +13,6 @@ export function ProductRail({ products, className, pagination = false }: { produ
   const [snaps, setSnaps] = useState<number[]>([]);
   const [prev, setPrev] = useState(false);
   const [next, setNext] = useState(false);
-  const [quick, setQuick] = useState<Product | null>(null);
 
   const onSelect = useCallback(() => {
     if (!embla) return;
@@ -40,7 +38,7 @@ export function ProductRail({ products, className, pagination = false }: { produ
               key={p.id}
               className="product-rail-slide min-w-0 shrink-0 grow-0 basis-[64%] sm:basis-[40%] lg:basis-[28%] xl:basis-[23%]"
             >
-              <ProductCard product={p} onQuickView={setQuick} />
+              <ProductCard product={p} />
             </div>
           ))}
         </div>
@@ -68,7 +66,6 @@ export function ProductRail({ products, className, pagination = false }: { produ
       </div>
 
       {pagination && <div className="reference-rail-dots" aria-label="Ürün slaytları">{snaps.map((_, index) => <button key={index} type="button" onClick={() => embla?.scrollTo(index)} aria-label={`${index + 1}. ürün grubunu göster`} aria-pressed={selected === index}><span className={selected === index ? 'active' : ''} /></button>)}</div>}
-      <QuickView product={quick} onClose={() => setQuick(null)} />
     </div>
   );
 }

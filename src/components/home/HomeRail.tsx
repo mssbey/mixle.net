@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Product } from '@/types';
-import { QuickView } from '@/components/product/QuickView';
 import { HomeProductCard } from './HomeProductCard';
 import { cn } from '@/lib/utils';
 
@@ -45,7 +44,6 @@ export function HomeRail({
   const pages = Math.max(1, Math.ceil(products.length / perPage));
   const [page, setPage] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [quick, setQuick] = useState<Product | null>(null);
   const dragX = useRef<number | null>(null);
 
   const go = useCallback((step: number) => setPage((p) => (p + step + pages) % pages), [pages]);
@@ -117,7 +115,7 @@ export function HomeRail({
           >
             {products.map((p) => (
               <div key={p.id} className="shrink-0 grow-0 px-1.5 py-1" style={{ flexBasis: `${100 / perPage}%` }}>
-                <HomeProductCard product={p} label={labelOf[p.category] ?? ''} onQuickView={setQuick} />
+                <HomeProductCard product={p} label={labelOf[p.category] ?? ''} />
               </div>
             ))}
           </div>
@@ -141,7 +139,6 @@ export function HomeRail({
           </div>
         )}
       </div>
-      <QuickView product={quick} onClose={() => setQuick(null)} />
     </section>
   );
 }
