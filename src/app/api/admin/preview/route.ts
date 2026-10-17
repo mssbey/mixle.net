@@ -25,7 +25,7 @@ export function GET(request: Request): Promise<Response> {
     if (url.searchParams.get('cikis') === '1') {
       draft.disable();
       const back = safeInternalPath(url.searchParams.get('geri'), '/admin/urunler');
-      return NextResponse.redirect(new URL(back, url.origin), { status: 303 });
+      return new Response(null, { status: 303, headers: { Location: back } });
     }
 
     const slug = (url.searchParams.get('slug') ?? '').trim();
@@ -56,6 +56,6 @@ export function GET(request: Request): Promise<Response> {
     }
 
     draft.enable();
-    return NextResponse.redirect(new URL(storefrontPath(product.slug), url.origin), { status: 303 });
+    return new Response(null, { status: 303, headers: { Location: storefrontPath(product.slug) } });
   });
 }

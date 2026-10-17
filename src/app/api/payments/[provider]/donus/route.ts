@@ -28,8 +28,11 @@ async function finish(request: Request, providerId: string) {
     ? `${thankYouUrl(order.orderNumber, order.id)}${order.status === 'başarısız' ? '&odeme=basarisiz' : ''}`
     : '/siparis-takibi';
 
-  // 303: POST'tan GET'e güvenli yönlendirme.
-  return Response.redirect(new URL(target, url.origin), 303);
+  // 303: POST'tan GET'e güvenli yönlendirme. Göreli Location: Plesk/PM2 proxy
+  // arkasında request.url'in origin'i http://localhost:3000 olur; mutlak URL
+  // kurmak müşteriyi localhost'a gönderiyordu. Tarayıcı göreli adresi geldiği
+  // alan adına göre çözer.
+  return new Response(null, { status: 303, headers: { Location: target } });
 }
 
 export async function POST(request: Request, { params }: Ctx) {
