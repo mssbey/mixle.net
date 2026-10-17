@@ -220,7 +220,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
 
   const submit = async () => {
     if (!consents.distanceSales || !consents.preInfo || !consents.kvkk) {
-      setConsentError('Devam etmek için zorunlu onayları işaretleyin.');
+      setConsentError('Devam etmek için sözleşme onayını işaretleyin.');
       return;
     }
     setConsentError(null);
@@ -501,9 +501,7 @@ export function CheckoutClient({ customer, addresses, legal, store }: Props) {
 
               <fieldset className="space-y-2 text-sm" aria-describedby={consentError ? 'co-consent-err' : undefined}>
                 <legend className="sr-only">Onaylar</legend>
-                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.preInfo} onChange={(e) => setConsents({ ...consents, preInfo: e.target.checked })} /><span>Ön Bilgilendirme Formu&apos;nu okudum, onaylıyorum. <span className="text-brand-600">*</span></span></label>
-                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.distanceSales} onChange={(e) => setConsents({ ...consents, distanceSales: e.target.checked })} /><span>Mesafeli Satış Sözleşmesi&apos;ni okudum, onaylıyorum. <span className="text-brand-600">*</span></span></label>
-                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.kvkk} onChange={(e) => setConsents({ ...consents, kvkk: e.target.checked })} /><span>KVKK Aydınlatma Metni&apos;ni okudum. <span className="text-brand-600">*</span></span></label>
+                <label className="flex gap-2"><input type="checkbox" className="mt-0.5" checked={consents.preInfo && consents.distanceSales && consents.kvkk} onChange={(e) => setConsents({ ...consents, preInfo: e.target.checked, distanceSales: e.target.checked, kvkk: e.target.checked })} /><span>Ön Bilgilendirme Formu&apos;nu ve Mesafeli Satış Sözleşmesi&apos;ni okudum, onaylıyorum; KVKK Aydınlatma Metni&apos;ni okudum. <span className="text-brand-600">*</span></span></label>
                 <label className="flex gap-2 text-ink-soft"><input type="checkbox" className="mt-0.5" checked={consents.marketing} onChange={(e) => setConsents({ ...consents, marketing: e.target.checked })} /><span>Kampanya ve yeniliklerden e-posta ile haberdar olmak istiyorum. <span className="text-[11px]">(isteğe bağlı — satın alma şartı değildir)</span></span></label>
                 {consentError && <p id="co-consent-err" className="text-xs text-brand-600" role="alert">{consentError}</p>}
               </fieldset>
