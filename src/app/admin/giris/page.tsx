@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { KeyRound } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { adminApi, ApiError } from '@/lib/admin/client';
 
 function LoginForm() {
@@ -12,6 +12,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,94 +31,205 @@ function LoginForm() {
     }
   };
 
+  const inputBase =
+    'h-12 w-full rounded-xl border bg-white pl-11 text-[15px] text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:outline-none focus:ring-4';
+  const inputState = error
+    ? 'border-red-400 focus:border-red-500 focus:ring-red-500/15'
+    : 'border-slate-200 hover:border-slate-300 focus:border-[var(--brand-red)] focus:ring-[rgba(227,27,35,0.14)]';
+
   return (
-    <div className="grid min-h-dvh place-items-center p-4">
-      <div className="admin-card w-full max-w-sm" style={{ padding: 24 }}>
-        <div className="mb-4 flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-500 text-white">
-            <KeyRound size={18} aria-hidden="true" />
+    <div className="relative grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
+      {/* Sol: marka paneli (yalnızca geniş ekranlarda) */}
+      <aside className="relative hidden overflow-hidden bg-[var(--brand-night)] text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-[var(--brand-red)] opacity-30 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-40 right-[-6rem] h-[30rem] w-[30rem] rounded-full bg-[var(--brand-gold)] opacity-20 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)',
+            backgroundSize: '44px 44px',
+          }}
+        />
+
+        <div className="relative flex items-center gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--brand-red)] text-lg font-bold shadow-lg shadow-red-900/40">
+            M
           </span>
-          <div>
-            <h1 className="text-base font-semibold text-[var(--brand-purple-deep)]">
-              Yönetim Paneli
-            </h1>
-            <p className="admin-hint">Mixle Lezzet Sepeti mağaza yönetimi</p>
-          </div>
+          <span className="text-lg font-semibold tracking-tight">Mixle</span>
         </div>
 
-        <form onSubmit={onSubmit} noValidate>
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="admin-email">
-              E-posta
-            </label>
-            <input
-              id="admin-email"
-              name="email"
-              type="email"
-              autoComplete="username"
-              className="admin-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-invalid={error ? 'true' : undefined}
-              aria-describedby={error ? 'admin-login-error' : undefined}
-              autoFocus
-              required
-            />
+        <div className="relative max-w-md">
+          <h2 className="text-4xl font-semibold leading-tight tracking-tight !text-white">
+            Mağazanız,
+            <br />
+            <span className="text-[var(--brand-gold)]">tek panelden</span> yönetimde.
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-white/65">
+            Siparişler, ürünler, stok ve müşteriler — hepsi tek bir yerde, güvenle.
+          </p>
+        </div>
+
+        <p className="relative flex items-center gap-2 text-sm text-white/50">
+          <ShieldCheck size={16} aria-hidden="true" />
+          Bağlantınız şifreli ve oturumunuz korunuyor.
+        </p>
+      </aside>
+
+      {/* Sağ: giriş formu */}
+      <main className="relative flex items-center justify-center bg-gradient-to-b from-slate-50 to-white px-5 py-12 sm:px-8">
+        <div className="w-full max-w-[400px]">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--brand-red)] text-lg font-bold text-white shadow-lg shadow-red-500/30">
+              M
+            </span>
+            <span className="text-lg font-semibold tracking-tight text-[var(--brand-purple-deep)]">
+              Mixle
+            </span>
           </div>
 
-          <div className="admin-field mt-3">
-            <label className="admin-label" htmlFor="admin-password">
-              Parola
-            </label>
-            <input
-              id="admin-password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              className="admin-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-invalid={error ? 'true' : undefined}
-              aria-describedby={error ? 'admin-login-error' : undefined}
-              required
-            />
-          </div>
-
-          <label className="mt-3 flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            Beni hatırla (30 gün)
-          </label>
-
-          {/* Hata alanın altında metinle bildirilir; aria-live ile okuyucuya duyurulur. */}
-          <p className="admin-error mt-2" id="admin-login-error" role="alert" aria-live="polite">
-            {error ?? ''}
+          <h1 className="text-[28px] font-semibold tracking-tight text-[var(--brand-purple-deep)]">
+            Tekrar hoş geldiniz
+          </h1>
+          <p className="mt-1.5 text-[15px] text-slate-500">
+            Mixle Lezzet Sepeti yönetim paneline giriş yapın.
           </p>
 
-          <button
-            type="submit"
-            className="admin-btn admin-btn-primary mt-1"
-            disabled={busy || email.length === 0 || password.length === 0}
-          >
-            {busy ? 'Kontrol ediliyor…' : 'Giriş yap'}
-          </button>
-        </form>
+          <form onSubmit={onSubmit} noValidate className="mt-8 space-y-5">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="admin-email">
+                E-posta
+              </label>
+              <div className="relative">
+                <Mail
+                  size={18}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  id="admin-email"
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="ornek@mixle.net"
+                  className={`${inputBase} ${inputState} pr-4`}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={error ? 'true' : undefined}
+                  aria-describedby={error ? 'admin-login-error' : undefined}
+                  autoFocus
+                  required
+                />
+              </div>
+            </div>
 
-        <p className="admin-hint mt-4">
-          Kullanıcınız yoksa sunucuda{' '}
-          <code>npm run admin:create-user</code> komutuyla oluşturun.
-        </p>
-      </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="admin-password">
+                Parola
+              </label>
+              <div className="relative">
+                <Lock
+                  size={18}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  id="admin-password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  className={`${inputBase} ${inputState} pr-12`}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  aria-invalid={error ? 'true' : undefined}
+                  aria-describedby={error ? 'admin-login-error' : undefined}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                  aria-label={showPassword ? 'Parolayı gizle' : 'Parolayı göster'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <label className="flex cursor-pointer select-none items-center gap-2.5 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[var(--brand-red)]"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+              Beni hatırla (30 gün)
+            </label>
+
+            {/* Hata metinle bildirilir; aria-live ile okuyucuya duyurulur. */}
+            <p
+              id="admin-login-error"
+              role="alert"
+              aria-live="polite"
+              className={
+                error
+                  ? 'rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700'
+                  : 'sr-only'
+              }
+            >
+              {error ?? ''}
+            </p>
+
+            <button
+              type="submit"
+              className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-red)] text-[15px] font-semibold text-white shadow-lg shadow-red-500/25 transition hover:bg-[#c9151c] hover:shadow-red-500/35 focus:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(227,27,35,0.25)] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
+              disabled={busy || email.length === 0 || password.length === 0}
+            >
+              {busy ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" aria-hidden="true" />
+                  Kontrol ediliyor…
+                </>
+              ) : (
+                <>
+                  Giriş yap
+                  <ArrowRight
+                    size={18}
+                    aria-hidden="true"
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="mt-10 text-center text-xs text-slate-400">
+            © {new Date().getFullYear()} Mixle · Tüm hakları saklıdır
+          </p>
+        </div>
+      </main>
     </div>
   );
 }
 
 export default function AdminLoginPage() {
   return (
-    <Suspense fallback={<div className="grid min-h-dvh place-items-center p-4">Yükleniyor…</div>}>
+    <Suspense
+      fallback={
+        <div className="grid min-h-dvh place-items-center p-4 text-slate-500">
+          <Loader2 className="animate-spin" aria-label="Yükleniyor" />
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );
