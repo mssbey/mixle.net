@@ -5,6 +5,69 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { adminApi, ApiError } from '@/lib/admin/client';
 
+/* Panelin yönettiği üç mağazanın logoları. Nuclear ve Kanzi işaretleri kendi
+   repolarındaki `components/ui/Logo.tsx` ile aynı; tema renkleri sabitlendi. */
+function NuclearMark() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" className="h-8 w-8 shrink-0">
+      <circle cx="16" cy="16" r="15" fill="#B6FF3B" />
+      <g fill="#0B1200">
+        <circle cx="16" cy="16" r="2.6" />
+        {[0, 120, 240].map((deg) => (
+          <path key={deg} transform={`rotate(${deg} 16 16)`} d="M16 12.2 L11.3 4.1 A13 13 0 0 1 20.7 4.1 Z" />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+function KanziMark() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" className="h-8 w-8 shrink-0">
+      <rect x="1" y="1" width="30" height="30" rx="3" fill="#FF5A36" />
+      <rect x="3.5" y="3.5" width="25" height="25" rx="1.5" fill="none" stroke="#fff" strokeWidth="1.2" opacity="0.55" />
+      <path d="M10 8h3.6v6.6L19.4 8h4.3l-6.4 7.2L24 24h-4.4l-4.8-6.4-1.2 1.3V24H10z" fill="#fff" />
+    </svg>
+  );
+}
+
+function StoreLogos({ tone, className = '' }: { tone: 'dark' | 'light'; className?: string }) {
+  const dark = tone === 'dark';
+  const ink = dark ? 'text-white' : 'text-[var(--brand-purple-deep)]';
+  const divider = dark ? 'bg-white/15' : 'hidden bg-slate-200 sm:block';
+  return (
+    <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-5 ${className}`}>
+      {/* Vitrin logosu koyu yazılı; koyu panelde beyaz zemin üstünde gösterilir. */}
+      <span className={dark ? 'rounded-lg bg-white px-2.5 py-1.5 shadow-lg shadow-black/30' : ''}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/logo.png" alt="Mixle" className="h-8 w-auto" />
+      </span>
+      <span aria-hidden="true" className={`h-7 w-px ${divider}`} />
+      <span className="inline-flex items-center gap-2" aria-label="Nuclear Likit">
+        <NuclearMark />
+        <span className="flex flex-col leading-none" aria-hidden="true">
+          <span className={`text-[15px] font-bold tracking-[0.08em] ${ink}`}>NUCLEAR</span>
+          <span
+            className={`mt-0.5 text-[9px] font-semibold tracking-[0.42em] ${dark ? 'text-[#B6FF3B]' : 'text-lime-700'}`}
+          >
+            LİKİT
+          </span>
+        </span>
+      </span>
+      <span aria-hidden="true" className={`h-7 w-px ${divider}`} />
+      <span className="inline-flex items-center gap-2" aria-label="KanziVape">
+        <KanziMark />
+        <span className="flex items-baseline gap-1 leading-none" aria-hidden="true">
+          <span className={`text-[20px] font-semibold tracking-[0.04em] ${ink}`}>KANZI</span>
+          <span className={`text-[9px] font-bold tracking-[0.3em] ${dark ? 'text-white/55' : 'text-slate-500'}`}>
+            VAPE
+          </span>
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -59,12 +122,7 @@ function LoginForm() {
           }}
         />
 
-        <div className="relative flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--brand-red)] text-lg font-bold shadow-lg shadow-red-900/40">
-            M
-          </span>
-          <span className="text-lg font-semibold tracking-tight">Mixle</span>
-        </div>
+        <StoreLogos tone="dark" className="relative" />
 
         <div className="relative max-w-md">
           <h2 className="text-4xl font-semibold leading-tight tracking-tight !text-white">
@@ -86,14 +144,7 @@ function LoginForm() {
       {/* Sağ: giriş formu */}
       <main className="relative flex items-center justify-center bg-gradient-to-b from-slate-50 to-white px-5 py-12 sm:px-8">
         <div className="w-full max-w-[400px]">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--brand-red)] text-lg font-bold text-white shadow-lg shadow-red-500/30">
-              M
-            </span>
-            <span className="text-lg font-semibold tracking-tight text-[var(--brand-purple-deep)]">
-              Mixle
-            </span>
-          </div>
+          <StoreLogos tone="light" className="mb-8 lg:hidden" />
 
           <h1 className="text-[28px] font-semibold tracking-tight text-[var(--brand-purple-deep)]">
             Tekrar hoş geldiniz
