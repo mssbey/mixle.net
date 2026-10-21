@@ -17,6 +17,7 @@ import type { StoreId } from '@/lib/stores';
 import { db } from '../db';
 import { currentStore } from '../store-context';
 import { notifyStorefronts } from '../storefront-sync';
+import { scheduleStockAlertSweep } from './stock-alerts';
 import { loadProductRows } from './load';
 import {
   rowToCategory,
@@ -116,4 +117,6 @@ export const getAdminProductBySlugFresh = cache(
 export function revalidateCatalog(): void {
   revalidateTag(CATALOG_TAG, 'max');
   notifyStorefronts();
+  // Stok değişmiş olabilir: "stoğa gelince haber ver" taleplerini tara.
+  scheduleStockAlertSweep();
 }

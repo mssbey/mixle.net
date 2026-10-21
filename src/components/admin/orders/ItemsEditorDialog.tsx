@@ -2,13 +2,16 @@
 
 // Kalem düzenleme: adet / birim fiyat / satır indirimi, kalem ekle-çıkar,
 // kargo ücreti; "yeniden hesapla" sunucuda computeTotals ile yapılır.
+// Kampanyalar (X al Y öde vb.) açıksa sunucu yeni adetlere göre yeniden uygular;
+// "İndirim" sütunu o zaman kampanyanın üstüne ek manuel indirimdir.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { AdminOrderView } from '@/server/orders/admin-view';
 import { useAdminData } from '@/components/admin/AdminDataProvider';
 import { comboLabel } from '@/lib/admin/variants';
-import { ordersApi } from '@/lib/admin/orders-client';
+import { ordersApi, type OrderItemsPreview, type UpdateItemsBody } from '@/lib/admin/orders-client';
+import { useDebounced } from '@/lib/hooks';
 import { ApiError } from '@/lib/admin/client';
 import { formatMinor, minorToInput, parseMajorInput } from '@/lib/money';
 import { toast } from '@/store/toast';
@@ -65,23 +68,74 @@ export function ItemsEditorDialog({ order, open, onClose, onUpdated }: Props) {
     return out.slice(0, 30);
   }, [products, search]);
 
-  const preview = rows.reduce((s, r) => s + Math.max(0, (parseMajorInput(r.unitPrice) ?? 0) * r.quantity - (parseMajorInput(r.discount) ?? 0)), 0);
+  const [applyCampaigns, setApplyCampaigns] = useState(true);
+  // Açılışta kayıtlı satır indirimi kampanya payını da içerir; onu ayıklayana
+  // kadar önizleme/kaydet beklemede (yoksa kampanya iki kez düşülür).
+  const [ready, setReady] = useState(false);
+  const [preview, setPreview] = useState<OrderItemsPreview | null>(null);
+
+  const body = (): UpdateItemsBody => ({
+    items: rows.map((row) => ({
+      id: row.id,
+      variantId: row.variantId,
+      quantity: row.quantity,
+      unitPriceMinor: parseMajorInput(row.unitPrice) ?? undefined,
+      discountMinor: parseMajorInput(row.discount) ?? 0,
+    })),
+    shippingTotalMinor: parseMajorInput(shipping) ?? undefined,
+    note,
+    applyCampaigns,
+  });
+
+  const initOnce = useRef(false);
+  useEffect(() => {
+    if (initOnce.current) return;
+    initOnce.current = true;
+    ordersApi
+      .previewItems(order.id, {
+        items: order.items.filter((i) => i.variantId).map((i) => ({ variantId: i.variantId!, quantity: i.quantity, unitPriceMinor: i.unitPriceMinor, discountMinor: 0 })),
+        applyCampaigns: true,
+      })
+      .then(({ preview: p }) => {
+        const campaignOf = new Map(p.lines.map((l) => [l.variantId, l.discountMinor]));
+        setRows((rs) =>
+          rs.map((r) => {
+            const stored = parseMajorInput(r.discount) ?? 0;
+            return { ...r, discount: minorToInput(Math.max(0, stored - (campaignOf.get(r.variantId) ?? 0))) };
+          }),
+        );
+      })
+      .catch(() => setApplyCampaigns(false)) // hesaplanamazsa eski davranış: indirimler olduğu gibi
+      .finally(() => setReady(true));
+  }, [order]);
+
+  const draftKey = useDebounced(JSON.stringify({ rows, shipping, applyCampaigns }), 350);
+  useEffect(() => {
+    if (!ready || rows.every((r) => r.quantity === 0)) return;
+    let alive = true;
+    ordersApi
+      .previewItems(order.id, body())
+      .then(({ preview: p }) => alive && setPreview(p))
+      .catch(() => alive && setPreview(null));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- draftKey satırları/kargoyu temsil eder
+  }, [draftKey, ready, order.id]);
+
+  const campaignOfVariant = new Map(
+    (applyCampaigns ? preview?.lines ?? [] : []).map((l) => [l.variantId, l.discountMinor - l.couponDiscountMinor]),
+  );
+  const rowNet = (r: Row) =>
+    Math.max(0, (parseMajorInput(r.unitPrice) ?? 0) * r.quantity - (campaignOfVariant.get(r.variantId) ?? 0) - (parseMajorInput(r.discount) ?? 0));
+  const localTotal = rows.reduce((s, r) => s + rowNet(r), 0) + (parseMajorInput(shipping) ?? 0);
+  const total = preview?.grandTotalMinor ?? localTotal;
 
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
-      const r = await ordersApi.updateItems(order.id, {
-        items: rows.map((row) => ({
-          id: row.id,
-          variantId: row.variantId,
-          quantity: row.quantity,
-          unitPriceMinor: parseMajorInput(row.unitPrice) ?? undefined,
-          discountMinor: parseMajorInput(row.discount) ?? 0,
-        })),
-        shippingTotalMinor: parseMajorInput(shipping) ?? undefined,
-        note,
-      });
+      const r = await ordersApi.updateItems(order.id, body());
       onUpdated(r.order);
       toast.success('Kalemler güncellendi, toplamlar yeniden hesaplandı');
       onClose();
@@ -96,21 +150,36 @@ export function ItemsEditorDialog({ order, open, onClose, onUpdated }: Props) {
     <Dialog open={open} onClose={onClose} title="Kalemleri düzenle" description="Adet 0 = kalemi kaldır. Stok farkı otomatik işlenir; kupon yerine satır indirimi uygulanır." wide
       footer={<>
         <button type="button" className="admin-btn admin-btn-ghost" onClick={onClose} disabled={busy}>Vazgeç</button>
-        <button type="button" className="admin-btn admin-btn-primary" disabled={busy || rows.every((r) => r.quantity === 0)} onClick={submit}>
-          {busy ? 'Hesaplanıyor…' : `Yeniden hesapla ve kaydet · ≈ ${formatMinor(preview + (parseMajorInput(shipping) ?? 0))}`}
+        <button type="button" className="admin-btn admin-btn-primary" disabled={busy || !ready || rows.every((r) => r.quantity === 0)} onClick={submit}>
+          {busy ? 'Hesaplanıyor…' : !ready ? 'Kampanyalar okunuyor…' : `Yeniden hesapla ve kaydet · ≈ ${formatMinor(total)}`}
         </button>
       </>}>
+      <label className="mb-3 flex items-start gap-2 text-sm">
+        <input type="checkbox" className="mt-0.5" checked={applyCampaigns} onChange={(e) => setApplyCampaigns(e.target.checked)} />
+        <span>
+          <strong>Kampanyaları otomatik uygula</strong>
+          <span className="block text-xs text-[var(--admin-ink-soft)]">
+            Sitedeki kampanyalar (ör. 10 al 9 öde) yeni adetlere göre yeniden hesaplanır. İndirim sütunu kampanyaya ek manuel indirimdir.
+          </span>
+        </span>
+      </label>
+      {applyCampaigns && preview && preview.appliedDiscounts.length > 0 && (
+        <p className="mb-3 rounded-lg bg-[#eef7ee] px-3 py-2 text-sm text-[#256029]">
+          Uygulanan kampanya: {preview.appliedDiscounts.map((d) => `${d.name} (−${formatMinor(d.discountMinor)})`).join(', ')}
+        </p>
+      )}
       <div className="admin-table-wrap">
         <table className="admin-table">
-          <thead><tr><th>Ürün</th><th style={{ width: 80 }}>Adet</th><th style={{ width: 110 }}>Birim (₺)</th><th style={{ width: 110 }}>İndirim (₺)</th><th className="text-right">Satır</th><th style={{ width: 40 }} /></tr></thead>
+          <thead><tr><th>Ürün</th><th style={{ width: 80 }}>Adet</th><th style={{ width: 110 }}>Birim (₺)</th>{applyCampaigns && <th className="text-right" style={{ width: 100 }}>Kampanya</th>}<th style={{ width: 110 }}>{applyCampaigns ? 'Ek indirim (₺)' : 'İndirim (₺)'}</th><th className="text-right">Satır</th><th style={{ width: 40 }} /></tr></thead>
           <tbody>
             {rows.map((r, idx) => (
               <tr key={r.variantId + idx}>
                 <td>{r.name}{r.variantLabel && <span className="text-xs text-[var(--admin-ink-soft)]"> · {r.variantLabel}</span>}</td>
                 <td><input type="number" min={0} className="admin-input admin-btn-sm" value={r.quantity} aria-label="Adet" onChange={(e) => setRows(rows.map((x, i) => (i === idx ? { ...x, quantity: Math.max(0, Number(e.target.value) || 0) } : x)))} /></td>
                 <td><input className="admin-input admin-btn-sm" inputMode="decimal" value={r.unitPrice} aria-label="Birim fiyat" onChange={(e) => setRows(rows.map((x, i) => (i === idx ? { ...x, unitPrice: e.target.value } : x)))} /></td>
+                {applyCampaigns && <td className="text-right text-[#256029]">{campaignOfVariant.get(r.variantId) ? `−${formatMinor(campaignOfVariant.get(r.variantId)!)}` : '—'}</td>}
                 <td><input className="admin-input admin-btn-sm" inputMode="decimal" value={r.discount} aria-label="Satır indirimi" onChange={(e) => setRows(rows.map((x, i) => (i === idx ? { ...x, discount: e.target.value } : x)))} /></td>
-                <td className="text-right">{formatMinor(Math.max(0, (parseMajorInput(r.unitPrice) ?? 0) * r.quantity - (parseMajorInput(r.discount) ?? 0)))}</td>
+                <td className="text-right">{formatMinor(rowNet(r))}</td>
                 <td><button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" aria-label="Kalemi kaldır" onClick={() => setRows(rows.filter((_, i) => i !== idx))}><Trash2 size={14} /></button></td>
               </tr>
             ))}

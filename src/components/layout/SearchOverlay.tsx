@@ -87,7 +87,7 @@ export function SearchOverlay() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
         >
-          <div className="fixed inset-0 bg-purple-900/60 backdrop-blur-sm" onClick={() => setSearch(false)} aria-hidden />
+          <div className="fixed inset-0 bg-purple-900/60 sm:backdrop-blur-sm" onClick={() => setSearch(false)} aria-hidden />
           <m.div
             ref={dialogRef}
             role="dialog"

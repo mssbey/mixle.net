@@ -44,6 +44,13 @@ const FOCUSABLE =
 /** ESC ile kapama + Tab döngüsü (focus trap) + açılışta ilk öğeye odak. */
 export function useDialog(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null);
+  // onClose çoğu çağıranda satır içi ok fonksiyonu; bağımlılık olursa efekt her
+  // render'da yeniden kurulur ve odak önceki öğeye gidip geri gelir (mobilde
+  // klavye kapanıp açılır, arama kutusu takılır).
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -63,7 +70,7 @@ export function useDialog(open: boolean, onClose: () => void) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -86,7 +93,7 @@ export function useDialog(open: boolean, onClose: () => void) {
       document.removeEventListener('keydown', onKey);
       previouslyFocused?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return ref;
 }

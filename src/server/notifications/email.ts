@@ -34,7 +34,8 @@ export type EmailTemplateKey =
   | 'parola-sifirla'
   | 'parola-uyelik-yok'
   | 'yeni-siparis-yonetici'
-  | 'hesap-olusturuldu';
+  | 'hesap-olusturuldu'
+  | 'stok-geldi';
 
 interface Template {
   subject: string;
@@ -176,6 +177,14 @@ Telefon: {{musteriTelefon}}
 Teslimat adresi: {{teslimatAdresi}}
 Sipariş notu: {{musteriNotu}}`,
     cta: 'Panelde aç',
+  },
+  'stok-geldi': {
+    heading: 'Beklediğiniz ürün stokta',
+    intro: `Merhaba,
+
+Haber vermemizi istediğiniz {{urunAdi}} yeniden stokta. Stoklar sınırlı olabilir; tükenmeden siparişinizi verebilirsiniz.`,
+    cta: 'Ürüne git',
+    showOrder: false,
   },
 };
 
@@ -323,6 +332,16 @@ Panel: {{panelLinki}}`,
     body: `Merhaba {{musteriAdi}},
 
 Hesabınız oluşturuldu. Siparişlerinizi ve adreslerinizi {{hesapLinki}} adresinden yönetebilirsiniz.
+
+{{magazaAdi}}`,
+  },
+  'stok-geldi': {
+    subject: 'Beklediğiniz ürün stokta: {{urunAdi}}',
+    body: `Merhaba,
+
+Haber vermemizi istediğiniz {{urunAdi}} yeniden stokta. Stoklar sınırlı olabilir.
+
+Ürün: {{urunLinki}}
 
 {{magazaAdi}}`,
   },

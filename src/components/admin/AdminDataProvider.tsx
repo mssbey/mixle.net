@@ -20,6 +20,7 @@ import type { Permission } from '@/server/auth/rbac';
 import { DEFAULT_STORE, type StoreId } from '@/lib/stores';
 import type { BulkAction } from '@/lib/admin/mutations';
 import { toast } from '@/store/toast';
+import { PANEL_HINT_KEY } from '@/components/product/AdminEditLink';
 
 interface AdminDataValue {
   status: 'loading' | 'ready' | 'error';
@@ -100,6 +101,10 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       setStoreUrl(meta.storeUrl ?? '');
       setStatus('ready');
       setError(null);
+      // Vitrindeki "Ürünü düzenle" düğmesi bu işarete bakar (bkz. AdminEditLink).
+      try {
+        localStorage.setItem(PANEL_HINT_KEY, '1');
+      } catch {}
     } catch (err) {
       // Oturum kapatılmış/süresi dolmuş: çerez imzası geçerli olsa da sunucu
       // reddeder — hata ekranında kalmak yerine giriş sayfasına dön.

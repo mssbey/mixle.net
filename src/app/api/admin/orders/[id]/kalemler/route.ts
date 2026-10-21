@@ -12,7 +12,19 @@ export function POST(request: Request, { params }: Ctx): Promise<Response> {
     const { id } = await params;
     const order = await getAdminOrder(id);
     if (!order) return Response.json({ error: 'not-found', message: 'Sipariş bulunamadı.' }, { status: 404 });
-    await updateOrderItems(order.id, await readJson(request), user, clientIp(request));
+    const body = await readJson<Record<string, unknown>>(request);
+    const result = await updateOrderItems(order.id, body, user, clientIp(request));
+    // Önizleme: hiçbir şey yazılmadı, yalnız hesap döner.
+    if (body?.dryRun === true) {
+      return Response.json({
+        preview: {
+          lines: result.totals.lines.map((l) => ({ variantId: l.variantId, discountMinor: l.discountMinor, couponDiscountMinor: l.couponDiscountMinor, netLineMinor: l.netLineMinor })),
+          autoDiscountMinor: result.totals.autoDiscountMinor,
+          grandTotalMinor: result.totals.grandTotalMinor,
+          appliedDiscounts: result.appliedDiscounts,
+        },
+      });
+    }
     return Response.json({ order: await getAdminOrder(order.id) });
   });
 }

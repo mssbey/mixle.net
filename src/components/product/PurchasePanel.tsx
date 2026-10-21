@@ -18,6 +18,7 @@ import { freeShippingShort } from '@/lib/shipping-text';
 import { useShippingPolicy } from '@/components/layout/ShippingPolicyProvider';
 import { useCategories } from '@/components/catalog/CatalogProvider';
 import { cn } from '@/lib/utils';
+import { StockAlertForm } from './StockAlertForm';
 
 interface Props {
   product: Product;
@@ -62,7 +63,7 @@ export function PurchasePanel({ product, variant, selection, qty, onSelect, onQt
           <span className="mt-1 block text-base font-semibold text-ink-soft sm:text-lg">{variant.label}</span>
         )}
       </h1>
-      <p className="mt-2 text-sm text-ink-soft">{product.shortDescription}</p>
+      <p className="mt-2 whitespace-pre-line text-sm text-ink-soft">{product.shortDescription}</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
         {product.rating > 0 && <Rating value={product.rating} count={product.reviewCount} />}
@@ -112,6 +113,7 @@ export function PurchasePanel({ product, variant, selection, qty, onSelect, onQt
           className="h-12 w-12 shrink-0 border border-line bg-white"
         />
       </div>
+      {soldOut && <StockAlertForm variantId={variant.id} />}
 
       <Link
         href="/iletisim?konu=urun"

@@ -38,7 +38,9 @@ export async function saveFlavorProfiles(
 ): Promise<FlavorProfileDef[]> {
   const list = flavorProfileListSchema.parse(raw);
   await writeSetting(KEY, list, updatedByUserId);
-  revalidateTag(TAG, 'max');
+  // 'max' (stale-while-revalidate) her sayfanın ilk ziyaretinde eski listeyi
+  // gösteriyordu; liste seyrek değişir, anında düşürmek güvenli.
+  revalidateTag(TAG, { expire: 0 });
   notifyStorefronts();
   return list;
 }

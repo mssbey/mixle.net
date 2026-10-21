@@ -264,6 +264,7 @@ model Variant {
   product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
   movements    StockMovement[]
   reservations StockReservation[]
+  stockAlerts  StockAlert[]
 
   @@unique([productId, comboKey])
   @@index([productId, position])
@@ -1108,6 +1109,25 @@ model Page {
 
 /// Footer / kampanya e-posta bülteni kaydı. Tekrar kayıt aktife çeker;
 /// panelde "Bülten Kayıtları" ekranından listelenir.
+/// "Stoğa gelince haber ver" talebi. Varyant yeniden satılabilir olunca tek
+/// seferlik e-posta gönderilir ve `notifiedAt` dolar (bkz. server/catalog/stock-alerts.ts).
+model StockAlert {
+  id        String @id @default(cuid())
+  /// Mağaza: mixle | nuclear | kanzi — bkz. src/lib/stores.ts.
+  store     String @default("mixle")
+  variantId String
+  email     String
+
+  ip         String?
+  createdAt  DateTime  @default(now())
+  notifiedAt DateTime?
+
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, email])
+  @@index([store, notifiedAt])
+}
+
 model NewsletterSubscriber {
   id     String @id @default(cuid())
   /// Mağaza: mixle | nuclear — bkz. src/lib/stores.ts. Mevcut kayıtlar mixle.

@@ -173,7 +173,9 @@ export function Header({
         <input
           value={term}
           onChange={(e) => setTerm(e.target.value)}
-          onFocus={() => setSearch(true)}
+          // onFocus değil: arama katmanı kapanınca odak bu kutuya geri döner ve
+          // katman anında yeniden açılırdı (çarpı/ESC çalışmıyor gibi görünür).
+          onClick={() => setSearch(true)}
           placeholder="Ürün, kategori veya marka ara…"
           aria-label="Ürün ara"
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-soft/60"

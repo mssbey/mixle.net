@@ -7,6 +7,7 @@ import type { OrderTab } from '@/server/orders/order-tabs';
 import type { OrderStatus } from '@/server/orders/state-machine';
 import type { Carrier, ShipmentStatus } from '@/server/shipping/carriers';
 import type { AddressInput } from '@/server/customers/address-schema';
+import type { AppliedDiscount } from '@/server/pricing/discount-rules';
 import { ApiError, fetchWithRetry } from './client';
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -24,6 +25,21 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     );
   }
   return payload as T;
+}
+
+export interface UpdateItemsBody {
+  items: { id?: string; variantId: string; quantity: number; discountMinor?: number; unitPriceMinor?: number }[];
+  shippingTotalMinor?: number;
+  note?: string;
+  /** Kampanyaları yeni adetlere göre yeniden uygula; `discountMinor` ek manuel indirim olur. */
+  applyCampaigns?: boolean;
+}
+
+export interface OrderItemsPreview {
+  lines: { variantId: string; discountMinor: number; couponDiscountMinor: number; netLineMinor: number }[];
+  autoDiscountMinor: number;
+  grandTotalMinor: number;
+  appliedDiscounts: AppliedDiscount[];
 }
 
 export interface OrderListParams {
@@ -82,8 +98,11 @@ export const ordersApi = {
   updateShipment: (id: string, shipmentId: string, body: { status?: ShipmentStatus; trackingNumber?: string; trackingUrl?: string; note?: string }) =>
     request<{ order: AdminOrderView }>(`/api/admin/orders/${encodeURIComponent(id)}/kargo/${encodeURIComponent(shipmentId)}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
-  updateItems: (id: string, body: { items: { id?: string; variantId: string; quantity: number; discountMinor?: number; unitPriceMinor?: number }[]; shippingTotalMinor?: number; note?: string }) =>
+  updateItems: (id: string, body: UpdateItemsBody) =>
     request<{ order: AdminOrderView }>(`/api/admin/orders/${encodeURIComponent(id)}/kalemler`, { method: 'POST', body: JSON.stringify(body) }),
+
+  previewItems: (id: string, body: UpdateItemsBody) =>
+    request<{ preview: OrderItemsPreview }>(`/api/admin/orders/${encodeURIComponent(id)}/kalemler`, { method: 'POST', body: JSON.stringify({ ...body, dryRun: true }) }),
 
   resendEmail: (id: string, template: string) =>
     request<{ ok: true; order: AdminOrderView }>(`/api/admin/orders/${encodeURIComponent(id)}/eposta`, { method: 'POST', body: JSON.stringify({ template }) }),

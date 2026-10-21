@@ -8,13 +8,15 @@
 
 import 'server-only';
 import { z } from 'zod';
-import type { Prisma } from '@/generated/prisma/client';
+import { Prisma } from '@/generated/prisma/client';
 import { db } from '../db';
 import { auditChange } from '../audit';
 import type { AdminUser } from '../auth/current-user';
 import { addressInputSchema, type AddressSnapshot } from '../customers/address-schema';
 import { maskTckn } from '@/lib/validators/tckn';
-import { computeTotals, type PricedLine } from './totals';
+import { computeTotals, type OrderTotals, type PricedLine } from './totals';
+import { evaluateDiscountRules, type AppliedDiscount } from '../pricing/discount-rules';
+import { loadActiveDiscountRules } from '../discounts/rules';
 import { getStoreSettings } from '../settings';
 import { jsonRecord } from '../catalog/mapping';
 import { orderEmailVars, queueEmail, type EmailTemplateKey } from '../notifications/email';
@@ -116,13 +118,30 @@ export const updateItemsSchema = z.object({
     .min(1, 'En az bir kalem gerekli'),
   shippingTotalMinor: z.number().int().min(0).optional(),
   note: z.string().trim().max(300).default(''),
+  /**
+   * Otomatik kampanyaları (X al Y öde, sepet yüzdesi) yeni adetlere göre
+   * yeniden uygula. Açıkken `discountMinor` kampanyanın üstüne ek manuel indirimdir.
+   */
+  applyCampaigns: z.boolean().default(false),
+  /** Kaydetmeden yalnız hesapla (panel önizlemesi). */
+  dryRun: z.boolean().default(false),
 });
+
+export interface OrderItemsPreview {
+  totals: OrderTotals;
+  appliedDiscounts: AppliedDiscount[];
+}
 
 /**
  * Kalemleri günceller ve toplamları yeniden hesaplar.
  * adet 0 = kalemi sil. Stok farkı: artış → stoktan düş, azalış/silme → stoka ver.
  */
-export async function updateOrderItems(orderId: string, raw: unknown, user: AdminUser, ip: string | null) {
+export async function updateOrderItems(
+  orderId: string,
+  raw: unknown,
+  user: AdminUser,
+  ip: string | null,
+): Promise<OrderItemsPreview> {
   const input = updateItemsSchema.parse(raw);
   const settings = await getStoreSettings();
 
@@ -135,7 +154,7 @@ export async function updateOrderItems(orderId: string, raw: unknown, user: Admi
   const variantIds = [...new Set(input.items.map((i) => i.variantId))];
   const variants = await db.variant.findMany({
     where: { id: { in: variantIds } },
-    include: { product: { include: { images: { orderBy: { position: 'asc' }, take: 1 }, options: { include: { values: true } }, taxRate: true } } },
+    include: { product: { include: { images: { orderBy: { position: 'asc' }, take: 1 }, options: { include: { values: true } }, taxRate: true, categories: true } } },
   });
   const byId = new Map(variants.map((v) => [v.id, v]));
 
@@ -182,6 +201,19 @@ export async function updateOrderItems(orderId: string, raw: unknown, user: Admi
   const sm = (order.shippingMethod ?? {}) as { name?: string; carrier?: string | null; estimatedDays?: string; type?: string };
   const shippingMinor = input.shippingTotalMinor ?? order.shippingTotalMinor;
 
+  // Kampanyalar checkout'taki motorla aynı kurallarla değerlendirilir; `priced`
+  // sırası korunur (indeks eşleşmesi).
+  const ruleOutcome = input.applyCampaigns
+    ? evaluateDiscountRules(await loadActiveDiscountRules(), {
+        lines: priced.map((l) => ({
+          productId: l.productId,
+          categoryIds: byId.get(l.variantId)?.product.categories.map((c) => c.categoryId) ?? [],
+          unitPriceMinor: l.unitPriceMinor,
+          quantity: l.quantity,
+        })),
+      })
+    : null;
+
   const totals = computeTotals({
     lines: priced,
     coupon: manualDiscounts.some((d) => d > 0)
@@ -191,7 +223,11 @@ export async function updateOrderItems(orderId: string, raw: unknown, user: Admi
     pricesIncludeTax: settings.pricesIncludeTax,
     shippingTaxRateBps: settings.shippingTaxRateBps,
     surchargeMinor: order.surchargeMinor,
+    autoDiscountPerLineMinor: ruleOutcome?.perLineMinor,
   });
+  const appliedDiscounts = ruleOutcome?.applied ?? [];
+
+  if (input.dryRun) return { totals, appliedDiscounts };
 
   const stockCommitted = order.status !== 'ödeme-bekliyor';
 
@@ -265,6 +301,11 @@ export async function updateOrderItems(orderId: string, raw: unknown, user: Admi
         grandTotalMinor: totals.grandTotalMinor,
         taxBreakdown: totals.taxBreakdown as unknown as Prisma.InputJsonValue,
         shippingMethod: { ...sm, priceMinor: shippingMinor } as Prisma.InputJsonValue,
+        ...(input.applyCampaigns && {
+          discountRulesSnapshot: appliedDiscounts.length
+            ? (appliedDiscounts as unknown as Prisma.InputJsonValue)
+            : Prisma.DbNull,
+        }),
         version: { increment: 1 },
       },
     });
@@ -274,7 +315,7 @@ export async function updateOrderItems(orderId: string, raw: unknown, user: Admi
       data: {
         orderId: order.id,
         kind: 'sistem',
-        message: `Kalemler düzenlendi, toplam ${(order.grandTotalMinor / 100).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} → ${(totals.grandTotalMinor / 100).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}${input.note ? ` — ${input.note}` : ''}`,
+        message: `Kalemler düzenlendi, toplam ${(order.grandTotalMinor / 100).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} → ${(totals.grandTotalMinor / 100).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}${appliedDiscounts.length ? ` · kampanya: ${appliedDiscounts.map((d) => d.name).join(', ')}` : ''}${input.note ? ` — ${input.note}` : ''}`,
         userId: user.id,
         visibleToCustomer: false,
       },
@@ -293,7 +334,7 @@ export async function updateOrderItems(orderId: string, raw: unknown, user: Admi
     ip,
   });
 
-  return totals;
+  return { totals, appliedDiscounts };
 }
 
 // ------------------------------------------------------------- e-posta -----

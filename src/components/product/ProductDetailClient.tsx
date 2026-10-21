@@ -6,6 +6,7 @@ import { Gallery } from './Gallery';
 import { Badge } from '@/components/ui/Badge';
 import type { ProductCampaign } from './CampaignBox';
 import { PurchasePanel } from './PurchasePanel';
+import { AdminEditLink } from './AdminEditLink';
 import { initialSelection, variantFor, type Selection } from '@/lib/commerce';
 import { useCart } from '@/store/cart';
 import { useUI } from '@/store/ui';
@@ -57,6 +58,7 @@ export function ProductDetailClient({
         campaigns={campaigns}
         renderedAt={renderedAt}
       />
+      <AdminEditLink slug={product.slug} />
 
       {/* Mobil sabit sepete ekle çubuğu — alt navigasyonun üstünde */}
       <div className="fixed inset-x-0 bottom-[54px] z-[70] border-t border-line bg-white/95 p-3 backdrop-blur-lg safe-bottom lg:hidden">
