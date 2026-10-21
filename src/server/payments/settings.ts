@@ -17,6 +17,14 @@ import type { ProviderId } from './provider';
 
 const modeSchema = z.enum(['test', 'live']).default('test');
 
+/** Havale açıklaması: sipariş sayfası ve "sipariş alındı" e-postasında banka bilgisinin üstünde. */
+export const DEFAULT_HAVALE_INSTRUCTIONS = `Havale/EFT yaparken bankanın sizden istediği “Ödeme Açıklaması” bölümünü boş bırakmanız, bırakamıyor iseniz sadece adınız ve soyadınızı yazmanızı rica ediyoruz. Bu bölüme farklı birşey yazmanız durumunda (likit, elektronik sigara likiti, elektronik sigara malzemeleri) siparişiniz iptal edilecek ve yatırdığınız ücret tarafınıza iade edilecektir.
+
+Siparişinizi verdikten sonraki 3 iş günü içinde belirtilen hesap numaralarına havale yapmadığınız taktirde siparişiniz iptal edilecektir.`;
+
+/** Eski varsayılan; açıklamaya sipariş no yazdırıyordu (artık istenmiyor), yenisiyle değiştirilir. */
+const LEGACY_HAVALE_INSTRUCTIONS = 'Açıklama alanına sipariş numaranızı yazın.';
+
 export const paymentSettingsSchema = z.object({
   /** Kart ödemelerinde kullanılacak sağlayıcı. DEMO_MODE=true iken her zaman mock. */
   cardProvider: z.enum(['mock', 'iyzico', 'paytr', 'stripe', 'tosla']).default('mock'),
@@ -80,7 +88,7 @@ export const paymentSettingsSchema = z.object({
       bankName: z.string().default(''),
       accountHolder: z.string().default(''),
       iban: z.string().default(''),
-      instructions: z.string().default('Açıklama alanına sipariş numaranızı yazın.'),
+      instructions: z.string().default(DEFAULT_HAVALE_INSTRUCTIONS),
     })
     .default({}),
 });
@@ -207,15 +215,15 @@ export function havaleDetails(s: PaymentSettings): HavaleDetails {
     bankName: s.havale.bankName.trim(),
     accountHolder: s.havale.accountHolder.trim(),
     iban: raw.replace(/(.{4})(?=.)/g, '$1 '),
-    instructions: s.havale.instructions.trim(),
+    instructions: s.havale.instructions.trim() === LEGACY_HAVALE_INSTRUCTIONS ? DEFAULT_HAVALE_INSTRUCTIONS : s.havale.instructions.trim(),
   };
 }
 
-/** E-posta için düz metin: hesap bilgisi ve mağazanın havale açıklaması. */
+/** E-posta için düz metin: mağazanın havale açıklaması, altında hesap bilgisi. */
 export function havaleText(d: HavaleDetails): string {
   const account = [d.accountHolder, d.bankName].filter(Boolean).join(' - ');
-  const bank = d.iban ? ['Banka bilgilerimiz', account, `IBAN: ${d.iban}`].filter(Boolean).join('\n') : '';
-  return [bank, d.instructions].filter(Boolean).join('\n\n');
+  const bank = d.iban ? ['Banka bilgilerimiz', account && `${account}:`, `IBAN: ${d.iban}`].filter(Boolean).join('\n') : '';
+  return [d.instructions, bank].filter(Boolean).join('\n\n');
 }
 
 export function isMethodEnabled(s: PaymentSettings, id: 'kart' | 'havale' | 'kapida'): boolean {

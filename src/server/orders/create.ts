@@ -27,7 +27,7 @@ import { thankYouUrl } from './access';
 import { PAYMENT_METHODS, buildQuote, quoteInputSchema, type CheckoutQuote } from './quote';
 import { transitionOrder } from './transitions';
 import { startCardPayment } from '../payments/start';
-import { getPaymentSettings, havaleDetails, havaleText } from '../payments/settings';
+import { paymentEmailVars } from './payment-instruction';
 
 export const consentsSchema = z.object({
   distanceSales: z.literal(true, { errorMap: () => ({ message: 'Mesafeli satış sözleşmesini onaylamalısınız' }) }),
@@ -495,7 +495,7 @@ export async function createOrder(
   const vars = {
     ...orderEmailVars({ ...created, customer: null }),
     sozlesmeSurumu: legalDs.version,
-    odemeTalimati: await paymentInstruction(input.paymentMethod, info),
+    ...(await paymentEmailVars(input.paymentMethod)),
   };
   await queueEmail({ to: email, template: 'siparis-alindi', vars, orderId: created.id });
   // Mağaza sahibine bilgi e-postası: panelde ayrı adres yoksa gönderen adrese (ör. info@mixle.net).
@@ -530,19 +530,4 @@ export async function createOrder(
     nextUrl: cardUrl,
     thankYouUrl: thankYouUrl(created.orderNumber, created.id),
   };
-}
-
-async function paymentInstruction(method: string, info: { legalName: string }): Promise<string> {
-  switch (method) {
-    case 'havale': {
-      // Banka bilgisi Panel > Ödemeler > Havale/EFT'den gelir; IBAN girilmemişse eski genel metin.
-      const details = havaleDetails(await getPaymentSettings());
-      if (details.iban) return havaleText(details);
-      return `Havale/EFT ile ödeme için IBAN bilgisi sipariş sayfanızda gösterilir. Açıklama alanına sipariş numaranızı yazın. Ödeme ${info.legalName} tarafından onaylanınca siparişiniz hazırlanır.`;
-    }
-    case 'kapida':
-      return 'Ödemeyi teslimat sırasında kuryeye nakit veya kartla yapabilirsiniz.';
-    default:
-      return '';
-  }
 }

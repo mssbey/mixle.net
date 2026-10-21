@@ -50,6 +50,8 @@ interface Template {
 interface HtmlTemplate {
   heading: string;
   intro: string;
+  /** Sipariş tablosunun altındaki metin (ör. havale açıklaması ve banka bilgisi). */
+  outro?: string;
   /** Buton: `butonLinki`, yoksa `takipLinki` değişkenine gider. */
   cta?: string;
   /** Sipariş kalemleri ve toplamlar gösterilsin mi (varsayılan: sipariş varsa evet). */
@@ -61,9 +63,10 @@ const HTML_TEMPLATES: Partial<Record<EmailTemplateKey, HtmlTemplate>> = {
     heading: 'Siparişiniz alındı',
     intro: `Merhaba {{musteriAdi}},
 
-Siparişiniz için teşekkür ederiz. Ödemeniz onaylandığında siparişinizi hazırlamaya başlayacağız.
+{{siparisDurumu}}
 
-{{odemeTalimati}}
+Sipariş özetinize göz atın:`,
+    outro: `{{odemeTalimati}}
 
 Kabul ettiğiniz Mesafeli Satış Sözleşmesi (sürüm {{sozlesmeSurumu}}) ve Ön Bilgilendirme Formu bu e-postanın ekinde yer alır.`,
     cta: 'Siparişimi görüntüle',
@@ -193,8 +196,9 @@ const TEMPLATES: Record<EmailTemplateKey, Template> = {
     subject: 'Siparişiniz alındı — {{siparisNo}}',
     body: `Merhaba {{musteriAdi}},
 
-{{siparisNo}} numaralı siparişinizi aldık. Ödemeniz onaylandığında hazırlamaya başlayacağız.
+{{siparisDurumu}}
 
+Sipariş no: {{siparisNo}}
 Sipariş toplamı: {{toplam}}
 Ödeme yöntemi: {{odemeYontemi}}
 
@@ -391,6 +395,7 @@ export function renderTemplateHtml(
     heading: h ? fill(h.heading) : plain.subject.split(' — ')[0],
     body: h ? fill(h.intro).replace(/\n{3,}/g, '\n\n') : plain.body,
     order: h && h.showOrder !== false ? opts.order ?? null : null,
+    outro: h?.outro ? fill(h.outro).replace(/\n{3,}/g, '\n\n') : '',
     cta: h?.cta && link ? { label: h.cta, url: link } : null,
   });
 }

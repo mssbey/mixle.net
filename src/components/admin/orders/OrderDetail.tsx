@@ -65,7 +65,7 @@ export function OrderDetail({ id }: { id: string }) {
     try {
       const r = await ordersApi.updateMeta(o.id, { adminNote });
       setOrder(r.order);
-      toast.success('Admin notu kaydedildi');
+      toast.success('Hazırlık notu kaydedildi');
     } catch (err) {
       toast.error('Kaydedilemedi', err instanceof ApiError ? err.message : undefined);
     } finally {
@@ -169,18 +169,19 @@ export function OrderDetail({ id }: { id: string }) {
             </ol>
           </section>
 
-          {/* Notlar */}
-          <section className="admin-card" style={{ padding: 16 }}>
-            <h2 className="text-sm font-semibold text-[var(--brand-purple-deep)]">Admin notu</h2>
-            <p className="admin-hint">Yalnız panelde görünür.</p>
-            <textarea className="admin-textarea mt-2" rows={3} value={adminNote} disabled={!canWrite} onChange={(e) => setAdminNote(e.target.value)} />
-            {canWrite && <div className="mt-2 flex justify-end"><button type="button" className="admin-btn admin-btn-primary admin-btn-sm" disabled={noteBusy || adminNote === (o.adminNote ?? '')} onClick={saveAdminNote}>{noteBusy ? 'Kaydediliyor…' : 'Kaydet'}</button></div>}
-            {o.customerNote && <div className="mt-3 rounded-lg bg-[#f7f4ef] p-3 text-sm"><p className="text-xs font-semibold text-[var(--admin-ink-soft)]">Müşteri notu</p><p className="mt-1">{o.customerNote}</p></div>}
-          </section>
         </div>
 
         {/* SAĞ */}
         <div className="flex flex-col gap-4">
+          {/* Hazırlık notu: siparişi hazırlayanlar ilk bakışta görsün diye sağ sütunun başında; irsaliyeye de basılır. */}
+          <section className={cn('admin-card', (o.adminNote || o.customerNote) && 'border-[#e8c36a] bg-[#fffbeb]')} style={{ padding: 16 }}>
+            <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#8a5a00]"><StickyNote size={14} /> Hazırlık notu</h2>
+            <p className="admin-hint">Yalnız panelde ve irsaliyede görünür; müşteri görmez.</p>
+            <textarea className="admin-textarea mt-2" rows={3} placeholder="Ör. hediye paketi yapılacak, kırmızı kapaklı gönderilecek…" value={adminNote} disabled={!canWrite} onChange={(e) => setAdminNote(e.target.value)} />
+            {canWrite && <div className="mt-2 flex justify-end"><button type="button" className="admin-btn admin-btn-primary admin-btn-sm" disabled={noteBusy || adminNote === (o.adminNote ?? '')} onClick={saveAdminNote}>{noteBusy ? 'Kaydediliyor…' : 'Kaydet'}</button></div>}
+            {o.customerNote && <div className="mt-3 rounded-lg bg-white p-3 text-sm"><p className="text-xs font-semibold text-[var(--admin-ink-soft)]">Müşteri notu</p><p className="mt-1 whitespace-pre-line">{o.customerNote}</p></div>}
+          </section>
+
           <section className="admin-card" style={{ padding: 16 }}>
             <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--admin-ink-soft)]">Müşteri</h2>
             <p className="mt-1 font-semibold">{o.customer.name || '—'} {o.customer.isGuest && <span className="admin-chip ml-1">misafir</span>}</p>

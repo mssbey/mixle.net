@@ -113,6 +113,13 @@ export function PrintDocument({ orders, kind, store }: { orders: AdminOrderView[
                     <p>{o.customerNote}</p>
                   </div>
                 )}
+                {/* Hazırlık notu yalnız iç kullanım içindir; müşteriye giden bilgi fişinde basılmaz. */}
+                {kind === 'irsaliye' && o.adminNote && (
+                  <div className="note-box">
+                    <span>Hazırlık notu</span>
+                    <p style={{ whiteSpace: 'pre-line' }}>{o.adminNote}</p>
+                  </div>
+                )}
               </div>
               <table className="totals">
                 <tbody>

@@ -96,33 +96,17 @@ export default async function OrderCompletePage({
               <div className="mt-4 rounded-xl border border-purple-100 bg-white p-4 text-sm">
                 <p className="flex items-center gap-2 font-semibold text-purple-900"><Landmark size={16} /> Havale / EFT bilgileri</p>
                 {/* Banka bilgisi ve açıklama metni Panel > Ödemeler > Havale/EFT'den gelir. */}
-                {havale.iban ? (
-                  <>
-                    <p className="mt-2 text-ink-soft">
-                      Alıcı: <strong className="text-ink">{havale.accountHolder || info.legalName}</strong><br />
-                      {havale.bankName && <>Banka: <strong className="text-ink">{havale.bankName}</strong><br /></>}
-                      IBAN: <strong className="select-all break-all text-ink">{havale.iban}</strong><br />
-                      Tutar: <strong className="text-ink">{formatMinor(order.grandTotalMinor)}</strong>
-                    </p>
-                    {havale.instructions && (
-                      <p className="mt-3 flex items-start gap-1.5 whitespace-pre-line text-xs leading-relaxed text-ink-soft">
-                        <Info size={14} className="mt-0.5 shrink-0" />
-                        <span>{havale.instructions}</span>
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <p className="mt-2 text-ink-soft">
-                      Alıcı: <strong className="text-ink">{info.legalName}</strong><br />
-                      Tutar: <strong className="text-ink">{formatMinor(order.grandTotalMinor)}</strong><br />
-                      Açıklama: <strong className="text-ink">{order.orderNumber}</strong>
-                    </p>
-                    <p className="mt-2 flex items-start gap-1.5 text-xs text-ink-soft">
-                      <Info size={14} className="mt-0.5 shrink-0" />
-                      IBAN bilgisi e-posta ile iletilecektir. Ödemeniz onaylandığında siparişiniz hazırlanmaya başlar.
-                    </p>
-                  </>
+                <p className="mt-2 text-ink-soft">
+                  Alıcı: <strong className="text-ink">{havale.accountHolder || info.legalName}</strong><br />
+                  {havale.bankName && <>Banka: <strong className="text-ink">{havale.bankName}</strong><br /></>}
+                  {havale.iban && <>IBAN: <strong className="select-all break-all text-ink">{havale.iban}</strong><br /></>}
+                  Tutar: <strong className="text-ink">{formatMinor(order.grandTotalMinor)}</strong>
+                </p>
+                {havale.instructions && (
+                  <p className="mt-3 flex items-start gap-1.5 whitespace-pre-line text-xs leading-relaxed text-ink-soft">
+                    <Info size={14} className="mt-0.5 shrink-0" />
+                    <span>{havale.instructions}</span>
+                  </p>
                 )}
               </div>
             )}

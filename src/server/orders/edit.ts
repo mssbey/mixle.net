@@ -21,6 +21,7 @@ import { getStoreSettings } from '../settings';
 import { jsonRecord } from '../catalog/mapping';
 import { orderEmailVars, queueEmail, type EmailTemplateKey } from '../notifications/email';
 import { revalidateCatalog } from '../catalog/queries';
+import { paymentEmailVars } from './payment-instruction';
 
 export class OrderEditError extends Error {
   constructor(
@@ -362,6 +363,7 @@ export async function resendOrderEmail(orderId: string, template: string, user: 
       kargoFirmasi: s?.carrier ?? '—',
       kargoTakipNo: s?.trackingNumber ?? '—',
       kargoTakipLinki: s?.trackingUrl ?? '',
+      ...(template === 'siparis-alindi' ? await paymentEmailVars(order.paymentMethod) : {}),
     },
     orderId: order.id,
   });

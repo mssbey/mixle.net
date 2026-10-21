@@ -33,6 +33,8 @@ export interface EmailLayoutInput {
   heading: string;
   body: string;
   order?: EmailOrder | null;
+  /** Sipariş tablosundan sonra basılan metin. */
+  outro?: string;
   cta?: { label: string; url: string } | null;
 }
 
@@ -120,7 +122,7 @@ function itemsTable(order: EmailOrder, base: string): string {
 }
 
 export function renderEmailHtml(input: EmailLayoutInput): string {
-  const { brand, logoUrl, heading, body, order, cta } = input;
+  const { brand, logoUrl, heading, body, order, outro, cta } = input;
   const logo = logoUrl
     ? `<img src="${esc(logoUrl)}" width="160" alt="${esc(brand.name)}" style="display:block;margin:0 auto;width:160px;max-width:60%;height:auto;border:0">`
     : `<div style="font:bold 26px ${C.font};color:${C.ink};letter-spacing:-0.5px">${esc(brand.name)}</div>`;
@@ -141,6 +143,7 @@ export function renderEmailHtml(input: EmailLayoutInput): string {
     <tr><td style="padding:20px 28px 28px">
       ${textToParagraphs(body)}
       ${order ? itemsTable(order, brand.url) : ''}
+      ${outro ? `<div style="margin-top:24px">${textToParagraphs(outro)}</div>` : ''}
       ${button}
     </td></tr>
   </table>
