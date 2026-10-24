@@ -51,7 +51,7 @@ export function StatusDialog({ order, open, onClose, onUpdated }: Base) {
   const irreversible = to === 'iptal' || to === 'iade-edildi';
 
   return (
-    <Dialog open={open} onClose={onClose} title="Durum değiştir" description={`Şu an: ${order.statusLabel}. Yalnız izinli geçişler listelenir.`}
+    <Dialog open={open} onClose={onClose} title="Durum değiştir" description={`Şu an: ${order.statusLabel}. Panelden her duruma alınabilir; iptal edilmiş sipariş yeniden açılırsa stok yeniden düşülür.`}
       footer={<>
         <button type="button" className="admin-btn admin-btn-ghost" onClick={onClose} disabled={busy}>Vazgeç</button>
         <button type="button" className={`admin-btn ${irreversible ? 'admin-btn-danger' : 'admin-btn-primary'}`} disabled={busy || !to}

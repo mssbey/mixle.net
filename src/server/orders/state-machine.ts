@@ -150,6 +150,19 @@ export function allowedTransitions(from: OrderStatus): readonly OrderStatus[] {
   return TRANSITIONS[from];
 }
 
+/**
+ * Panelden ELLE durum değiştirme: yönetici her duruma (taslak hariç) alabilir,
+ * iptal edilmiş siparişi yeniden açmak dahil. Otomatik akışlar (webhook,
+ * müşteri, kargo takibi) yukarıdaki katı tabloya bağlı kalır.
+ */
+export function manualTransitions(from: OrderStatus): readonly OrderStatus[] {
+  return ORDER_STATUSES.filter((s) => s !== from && s !== 'taslak');
+}
+
+export function canManualTransition(from: OrderStatus, to: OrderStatus): boolean {
+  return manualTransitions(from).includes(to);
+}
+
 export class InvalidTransitionError extends Error {
   readonly status = 409 as const;
   constructor(
@@ -166,8 +179,9 @@ export class InvalidTransitionError extends Error {
   }
 }
 
-export function assertTransition(from: OrderStatus, to: OrderStatus): void {
-  if (!canTransition(from, to)) throw new InvalidTransitionError(from, to);
+export function assertTransition(from: OrderStatus, to: OrderStatus, manual = false): void {
+  const ok = manual ? canManualTransition(from, to) : canTransition(from, to);
+  if (!ok) throw new InvalidTransitionError(from, to);
 }
 
 /**

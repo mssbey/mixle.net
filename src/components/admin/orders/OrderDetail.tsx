@@ -54,7 +54,8 @@ export function OrderDetail({ id }: { id: string }) {
 
   const o = order;
   const editable = ['ödeme-bekliyor', 'ödendi', 'hazırlanıyor'].includes(o.status);
-  const cancellable = o.allowedTransitions.includes('iptal');
+  // Kısayol "İptal" düğmesi yalnız sevk edilmemiş siparişte; diğerleri Durum'dan.
+  const cancellable = o.allowedTransitions.includes('iptal') && !['kargolandı', 'kuryeye-teslim', 'teslim-edildi', 'tamamlandı', 'iade-talebi', 'iade-edildi'].includes(o.status);
   const canPay = o.paymentStatus !== 'ödendi' && !['iptal', 'iade-edildi', 'başarısız'].includes(o.status);
   const canCreateShipment = ['ödendi', 'hazırlanıyor', 'hazırlandı', 'beklemede', 'kargolandı'].includes(o.status) && o.items.some((i) => i.quantity - i.refundedQuantity - i.shippedQuantity > 0);
   const refundable = o.refundableMinor > 0 && !['ödeme-bekliyor', 'başarısız', 'iptal', 'iade-edildi'].includes(o.status);

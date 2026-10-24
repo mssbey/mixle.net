@@ -34,6 +34,7 @@ export function POST(request: Request, { params }: Ctx): Promise<Response> {
     await transitionOrder(before.id, input.to, { userId: user.id }, {
       note: input.note || undefined,
       visibleToCustomer: input.visibleToCustomer,
+      manual: true,
     });
     await auditChange({
       user,

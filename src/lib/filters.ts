@@ -60,6 +60,25 @@ function maxDiscount(p: Product) {
   );
 }
 
+/**
+ * İsim sıralaması için anahtar: tire (-, –, —), noktalama ve fazla boşluklar
+ * yok sayılır. Böylece "TFA - Apple", "TFA – Apple Pie" ve "TFA Cheesecake"
+ * tek bir A → Z dizisinde, harflere göre sıralanır.
+ */
+function nameSortKey(name: string): string {
+  return name
+    .normalize('NFKC')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .toLocaleLowerCase('tr');
+}
+
+const nameCollator = new Intl.Collator('tr', { numeric: true, sensitivity: 'base' });
+
+function compareNames(a: string, b: string): number {
+  return nameCollator.compare(nameSortKey(a), nameSortKey(b)) || a.localeCompare(b, 'tr');
+}
+
 export function applyFilters(source: Product[], f: FilterState): Product[] {
   let list = source.filter((p) => {
     if (f.categories.length && !p.categories.some((c) => f.categories.includes(c))) return false;
@@ -96,10 +115,10 @@ export function applyFilters(source: Product[], f: FilterState): Product[] {
       list = [...list].sort((a, b) => minVariantPrice(b) - minVariantPrice(a));
       break;
     case 'ad-artan':
-      list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'tr', { numeric: true }));
+      list = [...list].sort((a, b) => compareNames(a.name, b.name));
       break;
     case 'ad-azalan':
-      list = [...list].sort((a, b) => b.name.localeCompare(a.name, 'tr', { numeric: true }));
+      list = [...list].sort((a, b) => compareNames(b.name, a.name));
       break;
     case 'puan':
       list = [...list].sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);

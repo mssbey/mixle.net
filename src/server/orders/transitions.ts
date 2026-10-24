@@ -21,6 +21,7 @@ import {
   derivedStatuses,
   effectsOf,
   isOrderStatus,
+  TERMINAL_STATUSES,
   type OrderStatus,
 } from './state-machine';
 
@@ -38,6 +39,11 @@ export interface TransitionOptions {
   visibleToCustomer?: boolean;
   /** Yan etki e-postasını bastır (ör. webhook zaten göndermişse). */
   skipEmail?: boolean;
+  /**
+   * Panelden elle durum değişikliği: katı geçiş tablosu yerine her duruma
+   * izin verilir (iptal edilmiş siparişi yeniden açmak dahil).
+   */
+  manual?: boolean;
   meta?: Record<string, unknown>;
 }
 
@@ -68,14 +74,54 @@ export async function transitionOrder(
     if (!isOrderStatus(order.status)) throw new Error(`Bilinmeyen sipariş durumu: ${order.status}`);
 
     const from = order.status;
-    assertTransition(from, to);
+    assertTransition(from, to, options.manual);
     const effects = effectsOf(from, to);
+    const reopening = TERMINAL_STATUSES.includes(from) && !TERMINAL_STATUSES.includes(to);
+
+    if (reopening) {
+      // İptal/iade edilmiş sipariş yeniden açılıyor: iptalde geri verilen stok
+      // yeniden düşülür (iade edilmiş adetler hariç), kupon kullanımı geri gelir.
+      // İade edildi'den açılışta stok iade akışında yönetildiği için dokunulmaz.
+      for (const i of from === 'iptal' ? order.items : []) {
+        const qty = i.quantity - i.refundedQuantity;
+        if (!i.variantId || qty <= 0) continue;
+        const v = await tx.variant.findUnique({ where: { id: i.variantId }, select: { trackStock: true } });
+        if (!v?.trackStock) continue;
+        await tx.variant.update({
+          where: { id: i.variantId },
+          data: { stock: { decrement: qty }, version: { increment: 1 } },
+        });
+        const after = await tx.variant.findUnique({ where: { id: i.variantId }, select: { stock: true } });
+        await tx.stockMovement.create({
+          data: {
+            variantId: i.variantId,
+            delta: -qty,
+            reason: 'sipariş',
+            orderId: order.id,
+            createdByUserId: actor.userId ?? null,
+            note: 'İptal geri alındı',
+            stockAfter: after?.stock ?? 0,
+          },
+        });
+      }
+      if (order.couponCode) {
+        const restored = await tx.couponRedemption.updateMany({
+          where: { orderId: order.id, revokedAt: { not: null } },
+          data: { revokedAt: null },
+        });
+        if (restored.count > 0) {
+          await tx.coupon.updateMany({ where: { code: order.couponCode }, data: { usedCount: { increment: 1 } } });
+        }
+      }
+    }
 
     if (effects.commitStock) {
       await commitStock(tx, order.id, actor.userId ?? null);
     }
 
-    if (effects.releaseStock) {
+    // Sonlanmış durumlar arası geçişte (iptal ↔ iade edildi) stok ve kupon
+    // zaten geri verilmiş; ikinci kez verilmez.
+    if (effects.releaseStock && !TERMINAL_STATUSES.includes(from)) {
       // Ödenmemişse rezervasyon açıktır → geri ver. Ödenmişse (kesinleşmiş)
       // kalemlerden geri yükle. İade edilen adetler zaten iade akışında
       // stoka döndüğü için burada yalnız iade edilmemiş adetler yüklenir.
@@ -95,7 +141,7 @@ export async function transitionOrder(
       }
     }
 
-    if (effects.revokeCoupon && order.couponCode) {
+    if (effects.revokeCoupon && order.couponCode && !TERMINAL_STATUSES.includes(from)) {
       await tx.couponRedemption.updateMany({
         where: { orderId: order.id, revokedAt: null },
         data: { revokedAt: new Date() },
@@ -111,6 +157,7 @@ export async function transitionOrder(
     if (effects.stamp === 'paidAt' && !order.paidAt) stamps.paidAt = new Date();
     if (effects.stamp === 'cancelledAt') stamps.cancelledAt = new Date();
     if (effects.stamp === 'completedAt') stamps.completedAt = new Date();
+    if (from === 'iptal' && to !== 'iptal') stamps.cancelledAt = null;
 
     const updated = await tx.order.update({
       where: { id: order.id, version: order.version },

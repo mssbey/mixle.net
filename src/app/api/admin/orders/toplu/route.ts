@@ -29,7 +29,7 @@ export function POST(request: Request): Promise<Response> {
     for (const id of input.ids) {
       try {
         if (input.action === 'durum') {
-          await transitionOrder(id, input.to, { userId: user.id }, { note: input.note || 'Toplu işlem' });
+          await transitionOrder(id, input.to, { userId: user.id }, { note: input.note || 'Toplu işlem', manual: true });
         } else if (input.action === 'kargo') {
           await createShipment(id, { carrier: input.carrier, markShipped: true }, user, ip);
         } else {

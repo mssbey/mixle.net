@@ -354,7 +354,7 @@ function toAdminView(
 }
 
 // state-machine'den yeniden dışa aktarım (döngüsel import olmasın diye lokal)
-import { allowedTransitions as allowedFor } from './state-machine';
+import { manualTransitions as allowedFor } from './state-machine';
 
 // ------------------------------------------------------------- liste -------
 
